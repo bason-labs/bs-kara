@@ -157,6 +157,19 @@ export function useRoom(roomId: string | null) {
     await remove(ref(db, `rooms/${roomId}/queue/${next.queueId}`));
   }, [roomId]);
 
+  const clearRoom = useCallback(async () => {
+    if (!roomId) return;
+    await remove(ref(db, `rooms/${roomId}`));
+  }, [roomId]);
+
+  const sendEmoji = useCallback(
+    (emoji: string) => {
+      if (!roomId) return;
+      push(ref(db, `rooms/${roomId}/emojis`), { emoji, timestamp: Date.now() });
+    },
+    [roomId],
+  );
+
   // Restores the previous song from history, pushing currentPlaying back to queue front.
   const playPrevious = useCallback(async () => {
     if (!roomId) return;
@@ -204,5 +217,7 @@ export function useRoom(roomId: string | null) {
     setVolume,
     playNext,
     playPrevious,
+    sendEmoji,
+    clearRoom,
   };
 }

@@ -1,17 +1,31 @@
 'use client';
 
-import { Suspense, FormEvent, useState } from 'react';
+import { Suspense, FormEvent, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import ExitOutline from 'react-ionicons/lib/ExitOutline';
 import { YouTubeVideo } from '@/lib/youtube';
 import { useRoom } from '@/hooks/useRoom';
 import { SearchPanel } from './components/SearchPanel';
 import { ClientQueue } from './components/ClientQueue';
 import { RemoteControls } from './components/client/RemoteControls';
+import { EmojiPad } from './components/client/EmojiPad';
 
 function RemoteInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const roomCode = searchParams.get('room');
+
+  // Auto-redirect to saved room or persist current room in localStorage
+  useEffect(() => {
+    if (!roomCode) {
+      const saved = localStorage.getItem('karaoke_client_room');
+      if (saved) {
+        router.replace(`/?room=${saved}`);
+      }
+    } else {
+      localStorage.setItem('karaoke_client_room', roomCode);
+    }
+  }, [roomCode, router]);
 
   const [inputCode, setInputCode] = useState('');
   const {
@@ -23,6 +37,7 @@ function RemoteInner() {
     setVolume,
     playNext,
     playPrevious,
+    sendEmoji,
   } = useRoom(roomCode);
 
   function handleJoin(e: FormEvent) {
@@ -34,6 +49,11 @@ function RemoteInner() {
 
   function handleAddToQueue(video: YouTubeVideo) {
     addSongToQueue(video);
+  }
+
+  function handleLeave() {
+    localStorage.removeItem('karaoke_client_room');
+    router.push('/');
   }
 
   if (!roomCode) {
@@ -68,19 +88,11 @@ function RemoteInner() {
     <div className="h-[100dvh] w-full flex flex-col overflow-hidden bg-white">
       <header className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shrink-0">
         <button
-          onClick={() => router.push('/')}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+          onClick={handleLeave}
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Leave
+          <ExitOutline color="currentColor" width="16px" height="16px" />
+          Thoát phòng
         </button>
 
         <div className="flex items-center gap-2">
@@ -101,6 +113,7 @@ function RemoteInner() {
           <div className="flex-1 overflow-y-auto">
             <ClientQueue items={roomData.queue} isLoading={isLoading} onReorder={reorderQueue} />
           </div>
+          <EmojiPad onSendEmoji={sendEmoji} />
           <RemoteControls
             isPlaying={roomData.isPlaying}
             volume={roomData.volume}

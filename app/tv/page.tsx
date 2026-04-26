@@ -2,22 +2,50 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import MusicalNotesOutline from 'react-ionicons/lib/MusicalNotesOutline';
 import { useRoom } from '@/hooks/useRoom';
 import { VideoPlayer } from '../components/host/VideoPlayer';
+import { EmojiLayer } from '../components/host/EmojiLayer';
 
 export default function TVPage() {
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    setRoomCode(String(Math.floor(1000 + Math.random() * 9000)));
+    const fixed = process.env.NEXT_PUBLIC_FIXED_ROOM_ID;
+    let id: string;
+    if (fixed) {
+      id = fixed;
+    } else {
+      const saved = localStorage.getItem('karaoke_tv_room');
+      id = saved ?? String(Math.floor(1000 + Math.random() * 9000));
+    }
+    localStorage.setItem('karaoke_tv_room', id);
+    setRoomCode(id);
   }, []);
 
-  const { roomData, isLoading, playNext } = useRoom(roomCode);
+  const { roomData, isLoading, playNext, clearRoom } = useRoom(roomCode);
 
   const handleSongEnd = useCallback(() => {
     playNext();
   }, [playNext]);
+
+  const handleEndParty = useCallback(async () => {
+    await clearRoom();
+    localStorage.removeItem('karaoke_tv_room');
+    const newCode = String(Math.floor(1000 + Math.random() * 9000));
+    localStorage.setItem('karaoke_tv_room', newCode);
+    setRoomCode(newCode);
+  }, [clearRoom]);
+
+  const initialize = useCallback(() => setIsInitialized(true), []);
+
+  // Global keydown listener for TV remote / keyboard interaction
+  useEffect(() => {
+    if (isInitialized) return;
+    window.addEventListener('keydown', initialize);
+    return () => window.removeEventListener('keydown', initialize);
+  }, [isInitialized, initialize]);
 
   // Auto-promote the first queued song when nothing is playing
   useEffect(() => {
@@ -27,23 +55,49 @@ export default function TVPage() {
     }
   }, [isInitialized, roomData.currentPlaying, roomData.queue.length, playNext]);
 
-  if (!isInitialized) {
-    return (
-      <div className="h-[100dvh] w-full flex items-center justify-center bg-black">
-        <button
-          onClick={() => setIsInitialized(true)}
-          className="px-12 py-6 text-2xl font-bold text-black bg-white rounded-2xl hover:bg-gray-100 active:scale-95 transition-all"
-        >
-          Click to Start Party
-        </button>
-      </div>
-    );
-  }
+  const bgImageUrl = roomData.currentPlaying?.id
+    ? `https://img.youtube.com/vi/${roomData.currentPlaying.id}/maxresdefault.jpg`
+    : '';
 
   return (
-    <div className="h-[100dvh] w-full flex overflow-hidden bg-black text-white">
+    <div className="relative h-[100dvh] w-full flex overflow-hidden bg-black text-white">
+      {/* Ambient glow background layers */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-110 blur-[100px] opacity-60 transition-all duration-1000"
+          style={{ backgroundImage: bgImageUrl ? `url(${bgImageUrl})` : 'none' }}
+        />
+        <div className="absolute inset-0 bg-black/60" />
+      </div>
+
+      {/* Waiting Room overlay — fades out on first interaction */}
+      <div
+        onClick={initialize}
+        className={`absolute inset-0 z-50 flex flex-col items-center justify-center bg-gray-900 text-white transition-opacity duration-700 ${
+          isInitialized ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+      >
+        <p className="text-sm uppercase tracking-[0.3em] text-gray-400 mb-4">Karaoke Night</p>
+        <p className="text-2xl font-semibold text-gray-300 mb-2">Room</p>
+        <div className="text-8xl font-black tracking-[0.25em] tabular-nums mb-10">
+          {roomCode ?? '----'}
+        </div>
+
+        {/* QR placeholder */}
+        <div className="w-36 h-36 bg-white rounded-2xl flex items-center justify-center mb-10">
+          <div className="text-center">
+            <div className="text-gray-400 text-xs font-medium leading-tight">Scan<br />to join</div>
+          </div>
+        </div>
+
+        <p className="text-gray-500 text-sm animate-pulse">
+          Click anywhere or press any key to start the party&hellip;
+        </p>
+      </div>
+
+      {roomCode && <EmojiLayer roomId={roomCode} />}
       {/* Left: Video Player */}
-      <div className="flex-1 min-w-0 overflow-hidden">
+      <div className="relative z-10 flex-1 min-w-0 overflow-hidden">
         {isLoading ? (
           <div className="w-full h-full flex items-center justify-center">
             <div className="w-12 h-12 rounded-full border-4 border-gray-700 border-t-gray-400 animate-spin" />
@@ -57,9 +111,7 @@ export default function TVPage() {
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-gray-600">
-            <svg className="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-            </svg>
+            <MusicalNotesOutline color="#4b5563" width="64px" height="64px" />
             <p className="text-lg">Waiting for songs&hellip;</p>
             <p className="text-sm text-gray-700">Add songs from your phone using room code below</p>
           </div>
@@ -67,7 +119,7 @@ export default function TVPage() {
       </div>
 
       {/* Right: Queue Panel */}
-      <div className="w-72 flex flex-col bg-gray-900 border-l border-gray-700 shrink-0">
+      <div className="relative z-10 w-72 flex flex-col bg-gray-900/80 border-l border-gray-700 shrink-0">
         {/* Room code */}
         <div className="p-5 border-b border-gray-700">
           <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Room Code</p>
@@ -134,6 +186,15 @@ export default function TVPage() {
               ))}
             </ul>
           )}
+        </div>
+        {/* End Party */}
+        <div className="p-4 border-t border-gray-800">
+          <button
+            onClick={handleEndParty}
+            className="w-full py-2 text-xs text-gray-600 hover:text-red-400 hover:border-red-800 border border-gray-800 rounded-lg transition-colors"
+          >
+            End Party
+          </button>
         </div>
       </div>
     </div>

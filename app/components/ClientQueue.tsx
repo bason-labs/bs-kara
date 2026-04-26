@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { GripVertical } from 'lucide-react';
+import ReorderTwoOutline from 'react-ionicons/lib/ReorderTwoOutline';
 import { QueueItem } from '@/lib/youtube';
 
 interface ClientQueueProps {
@@ -79,7 +79,7 @@ export function ClientQueue({ items, isLoading, onReorder }: ClientQueueProps) {
                             {...drag.dragHandleProps}
                             className="flex-shrink-0 flex items-center text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing"
                           >
-                            <GripVertical size={14} />
+                            <ReorderTwoOutline color="currentColor" width="16px" height="16px" />
                           </div>
 
                           <span className="flex-shrink-0 w-5 text-xs text-gray-400 font-mono pt-0.5 text-center">
