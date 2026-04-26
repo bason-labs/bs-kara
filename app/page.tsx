@@ -1,8 +1,9 @@
 'use client';
 
-import { Suspense, useState, FormEvent } from 'react';
+import { Suspense, FormEvent, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { QueueItem, YouTubeVideo } from '@/lib/youtube';
+import { YouTubeVideo } from '@/lib/youtube';
+import { useRoom } from '@/hooks/useRoom';
 import { SearchPanel } from './components/SearchPanel';
 import { ClientQueue } from './components/ClientQueue';
 
@@ -12,7 +13,7 @@ function RemoteInner() {
   const roomCode = searchParams.get('room');
 
   const [inputCode, setInputCode] = useState('');
-  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const { roomData, addSongToQueue } = useRoom(roomCode);
 
   function handleJoin(e: FormEvent) {
     e.preventDefault();
@@ -22,10 +23,7 @@ function RemoteInner() {
   }
 
   function handleAddToQueue(video: YouTubeVideo) {
-    setQueue((prev) => [
-      ...prev,
-      { ...video, queueId: `${video.id}-${Date.now()}` },
-    ]);
+    addSongToQueue(video);
   }
 
   if (!roomCode) {
@@ -90,7 +88,7 @@ function RemoteInner() {
           <SearchPanel onAdd={handleAddToQueue} />
         </div>
         <div className="w-1/3 overflow-y-auto bg-gray-50 border-l border-gray-200">
-          <ClientQueue items={queue} />
+          <ClientQueue items={roomData.queue} />
         </div>
       </div>
     </div>
