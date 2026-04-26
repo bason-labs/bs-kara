@@ -6,6 +6,7 @@ import { YouTubeVideo } from '@/lib/youtube';
 import { useRoom } from '@/hooks/useRoom';
 import { SearchPanel } from './components/SearchPanel';
 import { ClientQueue } from './components/ClientQueue';
+import { RemoteControls } from './components/client/RemoteControls';
 
 function RemoteInner() {
   const searchParams = useSearchParams();
@@ -13,7 +14,16 @@ function RemoteInner() {
   const roomCode = searchParams.get('room');
 
   const [inputCode, setInputCode] = useState('');
-  const { roomData, addSongToQueue } = useRoom(roomCode);
+  const {
+    roomData,
+    isLoading,
+    addSongToQueue,
+    reorderQueue,
+    togglePlayPause,
+    setVolume,
+    playNext,
+    playPrevious,
+  } = useRoom(roomCode);
 
   function handleJoin(e: FormEvent) {
     e.preventDefault();
@@ -87,8 +97,21 @@ function RemoteInner() {
         <div className="flex-1 overflow-y-auto">
           <SearchPanel onAdd={handleAddToQueue} />
         </div>
-        <div className="w-1/3 overflow-y-auto bg-gray-50 border-l border-gray-200">
-          <ClientQueue items={roomData.queue} />
+        <div className="w-1/3 flex flex-col bg-gray-50 border-l border-gray-200 overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
+            <ClientQueue items={roomData.queue} isLoading={isLoading} onReorder={reorderQueue} />
+          </div>
+          <RemoteControls
+            isPlaying={roomData.isPlaying}
+            volume={roomData.volume}
+            hasHistory={roomData.history.length > 0}
+            hasQueue={roomData.queue.length > 0}
+            currentPlaying={roomData.currentPlaying}
+            onTogglePlayPause={() => togglePlayPause(roomData.isPlaying)}
+            onVolumeChange={setVolume}
+            onPrev={playPrevious}
+            onNext={playNext}
+          />
         </div>
       </div>
     </div>

@@ -10,6 +10,13 @@ export interface QueueItem extends YouTubeVideo {
   queueId: string;
 }
 
+function decodeHTMLEntities(text: string): string {
+  if (typeof document === 'undefined') return text;
+  const el = document.createElement('textarea');
+  el.innerHTML = text;
+  return el.value;
+}
+
 export async function searchYouTube(query: string): Promise<YouTubeVideo[]> {
   const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
   if (!apiKey) {
@@ -42,7 +49,7 @@ export async function searchYouTube(query: string): Promise<YouTubeVideo[]> {
         };
       }) => ({
         id: item.id.videoId,
-        title: item.snippet.title,
+        title: decodeHTMLEntities(item.snippet.title),
         channel: item.snippet.channelTitle,
         thumbnail: item.snippet.thumbnails.medium.url,
         duration: '',

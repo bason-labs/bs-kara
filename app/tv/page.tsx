@@ -13,7 +13,7 @@ export default function TVPage() {
     setRoomCode(String(Math.floor(1000 + Math.random() * 9000)));
   }, []);
 
-  const { roomData, playNext } = useRoom(roomCode);
+  const { roomData, isLoading, playNext } = useRoom(roomCode);
 
   const handleSongEnd = useCallback(() => {
     playNext();
@@ -44,11 +44,16 @@ export default function TVPage() {
     <div className="h-[100dvh] w-full flex overflow-hidden bg-black text-white">
       {/* Left: Video Player */}
       <div className="flex-1 min-w-0 overflow-hidden">
-        {roomData.currentPlaying ? (
+        {isLoading ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full border-4 border-gray-700 border-t-gray-400 animate-spin" />
+          </div>
+        ) : roomData.currentPlaying ? (
           <VideoPlayer
             videoId={roomData.currentPlaying.id}
             onSongEnd={handleSongEnd}
-            isPlaying={true}
+            isPlaying={roomData.isPlaying}
+            volume={roomData.volume}
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-gray-600">
@@ -90,7 +95,20 @@ export default function TVPage() {
             )}
           </p>
 
-          {roomData.queue.length === 0 ? (
+          {isLoading ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex gap-2 items-center animate-pulse">
+                  <div className="w-4 h-3 bg-gray-700 rounded shrink-0" />
+                  <div className="w-14 h-8 bg-gray-700 rounded shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-2.5 bg-gray-700 rounded w-full" />
+                    <div className="h-2.5 bg-gray-700 rounded w-2/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : roomData.queue.length === 0 ? (
             <p className="text-sm text-gray-600 text-center py-8">Queue is empty</p>
           ) : (
             <ul className="space-y-2">

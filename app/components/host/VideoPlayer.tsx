@@ -7,9 +7,10 @@ interface VideoPlayerProps {
   videoId: string;
   onSongEnd: () => void;
   isPlaying: boolean;
+  volume: number;
 }
 
-export function VideoPlayer({ videoId, onSongEnd, isPlaying }: VideoPlayerProps) {
+export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume }: VideoPlayerProps) {
   const playerRef = useRef<YouTubePlayer | null>(null);
   // Track isPlaying in a ref so the videoId effect can read it without being a dependency
   const isPlayingRef = useRef(isPlaying);
@@ -24,6 +25,12 @@ export function VideoPlayer({ videoId, onSongEnd, isPlaying }: VideoPlayerProps)
       player.pauseVideo();
     }
   }, [isPlaying]);
+
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    player.setVolume(volume);
+  }, [volume]);
 
   useEffect(() => {
     const player = playerRef.current as any; // loadVideoById/cueVideoById not in YouTubePlayer type
