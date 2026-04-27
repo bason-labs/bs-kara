@@ -3,7 +3,8 @@
     "title": "Karaoke Remote",
     "subtitle": "Enter the room code shown on the TV",
     "roomCodePlaceholder": "0000",
-    "joinButton": "Join Room"
+    "joinButton": "Join Room",
+    "appHeading": "Karaoke Party"
   },
   "header": {
     "leaveButton": "Leave Room",

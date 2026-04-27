@@ -3,7 +3,8 @@
     "title": "Karaoke Remote",
     "subtitle": "Nhập mã phòng hiển thị trên TV",
     "roomCodePlaceholder": "0000",
-    "joinButton": "Vào phòng"
+    "joinButton": "Vào phòng",
+    "appHeading": "Karaoke Party"
   },
   "header": {
     "leaveButton": "Thoát phòng",
