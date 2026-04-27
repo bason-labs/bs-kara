@@ -1,0 +1,52 @@
+{
+  "home": {
+    "title": "Karaoke Remote",
+    "subtitle": "Nhập mã phòng hiển thị trên TV",
+    "roomCodePlaceholder": "0000",
+    "joinButton": "Vào phòng"
+  },
+  "header": {
+    "leaveButton": "Thoát phòng",
+    "roomLabel": "Phòng"
+  },
+  "tv": {
+    "heading": "Karaoke Night",
+    "roomLabel": "Phòng",
+    "qrHint": "Quét\nđể tham gia",
+    "startPrompt": "Nhấn vào bất kỳ đâu hoặc bấm phím để bắt đầu…",
+    "waitingMessage": "Đang chờ bài hát…",
+    "addSongsHint": "Thêm bài hát từ điện thoại bằng mã phòng bên dưới",
+    "roomCodeLabel": "Mã phòng",
+    "roomCodeHint": "Nhập trên điện thoại để tham gia",
+    "qrLabel": "Mã QR",
+    "queueLabel": "Tiếp theo",
+    "emptyQueueMessage": "Hàng chờ trống",
+    "endPartyButton": "Kết thúc"
+  },
+  "search": {
+    "placeholder": "Tìm kiếm bài hát...",
+    "submitAriaLabel": "Tìm kiếm",
+    "clearAriaLabel": "Xoá tìm kiếm",
+    "voiceAriaLabel": "Tìm bằng giọng nói",
+    "closeVoiceAriaLabel": "Đóng tìm kiếm giọng nói",
+    "voiceNotSupported": "Trình duyệt này không hỗ trợ tìm kiếm bằng giọng nói.",
+    "listeningMessage": "Đang nghe...",
+    "hotHitsLabel": "Bài hát karaoke hot",
+    "noResults": "Không tìm thấy kết quả",
+    "addToQueueButton": "+ Thêm vào hàng chờ"
+  },
+  "queue": {
+    "title": "Hàng chờ",
+    "emptyMessage": "Hàng chờ trống"
+  },
+  "controls": {
+    "playLabel": "Phát",
+    "pauseLabel": "Tạm dừng",
+    "previousLabel": "Trước",
+    "nextLabel": "Tiếp",
+    "volumeLabel": "Âm lượng"
+  },
+  "emoji": {
+    "sendAriaLabel": "Gửi {{emoji}}"
+  }
+}

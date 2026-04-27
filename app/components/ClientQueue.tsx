@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { useTranslation } from 'react-i18next';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import ReorderTwoOutline from 'react-ionicons/lib/ReorderTwoOutline';
+import { GripVertical } from 'lucide-react';
 import { QueueItem } from '@/lib/youtube';
 
 interface ClientQueueProps {
@@ -13,6 +14,7 @@ interface ClientQueueProps {
 }
 
 export function ClientQueue({ items, isLoading, onReorder }: ClientQueueProps) {
+  const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export function ClientQueue({ items, isLoading, onReorder }: ClientQueueProps) {
     <div className="flex flex-col h-full">
       <div className="sticky top-0 z-10 px-4 py-3 bg-gray-50 border-b border-gray-200">
         <h2 className="text-sm font-semibold text-gray-700">
-          Queue{' '}
+          {t('queue.title')}{' '}
           {!isLoading && items.length > 0 && (
             <span className="ml-1 text-xs font-normal text-gray-400">
               ({items.length})
@@ -55,7 +57,7 @@ export function ClientQueue({ items, isLoading, onReorder }: ClientQueueProps) {
         ) : (
           <>
             {items.length === 0 && (
-              <p className="text-xs text-gray-400 text-center mt-8">Queue is empty</p>
+              <p className="text-xs text-gray-400 text-center mt-8">{t('queue.emptyMessage')}</p>
             )}
 
         {mounted ? (
@@ -79,7 +81,7 @@ export function ClientQueue({ items, isLoading, onReorder }: ClientQueueProps) {
                             {...drag.dragHandleProps}
                             className="flex-shrink-0 flex items-center text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing"
                           >
-                            <ReorderTwoOutline color="currentColor" width="16px" height="16px" />
+                            <GripVertical size={16} />
                           </div>
 
                           <span className="flex-shrink-0 w-5 text-xs text-gray-400 font-mono pt-0.5 text-center">

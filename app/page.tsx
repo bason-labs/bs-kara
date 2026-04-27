@@ -2,7 +2,8 @@
 
 import { Suspense, FormEvent, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import ExitOutline from 'react-ionicons/lib/ExitOutline';
+import { useTranslation } from 'react-i18next';
+import { LogOut } from 'lucide-react';
 import { YouTubeVideo } from '@/lib/youtube';
 import { useRoom } from '@/hooks/useRoom';
 import { SearchPanel } from './components/SearchPanel';
@@ -11,6 +12,7 @@ import { RemoteControls } from './components/client/RemoteControls';
 import { EmojiPad } from './components/client/EmojiPad';
 
 function RemoteInner() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const router = useRouter();
   const roomCode = searchParams.get('room');
@@ -59,8 +61,8 @@ function RemoteInner() {
   if (!roomCode) {
     return (
       <div className="h-[100dvh] w-full flex flex-col items-center justify-center bg-white px-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Karaoke Remote</h1>
-        <p className="text-sm text-gray-500 mb-8">Enter the room code shown on the TV</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('home.title')}</h1>
+        <p className="text-sm text-gray-500 mb-8">{t('home.subtitle')}</p>
         <form onSubmit={handleJoin} className="flex flex-col gap-4 w-full max-w-xs">
           <input
             type="text"
@@ -69,7 +71,7 @@ function RemoteInner() {
             maxLength={4}
             value={inputCode}
             onChange={(e) => setInputCode(e.target.value.replace(/\D/g, ''))}
-            placeholder="0000"
+            placeholder={t('home.roomCodePlaceholder')}
             className="w-full px-4 py-3 text-center text-3xl font-bold tracking-[0.4em] border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500"
           />
           <button
@@ -77,7 +79,7 @@ function RemoteInner() {
             disabled={inputCode.length !== 4}
             className="w-full py-3 text-base font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            Join Room
+            {t('home.joinButton')}
           </button>
         </form>
       </div>
@@ -91,12 +93,12 @@ function RemoteInner() {
           onClick={handleLeave}
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors"
         >
-          <ExitOutline color="currentColor" width="16px" height="16px" />
-          Thoát phòng
+          <LogOut size={16} />
+          {t('header.leaveButton')}
         </button>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Room</span>
+          <span className="text-xs text-gray-400">{t('header.roomLabel')}</span>
           <span className="px-2.5 py-1 text-sm font-bold text-indigo-700 bg-indigo-50 rounded-lg tracking-widest">
             {roomCode}
           </span>

@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import MusicalNotesOutline from 'react-ionicons/lib/MusicalNotesOutline';
+import { useTranslation } from 'react-i18next';
+import { Music } from 'lucide-react';
 import { useRoom } from '@/hooks/useRoom';
 import { VideoPlayer } from '../components/host/VideoPlayer';
 import { EmojiLayer } from '../components/host/EmojiLayer';
 
 export default function TVPage() {
+  const { t } = useTranslation();
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -77,8 +79,8 @@ export default function TVPage() {
           isInitialized ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
-        <p className="text-sm uppercase tracking-[0.3em] text-gray-400 mb-4">Karaoke Night</p>
-        <p className="text-2xl font-semibold text-gray-300 mb-2">Room</p>
+        <p className="text-sm uppercase tracking-[0.3em] text-gray-400 mb-4">{t('tv.heading')}</p>
+        <p className="text-2xl font-semibold text-gray-300 mb-2">{t('tv.roomLabel')}</p>
         <div className="text-8xl font-black tracking-[0.25em] tabular-nums mb-10">
           {roomCode ?? '----'}
         </div>
@@ -86,12 +88,12 @@ export default function TVPage() {
         {/* QR placeholder */}
         <div className="w-36 h-36 bg-white rounded-2xl flex items-center justify-center mb-10">
           <div className="text-center">
-            <div className="text-gray-400 text-xs font-medium leading-tight">Scan<br />to join</div>
+            <div className="text-gray-400 text-xs font-medium leading-tight whitespace-pre-line">{t('tv.qrHint')}</div>
           </div>
         </div>
 
         <p className="text-gray-500 text-sm animate-pulse">
-          Click anywhere or press any key to start the party&hellip;
+          {t('tv.startPrompt')}
         </p>
       </div>
 
@@ -111,9 +113,9 @@ export default function TVPage() {
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-gray-600">
-            <MusicalNotesOutline color="#4b5563" width="64px" height="64px" />
-            <p className="text-lg">Waiting for songs&hellip;</p>
-            <p className="text-sm text-gray-700">Add songs from your phone using room code below</p>
+            <Music size={64} color="#4b5563" />
+            <p className="text-lg">{t('tv.waitingMessage')}</p>
+            <p className="text-sm text-gray-700">{t('tv.addSongsHint')}</p>
           </div>
         )}
       </div>
@@ -122,24 +124,24 @@ export default function TVPage() {
       <div className="relative z-10 w-72 flex flex-col bg-gray-900/80 border-l border-gray-700 shrink-0">
         {/* Room code */}
         <div className="p-5 border-b border-gray-700">
-          <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Room Code</p>
+          <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">{t('tv.roomCodeLabel')}</p>
           <div className="text-5xl font-bold tracking-[0.2em] tabular-nums">
             {roomCode ?? '----'}
           </div>
-          <p className="mt-2 text-xs text-gray-500">Enter on your phone to join</p>
+          <p className="mt-2 text-xs text-gray-500">{t('tv.roomCodeHint')}</p>
         </div>
 
         {/* QR placeholder */}
         <div className="p-4 border-b border-gray-700">
           <div className="aspect-square bg-gray-800 rounded-xl flex items-center justify-center text-gray-500 text-sm">
-            QR Code
+            {t('tv.qrLabel')}
           </div>
         </div>
 
         {/* Queue */}
         <div className="flex-1 overflow-y-auto p-4">
           <p className="text-xs text-gray-400 uppercase tracking-widest mb-3">
-            Up Next
+            {t('tv.queueLabel')}
             {roomData.queue.length > 0 && (
               <span className="ml-1.5 text-gray-600 normal-case tracking-normal">
                 ({roomData.queue.length})
@@ -161,7 +163,7 @@ export default function TVPage() {
               ))}
             </div>
           ) : roomData.queue.length === 0 ? (
-            <p className="text-sm text-gray-600 text-center py-8">Queue is empty</p>
+            <p className="text-sm text-gray-600 text-center py-8">{t('tv.emptyQueueMessage')}</p>
           ) : (
             <ul className="space-y-2">
               {roomData.queue.map((item, i) => (
@@ -193,7 +195,7 @@ export default function TVPage() {
             onClick={handleEndParty}
             className="w-full py-2 text-xs text-gray-600 hover:text-red-400 hover:border-red-800 border border-gray-800 rounded-lg transition-colors"
           >
-            End Party
+            {t('tv.endPartyButton')}
           </button>
         </div>
       </div>

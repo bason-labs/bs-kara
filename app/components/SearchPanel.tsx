@@ -2,9 +2,8 @@
 
 import { useState, FormEvent, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import MicOutline from 'react-ionicons/lib/MicOutline';
-import SearchOutline from 'react-ionicons/lib/SearchOutline';
-import CloseOutline from 'react-ionicons/lib/CloseOutline';
+import { useTranslation } from 'react-i18next';
+import { Mic, Search, X } from 'lucide-react';
 import { useDebounce } from 'use-debounce';
 import { searchYouTube, YouTubeVideo } from '@/lib/youtube';
 import { DEFAULT_HOT_HITS_QUERY } from '@/lib/config';
@@ -15,6 +14,7 @@ interface SearchPanelProps {
 }
 
 export function SearchPanel({ onAdd }: SearchPanelProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<YouTubeVideo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -25,6 +25,7 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   const [debouncedQuery] = useDebounce(query, 300);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -111,7 +112,7 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert('Voice search is not supported in this browser.');
+      alert(t('search.voiceNotSupported'));
       return;
     }
     const recognition = new SpeechRecognition();
@@ -211,7 +212,7 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
             <button
               type="button"
               onClick={closeVoicePopup}
-              aria-label="Close voice search"
+              aria-label={t('search.closeVoiceAriaLabel')}
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 p-1"
             >
               <svg
@@ -230,12 +231,12 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
               </svg>
             </button>
             <h2 className="text-3xl font-medium text-gray-900 pr-10">
-              {interimTranscript || 'Listening...'}
+              {interimTranscript || t('search.listeningMessage')}
             </h2>
             <div className="flex-1 flex items-center justify-center">
               <div className="rounded-full bg-gray-100 p-5">
                 <div className="mic-pulse w-20 h-20 rounded-full bg-red-600 flex items-center justify-center">
-                  <MicOutline color="#ffffff" width="36px" height="36px" />
+                  <Mic size={36} color="#ffffff" />
                 </div>
               </div>
             </div>
@@ -245,9 +246,11 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
       <div className="sticky top-0 z-10 p-4 bg-black border-b border-zinc-800">
         <form onSubmit={handleSubmit} className="flex items-center">
           <div ref={wrapperRef} className="relative flex items-center flex-1">
-            <span className="absolute left-4 flex items-center pointer-events-none">
-              <SearchOutline color="#9ca3af" width="18px" height="18px" />
-            </span>
+            {isFocused && (
+              <span className="absolute left-4 flex items-center pointer-events-none">
+                <Search size={18} color="#9ca3af" />
+              </span>
+            )}
             <input
               ref={inputRef}
               type="text"
@@ -256,9 +259,13 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
                 setQuery(e.target.value);
                 setShowSuggestions(true);
               }}
-              onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-              placeholder="Search"
-              className="w-full pl-11 pr-10 py-2 text-sm bg-[#121212] text-white placeholder-zinc-500 border border-zinc-700 rounded-l-full focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              onFocus={() => {
+                setIsFocused(true);
+                if (suggestions.length > 0) setShowSuggestions(true);
+              }}
+              onBlur={() => setIsFocused(false)}
+              placeholder={t('search.placeholder')}
+              className={`w-full ${isFocused ? 'pl-11' : 'pl-4'} pr-10 py-2 text-sm bg-[#121212] text-white placeholder-zinc-500 border border-zinc-700 rounded-l-full focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500`}
             />
             {query.length > 0 && (
               <button
@@ -270,10 +277,10 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
                   setShowSuggestions(false);
                   inputRef.current?.focus();
                 }}
-                aria-label="Clear search"
+                aria-label={t('search.clearAriaLabel')}
                 className="absolute right-2 p-1 rounded-full hover:bg-zinc-800 cursor-pointer"
               >
-                <CloseOutline color="#ffffff" width="20px" height="20px" />
+                <X size={20} color="#ffffff" />
               </button>
             )}
             {showSuggestions && suggestions.length > 0 && (
@@ -284,12 +291,7 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
                     onMouseDown={() => handleSuggestionClick(s)}
                     className="px-4 py-2 text-sm text-white cursor-pointer hover:bg-zinc-700 flex items-center gap-3"
                   >
-                    <SearchOutline
-                      color="#9ca3af"
-                      width="16px"
-                      height="16px"
-                      cssClasses="flex-shrink-0"
-                    />
+                    <Search size={16} color="#9ca3af" className="flex-shrink-0" />
                     {s}
                   </li>
                 ))}
@@ -299,19 +301,19 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
           <button
             type="submit"
             disabled={loading}
-            aria-label="Search"
+            aria-label={t('search.submitAriaLabel')}
             className="px-5 py-[9px] -ml-px bg-[#222222] border border-zinc-700 rounded-r-full hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
           >
-            <SearchOutline color="#ffffff" width="20px" height="20px" />
+            <Search size={20} color="#ffffff" />
           </button>
           <button
             type="button"
             onClick={startVoiceSearch}
             disabled={isListening}
-            aria-label="Voice search"
+            aria-label={t('search.voiceAriaLabel')}
             className="ml-3 rounded-full bg-[#222222] p-2.5 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
           >
-            <MicOutline color="#ffffff" width="20px" height="20px" />
+            <Mic size={20} color="#ffffff" />
           </button>
         </form>
       </div>
@@ -323,12 +325,12 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
         {!isInitialLoading && !loading && showingHotHits && results.length > 0 && (
           <div className="flex items-center gap-2 px-1 pb-1">
             <span className="text-base">🔥</span>
-            <h2 className="text-sm font-semibold text-gray-700">Hot Karaoke Hits</h2>
+            <h2 className="text-sm font-semibold text-gray-700">{t('search.hotHitsLabel')}</h2>
           </div>
         )}
 
         {!isInitialLoading && !loading && searched && results.length === 0 && (
-          <p className="text-sm text-gray-400 text-center mt-8">No results found</p>
+          <p className="text-sm text-gray-400 text-center mt-8">{t('search.noResults')}</p>
         )}
 
         {!isInitialLoading && !loading && results.map((video) => (
@@ -358,7 +360,7 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
                   onClick={() => onAdd(video)}
                   className="px-3 py-1 text-xs font-medium text-indigo-600 border border-indigo-300 rounded-full hover:bg-indigo-50 transition-colors"
                 >
-                  + Add to Queue
+                  {t('search.addToQueueButton')}
                 </button>
               </div>
             </div>

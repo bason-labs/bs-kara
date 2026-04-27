@@ -1,0 +1,52 @@
+{
+  "home": {
+    "title": "Karaoke Remote",
+    "subtitle": "Enter the room code shown on the TV",
+    "roomCodePlaceholder": "0000",
+    "joinButton": "Join Room"
+  },
+  "header": {
+    "leaveButton": "Leave Room",
+    "roomLabel": "Room"
+  },
+  "tv": {
+    "heading": "Karaoke Night",
+    "roomLabel": "Room",
+    "qrHint": "Scan\nto join",
+    "startPrompt": "Click anywhere or press any key to start the party…",
+    "waitingMessage": "Waiting for songs…",
+    "addSongsHint": "Add songs from your phone using room code below",
+    "roomCodeLabel": "Room Code",
+    "roomCodeHint": "Enter on your phone to join",
+    "qrLabel": "QR Code",
+    "queueLabel": "Up Next",
+    "emptyQueueMessage": "Queue is empty",
+    "endPartyButton": "End Party"
+  },
+  "search": {
+    "placeholder": "Search",
+    "submitAriaLabel": "Search",
+    "clearAriaLabel": "Clear search",
+    "voiceAriaLabel": "Voice search",
+    "closeVoiceAriaLabel": "Close voice search",
+    "voiceNotSupported": "Voice search is not supported in this browser.",
+    "listeningMessage": "Listening...",
+    "hotHitsLabel": "Hot Karaoke Hits",
+    "noResults": "No results found",
+    "addToQueueButton": "+ Add to Queue"
+  },
+  "queue": {
+    "title": "Queue",
+    "emptyMessage": "Queue is empty"
+  },
+  "controls": {
+    "playLabel": "Play",
+    "pauseLabel": "Pause",
+    "previousLabel": "Previous",
+    "nextLabel": "Next",
+    "volumeLabel": "Volume"
+  },
+  "emoji": {
+    "sendAriaLabel": "Send {{emoji}}"
+  }
+}

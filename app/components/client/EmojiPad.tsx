@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
 import { REACTIONS, getGifUrl } from '@/lib/reactions';
 
 interface EmojiPadProps {
@@ -7,13 +8,14 @@ interface EmojiPadProps {
 }
 
 export function EmojiPad({ onSendEmoji }: EmojiPadProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex justify-around items-center px-3 py-2.5 bg-black/80 backdrop-blur-sm border-t border-white/10">
       {REACTIONS.map((emoji) => (
         <button
           key={emoji}
           onClick={() => onSendEmoji(emoji)}
-          aria-label={`Send ${emoji}`}
+          aria-label={t('emoji.sendAriaLabel', { emoji })}
           className="
             flex items-center justify-center w-12 h-12 rounded-full
             cursor-pointer transition-all duration-200

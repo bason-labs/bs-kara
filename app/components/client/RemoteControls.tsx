@@ -1,10 +1,7 @@
 'use client';
 
-import PlayOutline from 'react-ionicons/lib/PlayOutline';
-import PauseOutline from 'react-ionicons/lib/PauseOutline';
-import PlaySkipForwardOutline from 'react-ionicons/lib/PlaySkipForwardOutline';
-import PlaySkipBackOutline from 'react-ionicons/lib/PlaySkipBackOutline';
-import VolumeHighOutline from 'react-ionicons/lib/VolumeHighOutline';
+import { Play, Pause, SkipForward, SkipBack, Volume2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { YouTubeVideo } from '@/lib/youtube';
 
 interface RemoteControlsProps {
@@ -30,6 +27,7 @@ export function RemoteControls({
   onPrev,
   onNext,
 }: RemoteControlsProps) {
+  const { t } = useTranslation();
   return (
     <div className="shrink-0 bg-black/80 backdrop-blur-sm px-3 py-2.5">
       <div className="flex items-center gap-2">
@@ -38,12 +36,12 @@ export function RemoteControls({
           <button
             onClick={onTogglePlayPause}
             className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 active:scale-90 transition-all"
-            aria-label={isPlaying ? 'Pause' : 'Play'}
+            aria-label={isPlaying ? t('controls.pauseLabel') : t('controls.playLabel')}
           >
             {isPlaying ? (
-              <PauseOutline color="#ffffff" width="20px" height="20px" />
+              <Pause size={20} color="#ffffff" />
             ) : (
-              <PlayOutline color="#ffffff" width="20px" height="20px" />
+              <Play size={20} color="#ffffff" />
             )}
           </button>
 
@@ -51,24 +49,24 @@ export function RemoteControls({
             onClick={onPrev}
             disabled={!hasHistory}
             className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-90 transition-all disabled:opacity-30"
-            aria-label="Previous"
+            aria-label={t('controls.previousLabel')}
           >
-            <PlaySkipBackOutline color="#ffffff" width="20px" height="20px" />
+            <SkipBack size={20} color="#ffffff" />
           </button>
 
           <button
             onClick={onNext}
             disabled={!hasQueue}
             className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-90 transition-all disabled:opacity-30"
-            aria-label="Next"
+            aria-label={t('controls.nextLabel')}
           >
-            <PlaySkipForwardOutline color="#ffffff" width="20px" height="20px" />
+            <SkipForward size={20} color="#ffffff" />
           </button>
         </div>
 
         {/* Volume */}
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <VolumeHighOutline color="#ffffff" width="18px" height="18px" />
+          <Volume2 size={18} color="#ffffff" />
           <input
             type="range"
             min={0}
@@ -77,7 +75,7 @@ export function RemoteControls({
             value={volume}
             onChange={(e) => onVolumeChange(Number(e.target.value))}
             className="flex-1 h-1.5 appearance-none rounded-full cursor-pointer accent-white bg-white/30"
-            aria-label="Volume"
+            aria-label={t('controls.volumeLabel')}
           />
         </div>
 
