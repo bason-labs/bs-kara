@@ -1,26 +1,153 @@
 @import "tailwindcss";
 
+/* Make `dark:` utilities respond to our data-theme attribute, not just OS. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ─── Deep Sea Karaoke palette ─────────────────────────────────────────────
+   Light mode is the default. The ThemeProvider sets data-theme="dark" on
+   <html> when the resolved theme is dark, which flips every token below.
+   ────────────────────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces — cool slate-gray scale (shares blue undertones with the teal
+     brand so the gradient still feels of-a-piece, but without tinting the
+     entire page). */
+  --bg: #f7f8fa;            /* page */
+  --surface: #ffffff;       /* cards, inputs */
+  --surface-2: #f1f4f8;     /* hover, inset, skeletons */
+  --border: #e3e7ec;        /* dividers, card outlines */
+
+  /* Text */
+  --fg: #0f172a;            /* slate-900 — cool near-black */
+  --muted: #64748b;         /* slate-500 */
+
+  /* Brand & accents */
+  --brand: #006d6f;         /* Caribbean Current */
+  --brand-2: #008b8b;       /* Dark Cyan */
+  --glow: #0d98ba;          /* Blue-Green */
+  --accent: #15a3c7;        /* Cyan Blue */
+  --danger: #c92d3a;
+
+  /* Derived effects */
+  --gradient-brand: linear-gradient(135deg, #008b8b 0%, #006d6f 60%, #0d98ba 100%);
+  --shadow-glow: 0 0 24px -4px rgba(13, 152, 186, 0.45);
+  --ring-focus: 0 0 0 3px rgba(13, 152, 186, 0.35);
 }
 
+[data-theme="dark"] {
+  /* Surfaces */
+  --bg: #06100f;
+  --surface: #0e1c1c;
+  --surface-2: #152a2a;
+  --border: #1f3a3a;
+
+  /* Text */
+  --fg: #e0ffff;            /* Light Cyan */
+  --muted: #7aa8a8;
+
+  /* Brand & accents (brighter on dark) */
+  --brand: #008b8b;         /* Dark Cyan */
+  --brand-2: #006d6f;       /* Caribbean Current */
+  --glow: #7df9ff;          /* Electric Blue */
+  --accent: #40e0d0;        /* Turquoise */
+  --danger: #ff5f6d;
+
+  --gradient-brand: linear-gradient(135deg, #008b8b 0%, #006d6f 60%, #0d98ba 100%);
+  --shadow-glow: 0 0 24px -4px rgba(125, 249, 255, 0.55);
+  --ring-focus: 0 0 0 3px rgba(125, 249, 255, 0.45);
+}
+
+/* Tailwind v4 token bridge — exposes utilities like `bg-surface`, `text-fg`,
+   `border-border`, `text-brand`, etc. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-}
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --color-glow: var(--glow);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-sans), "Segoe UI", Arial, sans-serif;
+  --font-display: var(--font-display), var(--font-sans), sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--fg);
   font-family: var(--font-sans), "Segoe UI", Arial, sans-serif;
+  /* Soft ambient brand-tinted glow in the corners. Lighter in light mode so
+     it reads as a hint, denser in dark mode where it sells the "bar" feel. */
+  background-image:
+    radial-gradient(60vmax 60vmax at 15% -10%, color-mix(in oklab, var(--brand) 12%, transparent), transparent 60%),
+    radial-gradient(50vmax 50vmax at 110% 110%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 60%);
+  background-attachment: fixed;
+}
+
+[data-theme="dark"] body {
+  background-image:
+    radial-gradient(60vmax 60vmax at 15% -10%, color-mix(in oklab, var(--brand) 18%, transparent), transparent 60%),
+    radial-gradient(50vmax 50vmax at 110% 110%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 60%);
+}
+
+/* Tailwind v4 changed `<button>` to default `cursor: default`. Restore the
+   pointer cursor on every interactive element so we don't have to repeat
+   `cursor-pointer` per component. Disabled state takes precedence. */
+button:not(:disabled),
+summary,
+[role="button"]:not([aria-disabled="true"]),
+[role="tab"]:not([aria-disabled="true"]),
+[role="radio"]:not([aria-disabled="true"]),
+[role="switch"]:not([aria-disabled="true"]),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+input[type="range"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+input[type="reset"]:not(:disabled),
+input[type="button"]:not(:disabled),
+label[for] {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"],
+input:disabled {
+  cursor: not-allowed;
+}
+
+/* Tabular numerics where we render codes / counters. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Brand gradient text + button helpers (used from Step 2 onward). */
+.text-gradient-brand {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.bg-gradient-brand {
+  background: var(--gradient-brand);
+}
+
+.shadow-glow {
+  box-shadow: var(--shadow-glow);
+}
+
+/* Respect reduced motion for the ambient animations introduced later. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
 @keyframes flowAndFadeOut {
@@ -81,15 +208,15 @@ body {
 @keyframes pulseAndRipple {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55), 0 0 0 0 rgba(220, 38, 38, 0.35);
+    box-shadow: 0 0 0 0 rgba(0, 109, 111, 0.55), 0 0 0 0 rgba(0, 109, 111, 0.35);
   }
   70% {
     transform: scale(1.04);
-    box-shadow: 0 0 0 24px rgba(220, 38, 38, 0), 0 0 0 48px rgba(220, 38, 38, 0);
+    box-shadow: 0 0 0 24px rgba(0, 109, 111, 0), 0 0 0 48px rgba(0, 109, 111, 0);
   }
   100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0), 0 0 0 0 rgba(220, 38, 38, 0);
+    box-shadow: 0 0 0 0 rgba(0, 109, 111, 0), 0 0 0 0 rgba(0, 109, 111, 0);
   }
 }
 

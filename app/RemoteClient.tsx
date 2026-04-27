@@ -1,15 +1,22 @@
 'use client';
 
-import { Suspense, FormEvent, useState, useEffect } from 'react';
+import { Suspense, FormEvent, useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { LogOut } from 'lucide-react';
+import { LogOut, QrCode, Search, ListMusic } from 'lucide-react';
 import { YouTubeVideo } from '@/lib/youtube';
 import { useRoom } from '@/hooks/useRoom';
 import { SearchPanel } from './components/SearchPanel';
 import { ClientQueue } from './components/ClientQueue';
 import { RemoteControls } from './components/client/RemoteControls';
 import { EmojiPad } from './components/client/EmojiPad';
+import { FullscreenPlayer } from './components/FullscreenPlayer';
+import { NeonOrbs } from './components/NeonOrbs';
+import { NowPlayingCard } from './components/NowPlayingCard';
+import { OTPInput } from './components/OTPInput';
+import { ThemeToggle } from './components/ThemeToggle';
+
+type Tab = 'search' | 'queue';
 
 function RemoteInner() {
   const { t } = useTranslation();
@@ -30,6 +37,8 @@ function RemoteInner() {
   }, [roomCode, router]);
 
   const [inputCode, setInputCode] = useState('');
+  const [tab, setTab] = useState<Tab>('search');
+  const [playerOpen, setPlayerOpen] = useState(false);
   const {
     roomData,
     isLoading,
@@ -43,16 +52,37 @@ function RemoteInner() {
     sendEmoji,
   } = useRoom(roomCode);
 
+  const submitJoin = useCallback(
+    (code: string) => {
+      const trimmed = code.trim();
+      if (trimmed.length !== 4) return;
+      router.push(`/?room=${trimmed}`);
+    },
+    [router],
+  );
+
   function handleJoin(e: FormEvent) {
     e.preventDefault();
-    const code = inputCode.trim();
-    if (code.length !== 4) return;
-    router.push(`/?room=${code}`);
+    submitJoin(inputCode);
   }
 
   function handleAddToQueue(video: YouTubeVideo) {
     addSongToQueue(video);
   }
+
+  // videoId → queueId for songs currently waiting in the queue. Used by
+  // SearchPanel to toggle the "+ Add" / "Added" button into a remove action.
+  // currentPlaying is tracked separately because you can't "un-add" the
+  // song that's playing.
+  const queuedMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const q of roomData.queue) {
+      if (!map.has(q.id)) map.set(q.id, q.queueId);
+    }
+    return map;
+  }, [roomData.queue]);
+
+  const currentPlayingId = roomData.currentPlaying?.id ?? null;
 
   function handleLeave() {
     localStorage.removeItem('karaoke_client_room');
@@ -61,61 +91,132 @@ function RemoteInner() {
 
   if (!roomCode) {
     return (
-      <main className="h-[100dvh] w-full flex flex-col items-center justify-center bg-white px-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('home.title')}</h1>
-        <p className="text-sm text-gray-500 mb-8">{t('home.subtitle')}</p>
-        <form onSubmit={handleJoin} className="flex flex-col gap-4 w-full max-w-xs">
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]{4}"
-            maxLength={4}
-            value={inputCode}
-            onChange={(e) => setInputCode(e.target.value.replace(/\D/g, ''))}
-            placeholder={t('home.roomCodePlaceholder')}
-            className="w-full px-4 py-3 text-center text-3xl font-bold tracking-[0.4em] border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500"
-          />
-          <button
-            type="submit"
-            disabled={inputCode.length !== 4}
-            className="w-full py-3 text-base font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center px-6 py-10 overflow-hidden bg-bg text-fg">
+        <NeonOrbs />
+
+        <div className="absolute top-4 right-4 z-20">
+          <ThemeToggle />
+        </div>
+
+        <div className="relative z-10 w-full max-w-md flex flex-col items-center text-center">
+          <p className="text-xs uppercase tracking-[0.3em] text-muted mb-3">
+            {t('home.appHeading')}
+          </p>
+          <h1
+            className="text-gradient-brand text-4xl sm:text-5xl font-bold mb-3"
+            style={{ fontFamily: 'var(--font-display)' }}
           >
-            {t('home.joinButton')}
-          </button>
-        </form>
+            {t('home.wordmark')}
+          </h1>
+          <p className="text-sm sm:text-base text-muted mb-8">{t('home.tagline')}</p>
+
+          <form
+            onSubmit={handleJoin}
+            className="w-full flex flex-col items-center gap-6 rounded-3xl border border-border bg-surface/70 backdrop-blur-md p-6 sm:p-8 shadow-glow"
+          >
+            <label className="w-full text-left text-xs uppercase tracking-[0.25em] text-muted">
+              {t('home.roomCodeLabel')}
+            </label>
+
+            <OTPInput
+              value={inputCode}
+              onChange={setInputCode}
+              onComplete={submitJoin}
+              ariaLabel={t('home.roomCodeLabel')}
+            />
+
+            <button
+              type="submit"
+              disabled={inputCode.length !== 4}
+              className="w-full py-3.5 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+            >
+              {t('home.joinButton')}
+            </button>
+
+            <p className="flex items-center gap-2 text-xs text-muted">
+              <QrCode size={14} />
+              {t('home.qrTip')}
+            </p>
+          </form>
+        </div>
       </main>
     );
   }
 
+  const tabs: { id: Tab; labelKey: string; Icon: typeof Search }[] = [
+    { id: 'search', labelKey: 'tabs.search', Icon: Search },
+    { id: 'queue', labelKey: 'tabs.queue', Icon: ListMusic },
+  ];
+
   return (
-    <main className="h-[100dvh] w-full flex flex-col overflow-hidden bg-white">
+    <main className="h-[100dvh] w-full flex flex-col overflow-hidden bg-bg text-fg">
       <h1 className="sr-only">{t('home.appHeading')}</h1>
-      <header className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shrink-0">
+
+      <header className="flex items-center justify-between px-4 py-3 bg-surface/70 backdrop-blur-md border-b border-border shrink-0">
         <button
           onClick={handleLeave}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors"
+          className="flex items-center gap-1.5 text-sm text-muted hover:text-danger transition-colors"
         >
           <LogOut size={16} />
-          {t('header.leaveButton')}
+          <span className="hidden sm:inline">{t('header.leaveButton')}</span>
         </button>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">{t('header.roomLabel')}</span>
-          <span className="px-2.5 py-1 text-sm font-bold text-indigo-700 bg-indigo-50 rounded-lg tracking-widest">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-muted">
+            {t('header.roomLabel')}
+          </span>
+          <span
+            className="tabular px-3 py-1 text-sm font-bold text-white bg-gradient-brand rounded-full tracking-[0.3em] shadow-glow"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
             {roomCode}
           </span>
         </div>
 
-        <div className="w-14" />
+        <ThemeToggle />
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        <section aria-label="Search" className="flex-1 overflow-y-auto">
-          <SearchPanel onAdd={handleAddToQueue} />
+      {/* Main content: mobile shows one tab at a time; lg+ shows two columns */}
+      <div className="flex-1 min-h-0 overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px]">
+        {/* Search column */}
+        <section
+          aria-label="Search"
+          className={`min-h-0 overflow-hidden lg:block lg:border-r lg:border-border ${
+            tab === 'search' ? 'h-full' : 'hidden'
+          }`}
+        >
+          <SearchPanel
+            onAdd={handleAddToQueue}
+            onRemove={removeSong}
+            queuedMap={queuedMap}
+            currentPlayingId={currentPlayingId}
+            isQueueLoading={isLoading}
+          />
         </section>
-        <aside aria-label="Queue and controls" className="w-1/3 flex flex-col bg-gray-50 border-l border-gray-200 overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            <ClientQueue items={roomData.queue} isLoading={isLoading} onReorder={reorderQueue} onRemove={removeSong} />
+
+        {/* Queue column — queue + reactions + transport controls stacked */}
+        <section
+          aria-label="Queue and controls"
+          className={`min-h-0 flex flex-col overflow-hidden lg:flex ${
+            tab === 'queue' ? 'flex h-full' : 'hidden'
+          }`}
+        >
+          {roomData.currentPlaying && (
+            <div className="p-3">
+              <NowPlayingCard
+                track={roomData.currentPlaying}
+                isPlaying={roomData.isPlaying}
+                onExpand={() => setPlayerOpen(true)}
+              />
+            </div>
+          )}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <ClientQueue
+              items={roomData.queue}
+              isLoading={isLoading}
+              onReorder={reorderQueue}
+              onRemove={removeSong}
+            />
           </div>
           <EmojiPad onSendEmoji={sendEmoji} />
           <RemoteControls
@@ -129,8 +230,49 @@ function RemoteInner() {
             onPrev={playPrevious}
             onNext={playNext}
           />
-        </aside>
+        </section>
       </div>
+
+      {playerOpen && roomData.currentPlaying && (
+        <FullscreenPlayer
+          track={roomData.currentPlaying}
+          isPlaying={roomData.isPlaying}
+          volume={roomData.volume}
+          onSongEnd={playNext}
+          onClose={() => setPlayerOpen(false)}
+        />
+      )}
+
+      {/* Mobile bottom tab bar */}
+      <nav
+        role="tablist"
+        aria-label="Sections"
+        className="lg:hidden shrink-0 grid grid-cols-2 bg-surface/85 backdrop-blur-md border-t border-border"
+      >
+        {tabs.map(({ id, labelKey, Icon }) => {
+          const active = tab === id;
+          return (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setTab(id)}
+              className={`relative flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors ${
+                active ? 'text-fg' : 'text-muted hover:text-fg'
+              }`}
+            >
+              {active && (
+                <span
+                  aria-hidden
+                  className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-10 rounded-full bg-gradient-brand shadow-glow"
+                />
+              )}
+              <Icon size={20} strokeWidth={active ? 2.4 : 2} />
+              <span className={active ? 'text-gradient-brand' : ''}>{t(labelKey)}</span>
+            </button>
+          );
+        })}
+      </nav>
     </main>
   );
 }

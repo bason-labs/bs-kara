@@ -4,7 +4,11 @@
     "subtitle": "Enter the room code shown on the TV",
     "roomCodePlaceholder": "0000",
     "joinButton": "Join Room",
-    "appHeading": "Karaoke Party"
+    "appHeading": "Karaoke Party",
+    "wordmark": "Karaoke Party",
+    "tagline": "Sing together. From any phone.",
+    "roomCodeLabel": "Room code",
+    "qrTip": "Or scan the QR code on the TV"
   },
   "header": {
     "leaveButton": "Leave Room",
@@ -35,7 +39,8 @@
     "listeningMessage": "Listening...",
     "hotHitsLabel": "Hot Karaoke Hits",
     "noResults": "No songs found. Please try a different keyword!",
-    "addToQueueButton": "+ Add to Queue"
+    "addToQueueButton": "+ Add to Queue",
+    "addedToQueueButton": "Added"
   },
   "queue": {
     "title": "Queue",
@@ -51,5 +56,22 @@
   },
   "emoji": {
     "sendAriaLabel": "Send {{emoji}}"
+  },
+  "theme": {
+    "label": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "tabs": {
+    "search": "Search",
+    "queue": "Queue"
+  },
+  "nowPlaying": {
+    "label": "Now playing"
+  },
+  "player": {
+    "openFullscreen": "Open fullscreen",
+    "closeFullscreen": "Close fullscreen"
   }
 }

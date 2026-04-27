@@ -29,44 +29,36 @@ export function RemoteControls({
 }: RemoteControlsProps) {
   const { t } = useTranslation();
   return (
-    <div className="shrink-0 bg-black/80 backdrop-blur-sm px-3 py-2.5">
-      <div className="flex items-center gap-2">
-        {/* Playback buttons */}
-        <div className="flex items-center gap-0.5">
-          <button
-            onClick={onTogglePlayPause}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 active:scale-90 transition-all"
-            aria-label={isPlaying ? t('controls.pauseLabel') : t('controls.playLabel')}
-          >
-            {isPlaying ? (
-              <Pause size={20} color="#ffffff" />
-            ) : (
-              <Play size={20} color="#ffffff" />
-            )}
-          </button>
+    <div className="shrink-0 bg-surface/80 backdrop-blur-sm border-t border-border px-3 py-3">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onPrev}
+          disabled={!hasHistory}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-2 text-fg hover:bg-glow/20 active:scale-90 transition-all disabled:opacity-30 disabled:hover:bg-surface-2"
+          aria-label={t('controls.previousLabel')}
+        >
+          <SkipBack size={18} strokeWidth={2.2} />
+        </button>
 
-          <button
-            onClick={onPrev}
-            disabled={!hasHistory}
-            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-90 transition-all disabled:opacity-30"
-            aria-label={t('controls.previousLabel')}
-          >
-            <SkipBack size={20} color="#ffffff" />
-          </button>
+        <button
+          onClick={onTogglePlayPause}
+          className="w-12 h-12 flex items-center justify-center rounded-full bg-gradient-brand text-white shadow-glow active:scale-95 transition-transform"
+          aria-label={isPlaying ? t('controls.pauseLabel') : t('controls.playLabel')}
+        >
+          {isPlaying ? <Pause size={22} strokeWidth={2.4} fill="currentColor" /> : <Play size={22} strokeWidth={2.4} fill="currentColor" />}
+        </button>
 
-          <button
-            onClick={onNext}
-            disabled={!hasQueue}
-            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-90 transition-all disabled:opacity-30"
-            aria-label={t('controls.nextLabel')}
-          >
-            <SkipForward size={20} color="#ffffff" />
-          </button>
-        </div>
+        <button
+          onClick={onNext}
+          disabled={!hasQueue}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-2 text-fg hover:bg-glow/20 active:scale-90 transition-all disabled:opacity-30 disabled:hover:bg-surface-2"
+          aria-label={t('controls.nextLabel')}
+        >
+          <SkipForward size={18} strokeWidth={2.2} />
+        </button>
 
-        {/* Volume */}
-        <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <Volume2 size={18} color="#ffffff" />
+        <div className="flex items-center gap-2 flex-1 min-w-0 ml-1">
+          <Volume2 size={18} className="text-muted" />
           <input
             type="range"
             min={0}
@@ -74,14 +66,13 @@ export function RemoteControls({
             step={5}
             value={volume}
             onChange={(e) => onVolumeChange(Number(e.target.value))}
-            className="flex-1 h-1.5 appearance-none rounded-full cursor-pointer accent-white bg-white/30"
+            className="flex-1 h-1.5 appearance-none rounded-full cursor-pointer bg-border accent-glow"
             aria-label={t('controls.volumeLabel')}
           />
         </div>
 
-        {/* Duration */}
         {currentPlaying?.duration && (
-          <span className="text-xs text-white/60 tabular-nums shrink-0 ml-1">
+          <span className="tabular text-xs text-muted shrink-0">
             {currentPlaying.duration}
           </span>
         )}

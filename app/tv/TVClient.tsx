@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
-import { Music } from 'lucide-react';
+import { Maximize2, Minimize2, Music } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useRoom } from '@/hooks/useRoom';
+import { useAutoHide } from '@/hooks/useAutoHide';
 import { VideoPlayer } from '../components/host/VideoPlayer';
 import { EmojiLayer } from '../components/host/EmojiLayer';
 
@@ -68,6 +69,28 @@ export default function TVClient() {
     ? `https://img.youtube.com/vi/${roomData.currentPlaying.id}/maxresdefault.jpg`
     : '';
 
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+  const [isFs, setIsFs] = useState(false);
+  const userActive = useAutoHide(2500);
+  // While in fullscreen the button auto-hides; otherwise it's always visible.
+  const fsButtonVisible = !isFs || userActive;
+
+  useEffect(() => {
+    function handleFsChange() {
+      setIsFs(!!document.fullscreenElement);
+    }
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      videoContainerRef.current?.requestFullscreen?.().catch(() => {});
+    }
+  }, []);
+
   return (
     <main className="relative h-[100dvh] w-full flex overflow-hidden bg-black text-white">
       {/* Ambient glow background layers */}
@@ -81,6 +104,7 @@ export default function TVClient() {
 
       {/* Waiting Room overlay — fades out on first interaction */}
       <section
+        role="button"
         aria-label="Waiting room"
         onClick={initialize}
         className={`absolute inset-0 z-50 flex flex-col items-center justify-center bg-gray-900 text-white transition-opacity duration-700 ${
@@ -113,24 +137,38 @@ export default function TVClient() {
       {roomCode && <EmojiLayer roomId={roomCode} />}
       {/* Left: Video Player */}
       <section aria-label="Now playing" className="relative z-10 flex-1 min-w-0 overflow-hidden">
-        {isLoading ? (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="w-12 h-12 rounded-full border-4 border-gray-700 border-t-gray-400 animate-spin" />
-          </div>
-        ) : roomData.currentPlaying ? (
-          <VideoPlayer
-            videoId={roomData.currentPlaying.id}
-            onSongEnd={handleSongEnd}
-            isPlaying={roomData.isPlaying}
-            volume={roomData.volume}
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-gray-600">
-            <Music size={64} color="#4b5563" />
-            <p className="text-lg">{t('tv.waitingMessage')}</p>
-            <p className="text-sm text-gray-700">{t('tv.addSongsHint')}</p>
-          </div>
-        )}
+        <div ref={videoContainerRef} className="relative w-full h-full bg-black">
+          {isLoading ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full border-4 border-gray-700 border-t-gray-400 animate-spin" />
+            </div>
+          ) : roomData.currentPlaying ? (
+            <>
+              <VideoPlayer
+                videoId={roomData.currentPlaying.id}
+                onSongEnd={handleSongEnd}
+                isPlaying={roomData.isPlaying}
+                volume={roomData.volume}
+              />
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                aria-label={isFs ? t('player.closeFullscreen') : t('player.openFullscreen')}
+                className={`absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-gradient-brand text-white shadow-glow flex items-center justify-center active:scale-95 hover:opacity-100 transition-opacity duration-300 ${
+                  fsButtonVisible ? 'opacity-80' : 'opacity-0 pointer-events-none'
+                }`}
+              >
+                {isFs ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+              </button>
+            </>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-gray-600">
+              <Music size={64} color="#4b5563" />
+              <p className="text-lg">{t('tv.waitingMessage')}</p>
+              <p className="text-sm text-gray-700">{t('tv.addSongsHint')}</p>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Right: Queue Panel */}

@@ -10,7 +10,7 @@ interface EmojiPadProps {
 export function EmojiPad({ onSendEmoji }: EmojiPadProps) {
   const { t } = useTranslation();
   return (
-    <div className="flex justify-around items-center px-3 py-2.5 bg-black/80 backdrop-blur-sm border-t border-white/10">
+    <div className="flex justify-around items-center px-3 py-2.5 bg-surface/80 backdrop-blur-sm border-t border-border">
       {REACTIONS.map((emoji) => (
         <button
           key={emoji}

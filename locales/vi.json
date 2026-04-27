@@ -4,7 +4,11 @@
     "subtitle": "Nhập mã phòng hiển thị trên TV",
     "roomCodePlaceholder": "0000",
     "joinButton": "Vào phòng",
-    "appHeading": "Karaoke Party"
+    "appHeading": "Karaoke Party",
+    "wordmark": "Karaoke Party",
+    "tagline": "Hát cùng nhau. Từ mọi chiếc điện thoại.",
+    "roomCodeLabel": "Mã phòng",
+    "qrTip": "Hoặc quét mã QR hiển thị trên TV"
   },
   "header": {
     "leaveButton": "Thoát phòng",
@@ -35,7 +39,8 @@
     "listeningMessage": "Đang nghe...",
     "hotHitsLabel": "Bài hát karaoke hot",
     "noResults": "Không tìm thấy bài hát nào. Vui lòng thử từ khóa khác!",
-    "addToQueueButton": "+ Thêm vào hàng chờ"
+    "addToQueueButton": "+ Thêm vào hàng chờ",
+    "addedToQueueButton": "Đã thêm"
   },
   "queue": {
     "title": "Hàng chờ",
@@ -51,5 +56,22 @@
   },
   "emoji": {
     "sendAriaLabel": "Gửi {{emoji}}"
+  },
+  "theme": {
+    "label": "Giao diện",
+    "system": "Hệ thống",
+    "light": "Sáng",
+    "dark": "Tối"
+  },
+  "tabs": {
+    "search": "Tìm bài",
+    "queue": "Hàng chờ"
+  },
+  "nowPlaying": {
+    "label": "Đang phát"
+  },
+  "player": {
+    "openFullscreen": "Mở toàn màn hình",
+    "closeFullscreen": "Đóng toàn màn hình"
   }
 }
