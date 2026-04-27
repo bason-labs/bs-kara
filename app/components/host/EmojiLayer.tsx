@@ -15,6 +15,7 @@ interface ActiveReaction {
   emoji: string;
   leftPct: number;
   sway: number;
+  rotation: number;
   scalePeak: number;
   duration: number;
 }
@@ -28,13 +29,15 @@ function rand(min: number, max: number) {
 }
 
 function buildActive(item: IncomingReaction): ActiveReaction {
+  const swayMag = rand(45, 90);
   return {
     id: item.reactionId,
     emoji: item.emojiType,
-    leftPct: rand(10, 90),
-    sway: rand(-60, 60),
+    leftPct: rand(8, 92),
+    sway: Math.random() < 0.5 ? -swayMag : swayMag,
+    rotation: rand(-22, 22),
     scalePeak: rand(0.95, 1.4),
-    duration: rand(3.5, 4.5),
+    duration: rand(4.2, 5.6),
   };
 }
 
@@ -101,6 +104,7 @@ export function EmojiLayer({ roomId }: EmojiLayerProps) {
           left: `${r.leftPct}%`,
           marginLeft: '-32px',
           ['--sway' as string]: `${r.sway}px`,
+          ['--rot' as string]: `${r.rotation}deg`,
           ['--scale-peak' as string]: `${r.scalePeak}`,
           animationDuration: `${r.duration}s`,
         };

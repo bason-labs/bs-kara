@@ -25,23 +25,47 @@ body {
 
 @keyframes flowAndFadeOut {
   0% {
-    transform: translate(0, 20px) scale(0.4);
+    transform: translate(0, 12px) rotate(0deg) scale(0.45);
     opacity: 0;
   }
-  8% {
-    transform: translate(0, 0) scale(var(--scale-peak));
+  6% {
+    transform: translate(calc(var(--sway) * 0.12), -2vh) rotate(calc(var(--rot) * 0.05))
+      scale(calc(var(--scale-peak) * 0.92));
     opacity: 1;
   }
-  40% {
-    transform: translate(calc(var(--sway) * 0.6), -28vh) scale(var(--scale-peak));
+  18% {
+    transform: translate(calc(var(--sway) * 0.55), -12vh) rotate(calc(var(--rot) * 0.18))
+      scale(var(--scale-peak));
     opacity: 1;
   }
-  65% {
-    transform: translate(var(--sway), -50vh) scale(calc(var(--scale-peak) * 0.95));
-    opacity: 0.85;
+  32% {
+    transform: translate(calc(var(--sway) * 0.95), -24vh) rotate(calc(var(--rot) * 0.34))
+      scale(var(--scale-peak));
+    opacity: 0.96;
+  }
+  46% {
+    transform: translate(calc(var(--sway) * 0.4), -36vh) rotate(calc(var(--rot) * 0.52))
+      scale(calc(var(--scale-peak) * 0.96));
+    opacity: 0.78;
+  }
+  60% {
+    transform: translate(calc(var(--sway) * -0.45), -48vh) rotate(calc(var(--rot) * 0.7))
+      scale(calc(var(--scale-peak) * 0.86));
+    opacity: 0.5;
+  }
+  74% {
+    transform: translate(calc(var(--sway) * -0.85), -60vh) rotate(calc(var(--rot) * 0.88))
+      scale(calc(var(--scale-peak) * 0.74));
+    opacity: 0.22;
+  }
+  88% {
+    transform: translate(calc(var(--sway) * -0.5), -71vh) rotate(var(--rot))
+      scale(calc(var(--scale-peak) * 0.62));
+    opacity: 0.04;
   }
   100% {
-    transform: translate(calc(var(--sway) * -0.3), -75vh) scale(calc(var(--scale-peak) * 0.7));
+    transform: translate(calc(var(--sway) * -0.15), -82vh) rotate(calc(var(--rot) * 1.1))
+      scale(calc(var(--scale-peak) * 0.52));
     opacity: 0;
   }
 }
