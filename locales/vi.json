@@ -20,6 +20,7 @@
     "roomCodeLabel": "Mã phòng",
     "roomCodeHint": "Nhập trên điện thoại để tham gia",
     "qrLabel": "Mã QR",
+    "scanToJoin": "Quét mã để chọn bài",
     "queueLabel": "Tiếp theo",
     "emptyQueueMessage": "Hàng chờ trống",
     "endPartyButton": "Kết thúc"

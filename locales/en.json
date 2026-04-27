@@ -20,6 +20,7 @@
     "roomCodeLabel": "Room Code",
     "roomCodeHint": "Enter on your phone to join",
     "qrLabel": "QR Code",
+    "scanToJoin": "Scan to join",
     "queueLabel": "Up Next",
     "emptyQueueMessage": "Queue is empty",
     "endPartyButton": "End Party"

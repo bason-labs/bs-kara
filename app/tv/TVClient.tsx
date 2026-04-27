@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { Music } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useRoom } from '@/hooks/useRoom';
 import { VideoPlayer } from '../components/host/VideoPlayer';
 import { EmojiLayer } from '../components/host/EmojiLayer';
@@ -12,6 +13,7 @@ export default function TVClient() {
   const { t } = useTranslation();
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [joinUrl, setJoinUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fixed = process.env.NEXT_PUBLIC_FIXED_ROOM_ID;
@@ -25,6 +27,11 @@ export default function TVClient() {
     localStorage.setItem('karaoke_tv_room', id);
     setRoomCode(id);
   }, []);
+
+  useEffect(() => {
+    if (!roomCode) return;
+    setJoinUrl(`${window.location.origin}/?room=${roomCode}`);
+  }, [roomCode]);
 
   const { roomData, isLoading, playNext, clearRoom } = useRoom(roomCode);
 
@@ -86,12 +93,17 @@ export default function TVClient() {
           {roomCode ?? '----'}
         </div>
 
-        {/* QR placeholder */}
-        <div className="w-36 h-36 bg-white rounded-2xl flex items-center justify-center mb-10">
-          <div className="text-center">
-            <div className="text-gray-400 text-xs font-medium leading-tight whitespace-pre-line">{t('tv.qrHint')}</div>
-          </div>
+        {/* QR Code — scan to join */}
+        <div className="bg-white p-4 rounded-2xl mb-4 shadow-lg">
+          {joinUrl ? (
+            <QRCodeSVG value={joinUrl} size={200} level="M" />
+          ) : (
+            <div className="w-[200px] h-[200px]" />
+          )}
         </div>
+        <p className="text-gray-400 text-sm font-medium leading-tight whitespace-pre-line text-center mb-10">
+          {t('tv.qrHint')}
+        </p>
 
         <p className="text-gray-500 text-sm animate-pulse">
           {t('tv.startPrompt')}
@@ -132,11 +144,16 @@ export default function TVClient() {
           <p className="mt-2 text-xs text-gray-500">{t('tv.roomCodeHint')}</p>
         </div>
 
-        {/* QR placeholder */}
-        <div className="p-4 border-b border-gray-700">
-          <div className="aspect-square bg-gray-800 rounded-xl flex items-center justify-center text-gray-500 text-sm">
-            {t('tv.qrLabel')}
+        {/* Mini QR — for latecomers */}
+        <div className="p-4 border-b border-gray-700 flex flex-col items-center gap-2">
+          <div className="bg-white p-2 rounded-lg">
+            {joinUrl ? (
+              <QRCodeSVG value={joinUrl} size={96} level="M" />
+            ) : (
+              <div className="w-24 h-24" />
+            )}
           </div>
+          <p className="text-xs text-gray-400 text-center">{t('tv.scanToJoin')}</p>
         </div>
 
         {/* Queue */}
