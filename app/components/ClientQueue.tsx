@@ -4,16 +4,17 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { GripVertical, ListMusic } from 'lucide-react';
+import { GripVertical, ListMusic, Trash2 } from 'lucide-react';
 import { QueueItem } from '@/lib/youtube';
 
 interface ClientQueueProps {
   items: QueueItem[];
   isLoading?: boolean;
   onReorder: (startIndex: number, endIndex: number) => void;
+  onRemove: (queueId: string) => void;
 }
 
-export function ClientQueue({ items, isLoading, onReorder }: ClientQueueProps) {
+export function ClientQueue({ items, isLoading, onReorder, onRemove }: ClientQueueProps) {
   const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
 
@@ -107,6 +108,18 @@ export function ClientQueue({ items, isLoading, onReorder }: ClientQueueProps) {
                             </p>
                             <p className="text-xs text-gray-400 truncate mt-0.5">{item.channel}</p>
                           </div>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRemove(item.queueId);
+                            }}
+                            aria-label={t('queue.removeAriaLabel')}
+                            className="ml-auto flex-shrink-0 p-2 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       )}
                     </Draggable>
@@ -143,6 +156,18 @@ export function ClientQueue({ items, isLoading, onReorder }: ClientQueueProps) {
                   </p>
                   <p className="text-xs text-gray-400 truncate mt-0.5">{item.channel}</p>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove(item.queueId);
+                  }}
+                  aria-label={t('queue.removeAriaLabel')}
+                  className="ml-auto flex-shrink-0 p-2 text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             ))}
           </div>

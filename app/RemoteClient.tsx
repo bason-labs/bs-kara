@@ -34,6 +34,7 @@ function RemoteInner() {
     roomData,
     isLoading,
     addSongToQueue,
+    removeSong,
     reorderQueue,
     togglePlayPause,
     setVolume,
@@ -114,7 +115,7 @@ function RemoteInner() {
         </section>
         <aside aria-label="Queue and controls" className="w-1/3 flex flex-col bg-gray-50 border-l border-gray-200 overflow-hidden">
           <div className="flex-1 overflow-y-auto">
-            <ClientQueue items={roomData.queue} isLoading={isLoading} onReorder={reorderQueue} />
+            <ClientQueue items={roomData.queue} isLoading={isLoading} onReorder={reorderQueue} onRemove={removeSong} />
           </div>
           <EmojiPad onSendEmoji={sendEmoji} />
           <RemoteControls

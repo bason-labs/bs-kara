@@ -39,7 +39,8 @@
   },
   "queue": {
     "title": "Queue",
-    "emptyMessage": "Your queue is empty. Add a song to get started!"
+    "emptyMessage": "Your queue is empty. Add a song to get started!",
+    "removeAriaLabel": "Remove from queue"
   },
   "controls": {
     "playLabel": "Play",
