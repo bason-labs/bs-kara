@@ -53,3 +53,22 @@ body {
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
   will-change: transform, opacity;
 }
+
+@keyframes pulseAndRipple {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55), 0 0 0 0 rgba(220, 38, 38, 0.35);
+  }
+  70% {
+    transform: scale(1.04);
+    box-shadow: 0 0 0 24px rgba(220, 38, 38, 0), 0 0 0 48px rgba(220, 38, 38, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0), 0 0 0 0 rgba(220, 38, 38, 0);
+  }
+}
+
+.mic-pulse {
+  animation: pulseAndRipple 1.6s ease-out infinite;
+}

@@ -4,6 +4,7 @@ import { useState, FormEvent, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import MicOutline from 'react-ionicons/lib/MicOutline';
 import SearchOutline from 'react-ionicons/lib/SearchOutline';
+import CloseOutline from 'react-ionicons/lib/CloseOutline';
 import { useDebounce } from 'use-debounce';
 import { searchYouTube, YouTubeVideo } from '@/lib/youtube';
 import { DEFAULT_HOT_HITS_QUERY } from '@/lib/config';
@@ -23,8 +24,13 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [debouncedQuery] = useDebounce(query, 300);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
+  const startAudioRef = useRef<HTMLAudioElement | null>(null);
+  const endAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +95,18 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
     runSearch(suggestion);
   }
 
+  function playStartSound() {
+    if (!startAudioRef.current) startAudioRef.current = new Audio('/audio/pop.mp3');
+    startAudioRef.current.currentTime = 0;
+    startAudioRef.current.play().catch(() => {});
+  }
+
+  function playEndSound() {
+    if (!endAudioRef.current) endAudioRef.current = new Audio('/audio/ding.mp3');
+    endAudioRef.current.currentTime = 0;
+    endAudioRef.current.play().catch(() => {});
+  }
+
   function startVoiceSearch() {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -99,29 +117,139 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
     const recognition = new SpeechRecognition();
     recognition.lang = 'vi-VN';
     recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
 
-    recognition.onstart = () => setIsListening(true);
-
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setQuery(transcript);
-      setSuggestions([]);
-      runSearch(transcript);
+    let endSoundPlayed = false;
+    const playEndOnce = () => {
+      if (!endSoundPlayed) {
+        endSoundPlayed = true;
+        playEndSound();
+      }
     };
 
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      let interim = '';
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript;
+        } else {
+          interim += result[0].transcript;
+        }
+      }
+      if (finalTranscript) {
+        playEndOnce();
+        setQuery(finalTranscript);
+        setSuggestions([]);
+        setInterimTranscript('');
+        setIsListening(false);
+        runSearch(finalTranscript);
+      } else {
+        setInterimTranscript(interim);
+      }
+    };
 
+    recognition.onerror = () => {
+      playEndOnce();
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      playEndOnce();
+      recognitionRef.current = null;
+      setIsListening(false);
+      setInterimTranscript('');
+    };
+
+    recognitionRef.current = recognition;
+    playStartSound();
+    setInterimTranscript('');
+    setIsListening(true);
     recognition.start();
   }
 
+  function closeVoicePopup() {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    } else {
+      setIsListening(false);
+    }
+    setInterimTranscript('');
+  }
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+        recognitionRef.current = null;
+      }
+      if (startAudioRef.current) {
+        startAudioRef.current.pause();
+        startAudioRef.current = null;
+      }
+      if (endAudioRef.current) {
+        endAudioRef.current.pause();
+        endAudioRef.current = null;
+      }
+    };
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
-      <div className="sticky top-0 z-10 p-4 bg-white border-b border-gray-200">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <div ref={wrapperRef} className="relative flex-1">
+      {isListening && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+          onClick={closeVoicePopup}
+        >
+          <div
+            className="relative bg-white rounded-lg p-10 w-full max-w-2xl min-h-[480px] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closeVoicePopup}
+              aria-label="Close voice search"
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 p-1"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <h2 className="text-3xl font-medium text-gray-900 pr-10">
+              {interimTranscript || 'Listening...'}
+            </h2>
+            <div className="flex-1 flex items-center justify-center">
+              <div className="rounded-full bg-gray-100 p-5">
+                <div className="mic-pulse w-20 h-20 rounded-full bg-red-600 flex items-center justify-center">
+                  <MicOutline color="#ffffff" width="36px" height="36px" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="sticky top-0 z-10 p-4 bg-black border-b border-zinc-800">
+        <form onSubmit={handleSubmit} className="flex items-center">
+          <div ref={wrapperRef} className="relative flex items-center flex-1">
+            <span className="absolute left-4 flex items-center pointer-events-none">
+              <SearchOutline color="#9ca3af" width="18px" height="18px" />
+            </span>
             <input
+              ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => {
@@ -129,21 +257,37 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
                 setShowSuggestions(true);
               }}
               onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-              placeholder="Search for a song..."
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Search"
+              className="w-full pl-11 pr-10 py-2 text-sm bg-[#121212] text-white placeholder-zinc-500 border border-zinc-700 rounded-l-full focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
+            {query.length > 0 && (
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setQuery('');
+                  setSuggestions([]);
+                  setShowSuggestions(false);
+                  inputRef.current?.focus();
+                }}
+                aria-label="Clear search"
+                className="absolute right-2 p-1 rounded-full hover:bg-zinc-800 cursor-pointer"
+              >
+                <CloseOutline color="#ffffff" width="20px" height="20px" />
+              </button>
+            )}
             {showSuggestions && suggestions.length > 0 && (
-              <ul className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
+              <ul className="absolute left-0 right-0 top-full mt-1 bg-[#212121] border border-zinc-700 rounded-lg shadow-lg z-20 overflow-hidden">
                 {suggestions.map((s) => (
                   <li
                     key={s}
                     onMouseDown={() => handleSuggestionClick(s)}
-                    className="px-3 py-2 text-sm text-gray-800 cursor-pointer hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2"
+                    className="px-4 py-2 text-sm text-white cursor-pointer hover:bg-zinc-700 flex items-center gap-3"
                   >
                     <SearchOutline
                       color="#9ca3af"
-                      width="14px"
-                      height="14px"
+                      width="16px"
+                      height="16px"
                       cssClasses="flex-shrink-0"
                     />
                     {s}
@@ -153,28 +297,21 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
             )}
           </div>
           <button
+            type="submit"
+            disabled={loading}
+            aria-label="Search"
+            className="px-5 py-[9px] -ml-px bg-[#222222] border border-zinc-700 rounded-r-full hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+          >
+            <SearchOutline color="#ffffff" width="20px" height="20px" />
+          </button>
+          <button
             type="button"
             onClick={startVoiceSearch}
             disabled={isListening}
-            title="Voice search"
-            className={`p-2 rounded-lg border transition-colors ${
-              isListening
-                ? 'border-red-400 text-red-500 bg-red-50 animate-pulse'
-                : 'border-gray-300 text-gray-500 hover:border-indigo-400 hover:text-indigo-600'
-            }`}
+            aria-label="Voice search"
+            className="ml-3 rounded-full bg-[#222222] p-2.5 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
           >
-            <MicOutline
-              color={isListening ? '#ef4444' : '#6b7280'}
-              width="20px"
-              height="20px"
-            />
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {loading ? 'Searching…' : 'Search'}
+            <MicOutline color="#ffffff" width="20px" height="20px" />
           </button>
         </form>
       </div>
