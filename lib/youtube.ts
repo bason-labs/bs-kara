@@ -17,11 +17,22 @@ function decodeHTMLEntities(text: string): string {
   return el.value;
 }
 
+async function searchViaScraper(query: string): Promise<YouTubeVideo[]> {
+  try {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? (data as YouTubeVideo[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function searchYouTube(query: string): Promise<YouTubeVideo[]> {
   const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
   if (!apiKey) {
     console.error('NEXT_PUBLIC_YOUTUBE_API_KEY is not set');
-    return [];
+    return searchViaScraper(query);
   }
 
   const params = new URLSearchParams({
@@ -37,6 +48,10 @@ export async function searchYouTube(query: string): Promise<YouTubeVideo[]> {
     const res = await fetch(
       `https://www.googleapis.com/youtube/v3/search?${params}`,
     );
+    if (res.status === 403) {
+      console.warn('YouTube API quota exceeded. Falling back to internal scraper...');
+      return searchViaScraper(query);
+    }
     if (!res.ok) return [];
     const data = await res.json();
     return (data.items ?? []).map(
@@ -56,6 +71,6 @@ export async function searchYouTube(query: string): Promise<YouTubeVideo[]> {
       }),
     );
   } catch {
-    return [];
+    return searchViaScraper(query);
   }
 }

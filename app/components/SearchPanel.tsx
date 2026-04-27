@@ -3,7 +3,7 @@
 import { useState, FormEvent, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
-import { Mic, Search, X } from 'lucide-react';
+import { Mic, Search, SearchX, X } from 'lucide-react';
 import { useDebounce } from 'use-debounce';
 import { searchYouTube, YouTubeVideo } from '@/lib/youtube';
 import { DEFAULT_HOT_HITS_QUERY } from '@/lib/config';
@@ -330,7 +330,10 @@ export function SearchPanel({ onAdd }: SearchPanelProps) {
         )}
 
         {!isInitialLoading && !loading && searched && results.length === 0 && (
-          <p className="text-sm text-gray-400 text-center mt-8">{t('search.noResults')}</p>
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center opacity-70">
+            <SearchX size={64} color="#9ca3af" className="mb-4" />
+            <p className="text-gray-400 text-sm">{t('search.noResults')}</p>
+          </div>
         )}
 
         {!isInitialLoading && !loading && results.map((video) => (

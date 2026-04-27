@@ -34,12 +34,12 @@
     "voiceNotSupported": "Voice search is not supported in this browser.",
     "listeningMessage": "Listening...",
     "hotHitsLabel": "Hot Karaoke Hits",
-    "noResults": "No results found",
+    "noResults": "No songs found. Please try a different keyword!",
     "addToQueueButton": "+ Add to Queue"
   },
   "queue": {
     "title": "Queue",
-    "emptyMessage": "Queue is empty"
+    "emptyMessage": "Your queue is empty. Add a song to get started!"
   },
   "controls": {
     "playLabel": "Play",

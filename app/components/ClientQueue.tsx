@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, ListMusic } from 'lucide-react';
 import { QueueItem } from '@/lib/youtube';
 
 interface ClientQueueProps {
@@ -57,7 +57,10 @@ export function ClientQueue({ items, isLoading, onReorder }: ClientQueueProps) {
         ) : (
           <>
             {items.length === 0 && (
-              <p className="text-xs text-gray-400 text-center mt-8">{t('queue.emptyMessage')}</p>
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center opacity-70">
+                <ListMusic size={56} color="#9ca3af" className="mb-3" />
+                <p className="text-gray-400 text-xs">{t('queue.emptyMessage')}</p>
+              </div>
             )}
 
         {mounted ? (

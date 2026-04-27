@@ -34,12 +34,12 @@
     "voiceNotSupported": "Trình duyệt này không hỗ trợ tìm kiếm bằng giọng nói.",
     "listeningMessage": "Đang nghe...",
     "hotHitsLabel": "Bài hát karaoke hot",
-    "noResults": "Không tìm thấy kết quả",
+    "noResults": "Không tìm thấy bài hát nào. Vui lòng thử từ khóa khác!",
     "addToQueueButton": "+ Thêm vào hàng chờ"
   },
   "queue": {
     "title": "Hàng chờ",
-    "emptyMessage": "Hàng chờ trống"
+    "emptyMessage": "Hàng đợi đang trống. Hãy thêm bài hát nhé!"
   },
   "controls": {
     "playLabel": "Phát",

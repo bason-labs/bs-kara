@@ -20,13 +20,15 @@
     "react-dom": "19.2.4",
     "react-i18next": "^17.0.4",
     "react-youtube": "^10.1.0",
-    "use-debounce": "^10.1.1"
+    "use-debounce": "^10.1.1",
+    "yt-search": "^2.13.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/yt-search": "^2.10.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",
