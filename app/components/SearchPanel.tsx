@@ -3,11 +3,13 @@
 import { useState, FormEvent, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
-import { Check, Mic, Search, SearchX, X } from 'lucide-react';
+import { ArrowLeft, ArrowUpLeft, Check, History, Mic, Search, SearchX, X } from 'lucide-react';
 import { useDebounce } from 'use-debounce';
 import { searchYouTube, YouTubeVideo } from '@/lib/youtube';
 import { DEFAULT_HOT_HITS_QUERY } from '@/lib/config';
 import { SongSkeleton } from './SongSkeleton';
+
+type HistoryEntry = { q: string; thumb?: string };
 
 interface SearchPanelProps {
   onAdd: (video: YouTubeVideo) => void;
@@ -33,12 +35,36 @@ export function SearchPanel({
   const [showingHotHits, setShowingHotHits] = useState(true);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = window.localStorage.getItem('searchHistory');
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map((entry): HistoryEntry | null => {
+          if (typeof entry === 'string') return { q: entry };
+          if (entry && typeof entry === 'object' && typeof entry.q === 'string') {
+            return {
+              q: entry.q,
+              thumb: typeof entry.thumb === 'string' ? entry.thumb : undefined,
+            };
+          }
+          return null;
+        })
+        .filter((e): e is HistoryEntry => e !== null);
+    } catch {
+      return [];
+    }
+  });
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [debouncedQuery] = useDebounce(query, 300);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
   const startAudioRef = useRef<HTMLAudioElement | null>(null);
   const endAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -69,6 +95,33 @@ export function SearchPanel({
       .catch(() => setSuggestions([]));
   }, [debouncedQuery]);
 
+  function removeHistoryEntry(q: string) {
+    setHistory((prev) => {
+      const next = prev.filter((e) => e.q !== q);
+      try {
+        localStorage.setItem('searchHistory', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
+
+  function pushHistory(q: string, thumb?: string) {
+    const trimmed = q.trim();
+    if (!trimmed) return;
+    setHistory((prev) => {
+      const filtered = prev.filter((e) => e.q.toLowerCase() !== trimmed.toLowerCase());
+      const next: HistoryEntry[] = [{ q: trimmed, thumb }, ...filtered].slice(0, 15);
+      try {
+        localStorage.setItem('searchHistory', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    if (isFocused) panelInputRef.current?.focus();
+  }, [isFocused]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -80,16 +133,24 @@ export function SearchPanel({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  function dismissPanel() {
+    setIsFocused(false);
+    setShowSuggestions(false);
+    inputRef.current?.blur();
+    panelInputRef.current?.blur();
+  }
+
   async function runSearch(q: string) {
     const trimmed = q.trim();
     if (!trimmed) return;
-    setShowSuggestions(false);
+    dismissPanel();
     setLoading(true);
     setSearched(true);
     setShowingHotHits(false);
     try {
       const videos = await searchYouTube(trimmed);
       setResults(videos);
+      pushHistory(trimmed, videos[0]?.thumbnail);
     } finally {
       setLoading(false);
     }
@@ -243,6 +304,103 @@ export function SearchPanel({
           </div>
         </div>
       )}
+      {isFocused && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-bg flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <div className="flex items-center gap-2 px-2 py-2 border-b border-border">
+            <button
+              type="button"
+              onClick={dismissPanel}
+              aria-label={t('search.backAriaLabel')}
+              className="p-2 rounded-full text-fg hover:bg-surface-2 cursor-pointer"
+            >
+              <ArrowLeft size={22} />
+            </button>
+            <input
+              ref={panelInputRef}
+              type="text"
+              value={query}
+              autoFocus
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  runSearch(query);
+                }
+              }}
+              placeholder={t('search.placeholder')}
+              className="flex-1 min-w-0 bg-surface text-fg placeholder:text-muted rounded-full px-4 py-2 text-sm border border-border focus:outline-none focus:border-glow focus:ring-1 focus:ring-glow"
+            />
+            <button
+              type="button"
+              onClick={startVoiceSearch}
+              disabled={isListening}
+              aria-label={t('search.voiceAriaLabel')}
+              className="p-2 rounded-full bg-surface-2 text-fg border border-border disabled:opacity-50 cursor-pointer"
+            >
+              <Mic size={20} />
+            </button>
+          </div>
+          <ul className="flex-1 overflow-y-auto">
+            {query.trim().length === 0
+              ? history.map((item) => (
+                  <li key={item.q} className="flex items-stretch border-b border-border/50">
+                    <button
+                      type="button"
+                      onClick={() => handleSuggestionClick(item.q)}
+                      className="flex items-center gap-3 flex-1 min-w-0 text-left px-4 py-3 hover:bg-surface-2 active:bg-surface-2 cursor-pointer"
+                    >
+                      <History size={20} className="flex-shrink-0 text-muted" />
+                      <span className="text-base text-fg truncate flex-1">{item.q}</span>
+                      {item.thumb && (
+                        <Image
+                          src={item.thumb}
+                          alt=""
+                          width={64}
+                          height={36}
+                          className="rounded object-cover flex-shrink-0"
+                          unoptimized
+                        />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t('search.fillQueryAriaLabel')}
+                      onClick={() => {
+                        setQuery(item.q);
+                        panelInputRef.current?.focus();
+                      }}
+                      className="px-4 text-muted hover:text-fg flex-shrink-0 cursor-pointer"
+                    >
+                      <ArrowUpLeft size={20} />
+                    </button>
+                  </li>
+                ))
+              : suggestions.map((s) => (
+                  <li key={s} className="flex items-stretch border-b border-border/50">
+                    <button
+                      type="button"
+                      onClick={() => handleSuggestionClick(s)}
+                      className="flex items-center gap-3 flex-1 min-w-0 text-left px-4 py-3 hover:bg-surface-2 active:bg-surface-2 cursor-pointer"
+                    >
+                      <Search size={20} className="flex-shrink-0 text-muted" />
+                      <span className="text-base text-fg truncate flex-1">{s}</span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t('search.fillQueryAriaLabel')}
+                      onClick={() => {
+                        setQuery(s);
+                        panelInputRef.current?.focus();
+                      }}
+                      className="px-4 text-muted hover:text-fg flex-shrink-0 cursor-pointer"
+                    >
+                      <ArrowUpLeft size={20} />
+                    </button>
+                  </li>
+                ))}
+          </ul>
+        </div>
+      )}
       <div className="sticky top-0 z-10 p-4 bg-bg/85 backdrop-blur-md border-b border-border">
         <form onSubmit={handleSubmit} className="flex items-center">
           <div ref={wrapperRef} className="relative flex items-center flex-1">
@@ -261,11 +419,18 @@ export function SearchPanel({
               }}
               onFocus={() => {
                 setIsFocused(true);
-                if (suggestions.length > 0) setShowSuggestions(true);
+                setShowSuggestions(true);
               }}
-              onBlur={() => setIsFocused(false)}
+              onBlur={() => {
+                setTimeout(() => {
+                  const el = document.activeElement;
+                  if (el === panelInputRef.current || el === inputRef.current) return;
+                  setIsFocused(false);
+                  setShowSuggestions(false);
+                }, 0);
+              }}
               placeholder={t('search.placeholder')}
-              className={`w-full ${isFocused ? 'pl-11' : 'pl-4'} pr-10 py-2 text-sm bg-surface text-fg placeholder:text-muted border border-border rounded-l-full focus:outline-none focus:border-glow focus:ring-1 focus:ring-glow`}
+              className={`w-full h-10 ${isFocused ? 'pl-11' : 'pl-4'} pr-10 text-sm bg-surface text-fg placeholder:text-muted border border-border rounded-l-full focus:outline-none focus:border-glow focus:ring-1 focus:ring-glow`}
             />
             {query.length > 0 && (
               <button
@@ -274,7 +439,7 @@ export function SearchPanel({
                 onClick={() => {
                   setQuery('');
                   setSuggestions([]);
-                  setShowSuggestions(false);
+                  setShowSuggestions(true);
                   inputRef.current?.focus();
                 }}
                 aria-label={t('search.clearAriaLabel')}
@@ -283,8 +448,39 @@ export function SearchPanel({
                 <X size={20} />
               </button>
             )}
-            {showSuggestions && suggestions.length > 0 && (
-              <ul className="absolute left-0 right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg z-20 overflow-hidden">
+            {showSuggestions && query.trim().length === 0 && history.length > 0 && (
+              <ul className="hidden lg:block absolute left-0 right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg z-20 overflow-hidden max-h-[60vh] overflow-y-auto">
+                {history.map((item) => (
+                  <li
+                    key={item.q}
+                    className="group px-4 py-2 text-sm text-fg flex items-center gap-3 hover:bg-surface-2"
+                  >
+                    <button
+                      type="button"
+                      onMouseDown={() => handleSuggestionClick(item.q)}
+                      className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
+                    >
+                      <History size={16} className="flex-shrink-0 text-muted" />
+                      <span className="truncate">{item.q}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        removeHistoryEntry(item.q);
+                      }}
+                      aria-label={t('search.removeHistoryAriaLabel')}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded-full text-muted hover:text-fg hover:bg-surface cursor-pointer flex-shrink-0"
+                    >
+                      <X size={16} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {showSuggestions && query.trim().length > 0 && suggestions.length > 0 && (
+              <ul className="hidden lg:block absolute left-0 right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg z-20 overflow-hidden max-h-[60vh] overflow-y-auto">
                 {suggestions.map((s) => (
                   <li
                     key={s}
@@ -302,7 +498,7 @@ export function SearchPanel({
             type="submit"
             disabled={loading}
             aria-label={t('search.submitAriaLabel')}
-            className="px-5 py-[9px] -ml-px bg-surface-2 text-fg border border-border rounded-r-full hover:bg-glow/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+            className="h-10 px-5 -ml-px bg-surface-2 text-fg border border-border rounded-r-full hover:bg-glow/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
           >
             <Search size={20} />
           </button>
