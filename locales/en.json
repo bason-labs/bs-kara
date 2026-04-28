@@ -8,7 +8,11 @@
     "wordmark": "Karaoke Party",
     "tagline": "Sing together. From any phone.",
     "roomCodeLabel": "Room code",
-    "qrTip": "Or scan the QR code on the TV"
+    "qrTip": "Or scan the QR code on the TV",
+    "joinActiveRoom": "Join active party · {{code}}",
+    "startingRoom": "Starting your room…",
+    "noActiveRoom": "No active party. Turn on the TV to start a room first.",
+    "invalidCode": "Invalid room code"
   },
   "header": {
     "leaveButton": "Leave Room",

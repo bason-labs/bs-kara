@@ -8,7 +8,11 @@
     "wordmark": "Karaoke Party",
     "tagline": "Hát cùng nhau. Từ mọi chiếc điện thoại.",
     "roomCodeLabel": "Mã phòng",
-    "qrTip": "Hoặc quét mã QR hiển thị trên TV"
+    "qrTip": "Hoặc quét mã QR hiển thị trên TV",
+    "joinActiveRoom": "Tham gia phòng đang mở · {{code}}",
+    "startingRoom": "Đang mở phòng karaoke…",
+    "noActiveRoom": "Chưa có phòng nào đang mở. Hãy bật TV để tạo phòng trước.",
+    "invalidCode": "Mã phòng không đúng"
   },
   "header": {
     "leaveButton": "Thoát phòng",

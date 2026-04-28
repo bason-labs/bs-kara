@@ -124,6 +124,16 @@ export function useRoom(roomId: string | null) {
     [roomId],
   );
 
+  // Direct setter so the player can sync iframe-originated state changes
+  // (e.g. user clicks the video on the TV) back to the room.
+  const setIsPlaying = useCallback(
+    (playing: boolean) => {
+      if (!roomId) return;
+      set(ref(db, `rooms/${roomId}/isPlaying`), playing);
+    },
+    [roomId],
+  );
+
   const setVolume = useCallback(
     (vol: number) => {
       if (!roomId) return;
@@ -214,6 +224,7 @@ export function useRoom(roomId: string | null) {
     removeSong,
     reorderQueue,
     togglePlayPause,
+    setIsPlaying,
     setVolume,
     playNext,
     playPrevious,

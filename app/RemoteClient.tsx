@@ -1,11 +1,12 @@
 'use client';
 
-import { Suspense, FormEvent, useState, useEffect, useCallback, useMemo } from 'react';
+import { Suspense, FormEvent, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { LogOut, QrCode, Search, ListMusic } from 'lucide-react';
 import { YouTubeVideo } from '@/lib/youtube';
 import { useRoom } from '@/hooks/useRoom';
+import { claimOrGetActiveRoom, subscribeActiveRoom } from '@/lib/activeRoom';
 import { SearchPanel } from './components/SearchPanel';
 import { ClientQueue } from './components/ClientQueue';
 import { RemoteControls } from './components/client/RemoteControls';
@@ -36,6 +37,41 @@ function RemoteInner() {
     }
   }, [roomCode, router]);
 
+  // Mobile devices skip the OTP form entirely: they auto-join whichever room
+  // the TV (or a previous phone) has already claimed, or claim a new one if
+  // nobody has yet. Desktops keep the OTP form but get a shortcut button when
+  // a pointer is live.
+  const isCoarsePointer = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(pointer: coarse)').matches;
+  }, []);
+
+  const [activeRoom, setActiveRoom] = useState<string | null>(null);
+  const [pointerLoaded, setPointerLoaded] = useState(false);
+  const autoJoinStartedRef = useRef(false);
+
+  useEffect(() => {
+    if (roomCode) return;
+    return subscribeActiveRoom((code) => {
+      setActiveRoom(code);
+      setPointerLoaded(true);
+    });
+  }, [roomCode]);
+
+  useEffect(() => {
+    if (roomCode || !isCoarsePointer || autoJoinStartedRef.current) return;
+    autoJoinStartedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      const code = await claimOrGetActiveRoom();
+      if (cancelled) return;
+      router.replace(`/?room=${code}`);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [roomCode, isCoarsePointer, router]);
+
   const [inputCode, setInputCode] = useState('');
   const [tab, setTab] = useState<Tab>('search');
   const [playerOpen, setPlayerOpen] = useState(false);
@@ -46,25 +82,36 @@ function RemoteInner() {
     removeSong,
     reorderQueue,
     togglePlayPause,
+    setIsPlaying,
     setVolume,
     playNext,
     playPrevious,
     sendEmoji,
   } = useRoom(roomCode);
 
+  // Joining is gated by the active-room pointer: a code is only accepted if
+  // it matches the room currently in `meta/activeRoom`. This prevents users
+  // from typing a random 4-digit code and silently landing in an empty,
+  // never-created room.
   const submitJoin = useCallback(
     (code: string) => {
       const trimmed = code.trim();
       if (trimmed.length !== 4) return;
+      if (!activeRoom || trimmed !== activeRoom) return;
       router.push(`/?room=${trimmed}`);
     },
-    [router],
+    [router, activeRoom],
   );
 
   function handleJoin(e: FormEvent) {
     e.preventDefault();
     submitJoin(inputCode);
   }
+
+  const codeMismatch =
+    pointerLoaded && inputCode.length === 4 && inputCode !== activeRoom;
+  const canSubmitCode =
+    !!activeRoom && inputCode.length === 4 && inputCode === activeRoom;
 
   function handleAddToQueue(video: YouTubeVideo) {
     addSongToQueue(video);
@@ -110,34 +157,62 @@ function RemoteInner() {
           </h1>
           <p className="text-sm sm:text-base text-muted mb-8">{t('home.tagline')}</p>
 
-          <form
-            onSubmit={handleJoin}
-            className="w-full flex flex-col items-center gap-6 rounded-3xl border border-border bg-surface/70 backdrop-blur-md p-6 sm:p-8 shadow-glow"
-          >
-            <label className="w-full text-left text-xs uppercase tracking-[0.25em] text-muted">
-              {t('home.roomCodeLabel')}
-            </label>
-
-            <OTPInput
-              value={inputCode}
-              onChange={setInputCode}
-              onComplete={submitJoin}
-              ariaLabel={t('home.roomCodeLabel')}
-            />
-
-            <button
-              type="submit"
-              disabled={inputCode.length !== 4}
-              className="w-full py-3.5 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+          {isCoarsePointer ? (
+            <div className="w-full flex flex-col items-center gap-4 rounded-3xl border border-border bg-surface/70 backdrop-blur-md p-8 shadow-glow">
+              <div className="w-10 h-10 rounded-full border-4 border-border border-t-transparent animate-spin" />
+              <p className="text-sm text-muted">{t('home.startingRoom')}</p>
+            </div>
+          ) : (
+            <form
+              onSubmit={handleJoin}
+              className="w-full flex flex-col items-center gap-6 rounded-3xl border border-border bg-surface/70 backdrop-blur-md p-6 sm:p-8 shadow-glow"
             >
-              {t('home.joinButton')}
-            </button>
+              {activeRoom && (
+                <button
+                  type="button"
+                  onClick={() => submitJoin(activeRoom)}
+                  className="w-full py-3 rounded-full border border-border bg-bg/40 text-sm font-medium tracking-wide text-fg hover:bg-bg/60 transition-colors"
+                >
+                  {t('home.joinActiveRoom', { code: activeRoom })}
+                </button>
+              )}
 
-            <p className="flex items-center gap-2 text-xs text-muted">
-              <QrCode size={14} />
-              {t('home.qrTip')}
-            </p>
-          </form>
+              <label className="w-full text-left text-xs uppercase tracking-[0.25em] text-muted">
+                {t('home.roomCodeLabel')}
+              </label>
+
+              <OTPInput
+                value={inputCode}
+                onChange={setInputCode}
+                onComplete={submitJoin}
+                ariaLabel={t('home.roomCodeLabel')}
+                disabled={pointerLoaded && !activeRoom}
+              />
+
+              {pointerLoaded && !activeRoom ? (
+                <p className="text-xs text-muted text-center leading-relaxed">
+                  {t('home.noActiveRoom')}
+                </p>
+              ) : codeMismatch ? (
+                <p className="text-xs text-danger text-center">
+                  {t('home.invalidCode')}
+                </p>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={!canSubmitCode}
+                className="w-full py-3.5 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+              >
+                {t('home.joinButton')}
+              </button>
+
+              <p className="flex items-center gap-2 text-xs text-muted">
+                <QrCode size={14} />
+                {t('home.qrTip')}
+              </p>
+            </form>
+          )}
         </div>
       </main>
     );
@@ -235,11 +310,13 @@ function RemoteInner() {
 
       {playerOpen && roomData.currentPlaying && (
         <FullscreenPlayer
+          key={roomData.currentPlaying.id}
           track={roomData.currentPlaying}
           isPlaying={roomData.isPlaying}
           volume={roomData.volume}
           onSongEnd={playNext}
           onClose={() => setPlayerOpen(false)}
+          onPlayingChange={setIsPlaying}
         />
       )}
 

@@ -7,6 +7,10 @@ import { Maximize2, Minimize2, Music } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useRoom } from '@/hooks/useRoom';
 import { useAutoHide } from '@/hooks/useAutoHide';
+import {
+  claimOrGetActiveRoom,
+  clearActiveRoomIfMatches,
+} from '@/lib/activeRoom';
 import { VideoPlayer } from '../components/host/VideoPlayer';
 import { EmojiLayer } from '../components/host/EmojiLayer';
 
@@ -17,16 +21,23 @@ export default function TVClient() {
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const fixed = process.env.NEXT_PUBLIC_FIXED_ROOM_ID;
-    let id: string;
-    if (fixed) {
-      id = fixed;
-    } else {
-      const saved = localStorage.getItem('karaoke_tv_room');
-      id = saved ?? String(Math.floor(1000 + Math.random() * 9000));
-    }
-    localStorage.setItem('karaoke_tv_room', id);
-    setRoomCode(id);
+    let cancelled = false;
+    (async () => {
+      const fixed = process.env.NEXT_PUBLIC_FIXED_ROOM_ID;
+      if (fixed) {
+        if (!cancelled) setRoomCode(fixed);
+        return;
+      }
+      // Defer to the shared active-room pointer so a phone can start a party
+      // before the TV is on, and the TV will attach to whatever's already live.
+      const id = await claimOrGetActiveRoom();
+      if (cancelled) return;
+      localStorage.setItem('karaoke_tv_room', id);
+      setRoomCode(id);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -34,7 +45,7 @@ export default function TVClient() {
     setJoinUrl(`${window.location.origin}/?room=${roomCode}`);
   }, [roomCode]);
 
-  const { roomData, isLoading, playNext, clearRoom } = useRoom(roomCode);
+  const { roomData, isLoading, playNext, clearRoom, setIsPlaying } = useRoom(roomCode);
 
   const handleSongEnd = useCallback(() => {
     playNext();
@@ -42,11 +53,12 @@ export default function TVClient() {
 
   const handleEndParty = useCallback(async () => {
     await clearRoom();
+    if (roomCode) await clearActiveRoomIfMatches(roomCode);
     localStorage.removeItem('karaoke_tv_room');
-    const newCode = String(Math.floor(1000 + Math.random() * 9000));
+    const newCode = await claimOrGetActiveRoom();
     localStorage.setItem('karaoke_tv_room', newCode);
     setRoomCode(newCode);
-  }, [clearRoom]);
+  }, [clearRoom, roomCode]);
 
   const initialize = useCallback(() => setIsInitialized(true), []);
 
@@ -142,13 +154,15 @@ export default function TVClient() {
             <div className="w-full h-full flex items-center justify-center">
               <div className="w-12 h-12 rounded-full border-4 border-gray-700 border-t-gray-400 animate-spin" />
             </div>
-          ) : roomData.currentPlaying ? (
+          ) : isInitialized && roomData.currentPlaying ? (
             <>
               <VideoPlayer
+                key={roomData.currentPlaying.id}
                 videoId={roomData.currentPlaying.id}
                 onSongEnd={handleSongEnd}
                 isPlaying={roomData.isPlaying}
                 volume={roomData.volume}
+                onPlayingChange={setIsPlaying}
               />
               <button
                 type="button"

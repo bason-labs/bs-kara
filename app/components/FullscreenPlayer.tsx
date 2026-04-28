@@ -13,6 +13,7 @@ interface FullscreenPlayerProps {
   volume: number;
   onSongEnd: () => void;
   onClose: () => void;
+  onPlayingChange?: (playing: boolean) => void;
 }
 
 export function FullscreenPlayer({
@@ -21,6 +22,7 @@ export function FullscreenPlayer({
   volume,
   onSongEnd,
   onClose,
+  onPlayingChange,
 }: FullscreenPlayerProps) {
   const { t } = useTranslation();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -79,6 +81,7 @@ export function FullscreenPlayer({
           onSongEnd={onSongEnd}
           isPlaying={isPlaying}
           volume={volume}
+          onPlayingChange={onPlayingChange}
         />
       </div>
 
