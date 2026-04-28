@@ -16,6 +16,7 @@ import { NeonOrbs } from './components/NeonOrbs';
 import { NowPlayingCard } from './components/NowPlayingCard';
 import { OTPInput } from './components/OTPInput';
 import { ThemeToggle } from './components/ThemeToggle';
+import { AddedToast } from './components/AddedToast';
 
 type Tab = 'search' | 'queue';
 
@@ -113,8 +114,20 @@ function RemoteInner() {
   const canSubmitCode =
     !!activeRoom && inputCode.length === 4 && inputCode === activeRoom;
 
+  const [toastSong, setToastSong] = useState<YouTubeVideo | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
   function handleAddToQueue(video: YouTubeVideo) {
     addSongToQueue(video);
+    setToastSong(video);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastSong(null), 2500);
   }
 
   // videoId → queueId for songs currently waiting in the queue. Used by
@@ -350,6 +363,19 @@ function RemoteInner() {
           );
         })}
       </nav>
+
+      <AddedToast
+        song={toastSong}
+        onViewQueue={() => {
+          setTab('queue');
+          setToastSong(null);
+          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        }}
+        onDismiss={() => {
+          setToastSong(null);
+          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        }}
+      />
     </main>
   );
 }

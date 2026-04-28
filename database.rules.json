@@ -1,0 +1,13 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": true,
+    "rooms": {
+      "$roomId": {
+        "emojis": {
+          ".indexOn": ["timestamp"]
+        }
+      }
+    }
+  }
+}

@@ -77,5 +77,9 @@
   "player": {
     "openFullscreen": "Mở toàn màn hình",
     "closeFullscreen": "Đóng toàn màn hình"
+  },
+  "toast": {
+    "addedToQueue": "Đã thêm vào hàng chờ",
+    "viewQueue": "Xem"
   }
 }

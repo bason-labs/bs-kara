@@ -82,16 +82,17 @@ export function ClientQueue({ items, isLoading, onReorder, onRemove }: ClientQue
                             <div
                               ref={drag.innerRef}
                               {...drag.draggableProps}
-                              className={`group flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                              {...drag.dragHandleProps}
+                              aria-label="Reorder song"
+                              className={`group flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-grab active:cursor-grabbing ${
                                 snapshot.isDragging
                                   ? 'bg-surface-2 border-glow shadow-glow'
                                   : 'bg-surface border-border hover:border-glow/40 hover:bg-surface-2/60'
                               }`}
                             >
                               <div
-                                {...drag.dragHandleProps}
-                                aria-label="Drag to reorder"
-                                className="shrink-0 -ml-1 p-1 rounded-md text-muted hover:text-fg cursor-grab active:cursor-grabbing"
+                                aria-hidden="true"
+                                className="shrink-0 -ml-1 p-1 rounded-md text-muted group-hover:text-fg"
                               >
                                 <GripVertical size={16} />
                               </div>
