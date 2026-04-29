@@ -46,6 +46,8 @@
     "listeningMessage": "Listening...",
     "hotHitsLabel": "Hot Karaoke Hits",
     "noResults": "No songs found. Please try a different keyword!",
+    "errorQuota": "Search service is busy. Please try again in a moment.",
+    "errorGeneric": "Search failed. Please try again.",
     "addToQueueButton": "+ Add to Queue",
     "addedToQueueButton": "Added"
   },

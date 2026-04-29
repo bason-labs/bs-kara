@@ -1,0 +1,113 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { unstable_cache } from 'next/cache';
+import type { YouTubeVideo } from '@/lib/youtube';
+
+const YOUTUBE_ENDPOINT = 'https://www.googleapis.com/youtube/v3/search';
+const CACHE_REVALIDATE_SECONDS = 3600;
+
+class QuotaExhaustedError extends Error {
+  constructor() {
+    super('All YouTube API keys returned 403');
+    this.name = 'QuotaExhaustedError';
+  }
+}
+
+function normalizeQuery(q: string): string {
+  return q
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+}
+
+function loadKeys(): string[] {
+  const raw = process.env.YOUTUBE_API_KEYS ?? '';
+  return raw
+    .split(',')
+    .map((k) => k.trim())
+    .filter((k) => k.length > 0);
+}
+
+type YouTubeApiItem = {
+  id: { videoId: string };
+  snippet: {
+    title: string;
+    channelTitle: string;
+    thumbnails: { medium: { url: string } };
+  };
+};
+
+async function tryAllKeys(query: string): Promise<YouTubeVideo[]> {
+  const keys = loadKeys();
+  if (keys.length === 0) {
+    throw new Error('YOUTUBE_API_KEYS is not configured');
+  }
+
+  const baseParams = {
+    part: 'snippet',
+    maxResults: '15',
+    type: 'video',
+    videoEmbeddable: 'true',
+    q: `${query} karaoke beat`,
+  };
+
+  for (let i = 0; i < keys.length; i++) {
+    const params = new URLSearchParams({ ...baseParams, key: keys[i] });
+    const res = await fetch(`${YOUTUBE_ENDPOINT}?${params}`, { cache: 'no-store' });
+
+    if (res.status === 403) {
+      console.warn(`[youtube-bff] key index ${i} returned 403; rotating`);
+      continue;
+    }
+    if (!res.ok) {
+      throw new Error(`YouTube API returned ${res.status}`);
+    }
+
+    const data: { items?: YouTubeApiItem[] } = await res.json();
+    return (data.items ?? []).map((item) => ({
+      id: item.id.videoId,
+      title: decodeEntities(item.snippet.title),
+      channel: item.snippet.channelTitle,
+      thumbnail: item.snippet.thumbnails.medium.url,
+      duration: '',
+    }));
+  }
+
+  throw new QuotaExhaustedError();
+}
+
+const cachedSearch = unstable_cache(
+  async (normalizedQuery: string) => tryAllKeys(normalizedQuery),
+  ['youtube-search'],
+  { revalidate: CACHE_REVALIDATE_SECONDS, tags: ['youtube-search'] },
+);
+
+export async function GET(req: NextRequest) {
+  const raw = req.nextUrl.searchParams.get('q') ?? '';
+  const normalized = normalizeQuery(raw);
+  if (!normalized) {
+    return NextResponse.json({ error: 'missing_query' }, { status: 400 });
+  }
+
+  try {
+    const videos = await cachedSearch(normalized);
+    return NextResponse.json(videos);
+  } catch (err) {
+    if (err instanceof QuotaExhaustedError) {
+      return NextResponse.json({ error: 'quota_exhausted' }, { status: 429 });
+    }
+    console.error('[youtube-bff] search failed:', err);
+    return NextResponse.json({ error: 'search_failed' }, { status: 500 });
+  }
+}

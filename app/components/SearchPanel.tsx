@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowUpLeft, Check, History, Mic, Search, SearchX, X } from 'lucide-react';
 import { useDebounce } from 'use-debounce';
-import { searchYouTube, YouTubeVideo } from '@/lib/youtube';
+import { searchYouTube, SearchError, YouTubeVideo } from '@/lib/youtube';
 import { DEFAULT_HOT_HITS_QUERY } from '@/lib/config';
 import { SongSkeleton } from './SongSkeleton';
 
@@ -31,6 +31,7 @@ export function SearchPanel({
   const [results, setResults] = useState<YouTubeVideo[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [searchError, setSearchError] = useState<SearchError | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showingHotHits, setShowingHotHits] = useState(true);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -72,7 +73,7 @@ export function SearchPanel({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const videos = await searchYouTube(DEFAULT_HOT_HITS_QUERY);
+      const { videos } = await searchYouTube(DEFAULT_HOT_HITS_QUERY);
       if (!cancelled) {
         setResults(videos);
         setIsInitialLoading(false);
@@ -147,10 +148,14 @@ export function SearchPanel({
     setLoading(true);
     setSearched(true);
     setShowingHotHits(false);
+    setSearchError(null);
     try {
-      const videos = await searchYouTube(trimmed);
+      const { videos, error } = await searchYouTube(trimmed);
       setResults(videos);
-      pushHistory(trimmed, videos[0]?.thumbnail);
+      setSearchError(error ?? null);
+      if (videos.length > 0) {
+        pushHistory(trimmed, videos[0]?.thumbnail);
+      }
     } finally {
       setLoading(false);
     }
@@ -528,7 +533,13 @@ export function SearchPanel({
         {!isInitialLoading && !loading && searched && results.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <SearchX size={64} className="mb-4 text-muted opacity-60" />
-            <p className="text-muted text-sm">{t('search.noResults')}</p>
+            <p className="text-muted text-sm">
+              {searchError === 'quota'
+                ? t('search.errorQuota')
+                : searchError === 'generic'
+                  ? t('search.errorGeneric')
+                  : t('search.noResults')}
+            </p>
           </div>
         )}
 

@@ -10,11 +10,11 @@ export interface QueueItem extends YouTubeVideo {
   queueId: string;
 }
 
-function decodeHTMLEntities(text: string): string {
-  if (typeof document === 'undefined') return text;
-  const el = document.createElement('textarea');
-  el.innerHTML = text;
-  return el.value;
+export type SearchError = 'quota' | 'generic';
+
+export interface SearchResult {
+  videos: YouTubeVideo[];
+  error?: SearchError;
 }
 
 async function searchViaScraper(query: string): Promise<YouTubeVideo[]> {
@@ -28,49 +28,30 @@ async function searchViaScraper(query: string): Promise<YouTubeVideo[]> {
   }
 }
 
-export async function searchYouTube(query: string): Promise<YouTubeVideo[]> {
-  const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
-  if (!apiKey) {
-    console.error('NEXT_PUBLIC_YOUTUBE_API_KEY is not set');
-    return searchViaScraper(query);
-  }
-
-  const params = new URLSearchParams({
-    part: 'snippet',
-    maxResults: '15',
-    type: 'video',
-    videoEmbeddable: 'true',
-    q: `${query} karaoke beat`,
-    key: apiKey,
-  });
+export async function searchYouTube(query: string): Promise<SearchResult> {
+  const trimmed = query.trim();
+  if (!trimmed) return { videos: [] };
 
   try {
-    const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?${params}`,
-    );
-    if (res.status === 403) {
-      console.warn('YouTube API quota exceeded. Falling back to internal scraper...');
-      return searchViaScraper(query);
+    const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(trimmed)}`);
+
+    if (res.ok) {
+      const videos = (await res.json()) as YouTubeVideo[];
+      return { videos };
     }
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.items ?? []).map(
-      (item: {
-        id: { videoId: string };
-        snippet: {
-          title: string;
-          channelTitle: string;
-          thumbnails: { medium: { url: string } };
-        };
-      }) => ({
-        id: item.id.videoId,
-        title: decodeHTMLEntities(item.snippet.title),
-        channel: item.snippet.channelTitle,
-        thumbnail: item.snippet.thumbnails.medium.url,
-        duration: '',
-      }),
-    );
+
+    if (res.status === 429) {
+      const fallback = await searchViaScraper(trimmed);
+      if (fallback.length > 0) return { videos: fallback };
+      return { videos: [], error: 'quota' };
+    }
+
+    const fallback = await searchViaScraper(trimmed);
+    if (fallback.length > 0) return { videos: fallback };
+    return { videos: [], error: 'generic' };
   } catch {
-    return searchViaScraper(query);
+    const fallback = await searchViaScraper(trimmed);
+    if (fallback.length > 0) return { videos: fallback };
+    return { videos: [], error: 'generic' };
   }
 }

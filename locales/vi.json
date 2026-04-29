@@ -46,6 +46,8 @@
     "listeningMessage": "Đang nghe...",
     "hotHitsLabel": "Bài hát karaoke hot",
     "noResults": "Không tìm thấy bài hát nào. Vui lòng thử từ khóa khác!",
+    "errorQuota": "Dịch vụ tìm kiếm đang bận. Vui lòng thử lại sau giây lát.",
+    "errorGeneric": "Tìm kiếm thất bại. Vui lòng thử lại.",
     "addToQueueButton": "+ Thêm vào hàng chờ",
     "addedToQueueButton": "Đã thêm"
   },
