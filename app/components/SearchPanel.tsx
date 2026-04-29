@@ -73,10 +73,15 @@ export function SearchPanel({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { videos } = await searchYouTube(DEFAULT_HOT_HITS_QUERY);
-      if (!cancelled) {
-        setResults(videos);
-        setIsInitialLoading(false);
+      try {
+        const { videos } = await searchYouTube(DEFAULT_HOT_HITS_QUERY);
+        if (!cancelled) setResults(videos);
+      } catch {
+        // Network/abort during back nav can reject. Swallowing here so the
+        // finally block still settles isInitialLoading — otherwise the panel
+        // is stuck on skeletons forever.
+      } finally {
+        if (!cancelled) setIsInitialLoading(false);
       }
     })();
     return () => {

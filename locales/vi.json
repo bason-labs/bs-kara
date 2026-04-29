@@ -88,5 +88,23 @@
   "toast": {
     "addedToQueue": "Đã thêm vào hàng chờ",
     "viewQueue": "Xem"
+  },
+  "errors": {
+    "notFound": {
+      "title": "Không tìm thấy trang",
+      "message": "Trang bạn tìm không tồn tại hoặc đã bị xoá.",
+      "cta": "Về trang chủ"
+    },
+    "loadFailed": {
+      "title": "Không thể tải trang",
+      "message": "Có lỗi xảy ra. Vui lòng kiểm tra kết nối và thử lại.",
+      "retry": "Thử lại",
+      "home": "Về trang chủ"
+    },
+    "roomNotFound": {
+      "title": "Phòng không tồn tại",
+      "message": "Mã phòng không đúng hoặc phòng đã đóng. Vui lòng kiểm tra lại trên TV.",
+      "cta": "Về trang chủ"
+    }
   }
 }

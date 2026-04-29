@@ -88,5 +88,23 @@
   "toast": {
     "addedToQueue": "Added to queue",
     "viewQueue": "View"
+  },
+  "errors": {
+    "notFound": {
+      "title": "Page not found",
+      "message": "The page you are looking for doesn't exist or has been removed.",
+      "cta": "Back to home"
+    },
+    "loadFailed": {
+      "title": "Couldn't load this page",
+      "message": "Something went wrong. Please check your connection and try again.",
+      "retry": "Try again",
+      "home": "Back to home"
+    },
+    "roomNotFound": {
+      "title": "Room not found",
+      "message": "This room code is invalid or the party has ended. Please check the code shown on the TV.",
+      "cta": "Back to home"
+    }
   }
 }

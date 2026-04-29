@@ -1,9 +1,10 @@
 'use client';
 
 import { Suspense, FormEvent, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { LogOut, QrCode, Search, ListMusic } from 'lucide-react';
+import { LogOut, QrCode, Search, ListMusic, DoorClosed } from 'lucide-react';
 import { YouTubeVideo } from '@/lib/youtube';
 import { useRoom } from '@/hooks/useRoom';
 import { claimOrGetActiveRoom, subscribeActiveRoom } from '@/lib/activeRoom';
@@ -20,23 +21,46 @@ import { AddedToast } from './components/AddedToast';
 
 type Tab = 'search' | 'queue';
 
+const ROOM_CODE_PATTERN = /^\d{4}$/;
+
 function RemoteInner() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const roomCode = searchParams.get('room');
+  const rawRoomCode = searchParams.get('room');
+  // The OTP form gates manual entry, but the `?room=` query param bypasses
+  // it. Anything that isn't a 4-digit code is treated as no room (and the
+  // URL is cleaned up in the effect below) so we don't subscribe to a
+  // garbage Firebase path or render the shell with bogus data.
+  const roomCode = rawRoomCode && ROOM_CODE_PATTERN.test(rawRoomCode)
+    ? rawRoomCode
+    : null;
 
-  // Auto-redirect to saved room or persist current room in localStorage
+  // Persist the current room code so a fresh tab can restore it on first
+  // load. Runs whenever the URL settles on a valid room.
   useEffect(() => {
-    if (!roomCode) {
-      const saved = localStorage.getItem('karaoke_client_room');
-      if (saved) {
-        router.replace(`/?room=${saved}`);
-      }
-    } else {
+    if (roomCode) {
       localStorage.setItem('karaoke_client_room', roomCode);
     }
-  }, [roomCode, router]);
+  }, [roomCode]);
+
+  // Restore the last valid saved code only on the initial mount with a bare
+  // `/` URL. Doing this on every navigation to `/` would trap the user: once
+  // they Back out of a room, the effect would immediately redirect them
+  // straight back into it.
+  const restoreCheckedRef = useRef(false);
+  useEffect(() => {
+    if (restoreCheckedRef.current) return;
+    restoreCheckedRef.current = true;
+    if (rawRoomCode) return;
+    const saved = localStorage.getItem('karaoke_client_room');
+    if (saved && ROOM_CODE_PATTERN.test(saved)) {
+      router.replace(`/?room=${saved}`);
+    } else if (saved) {
+      // Clear garbage that may have been persisted before validation existed.
+      localStorage.removeItem('karaoke_client_room');
+    }
+  }, [rawRoomCode, router]);
 
   // Mobile devices skip the OTP form entirely: they auto-join whichever room
   // the TV (or a previous phone) has already claimed, or claim a new one if
@@ -51,16 +75,19 @@ function RemoteInner() {
   const [pointerLoaded, setPointerLoaded] = useState(false);
   const autoJoinStartedRef = useRef(false);
 
+  // Always subscribe — the not-found panel also needs to know whether
+  // there's an active room so it can offer a "join the open party" shortcut.
   useEffect(() => {
-    if (roomCode) return;
     return subscribeActiveRoom((code) => {
       setActiveRoom(code);
       setPointerLoaded(true);
     });
-  }, [roomCode]);
+  }, []);
 
   useEffect(() => {
-    if (roomCode || !isCoarsePointer || autoJoinStartedRef.current) return;
+    // Gate on rawRoomCode so a malformed `?room=` value still keeps us on
+    // the not-found panel instead of silently auto-joining the active room.
+    if (rawRoomCode || !isCoarsePointer || autoJoinStartedRef.current) return;
     autoJoinStartedRef.current = true;
     let cancelled = false;
     (async () => {
@@ -71,7 +98,7 @@ function RemoteInner() {
     return () => {
       cancelled = true;
     };
-  }, [roomCode, isCoarsePointer, router]);
+  }, [rawRoomCode, isCoarsePointer, router]);
 
   const [inputCode, setInputCode] = useState('');
   const [tab, setTab] = useState<Tab>('search');
@@ -79,6 +106,7 @@ function RemoteInner() {
   const {
     roomData,
     isLoading,
+    roomExists,
     addSongToQueue,
     removeSong,
     reorderQueue,
@@ -89,6 +117,20 @@ function RemoteInner() {
     playPrevious,
     sendEmoji,
   } = useRoom(roomCode);
+
+  // True when the URL points at a room that can't be entered: either a
+  // malformed code, or a 4-digit code Firebase says doesn't exist.
+  const roomMissing =
+    (!!rawRoomCode && !roomCode) || (!!roomCode && roomExists === false);
+
+  // If we're showing the not-found panel, forget any saved code so leaving
+  // via "Về trang chủ" actually lands on home (and doesn't immediately
+  // restore the bad code from localStorage).
+  useEffect(() => {
+    if (roomMissing) {
+      localStorage.removeItem('karaoke_client_room');
+    }
+  }, [roomMissing]);
 
   // Joining is gated by the active-room pointer: a code is only accepted if
   // it matches the room currently in `meta/activeRoom`. This prevents users
@@ -147,6 +189,57 @@ function RemoteInner() {
   function handleLeave() {
     localStorage.removeItem('karaoke_client_room');
     router.push('/');
+  }
+
+  if (roomMissing) {
+    // Render the panel immediately — gating on pointerLoaded used to avoid a
+    // button flash, but it can leave the user stranded on a spinner forever
+    // if the Firebase listener never settles (e.g. coming back here via
+    // browser history). The "Join active room" button just stays hidden
+    // until activeRoom resolves.
+    const canJoinActive = !!activeRoom && activeRoom !== roomCode;
+    return (
+      <main className="relative min-h-[100dvh] w-full flex items-center justify-center px-6 py-10 bg-bg text-fg">
+        <div className="w-full max-w-sm rounded-2xl border border-glow/40 bg-surface-2 p-8 shadow-glow text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface text-glow">
+            <DoorClosed size={28} aria-hidden="true" />
+          </div>
+          <h1 className="text-lg font-semibold text-fg">
+            {t('errors.roomNotFound.title')}
+          </h1>
+          <p className="mt-2 text-sm text-muted">
+            {t('errors.roomNotFound.message')}
+          </p>
+          <div className="mt-6 flex flex-col gap-2">
+            {canJoinActive && (
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem('karaoke_client_room', activeRoom);
+                  router.push(`/?room=${activeRoom}`);
+                }}
+                className="w-full py-3 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98]"
+              >
+                {t('home.joinActiveRoom', { code: activeRoom })}
+              </button>
+            )}
+            <Link
+              href="/"
+              onClick={() => {
+                localStorage.removeItem('karaoke_client_room');
+              }}
+              className={`inline-block w-full py-3 rounded-full font-semibold tracking-wide transition-transform active:scale-[0.98] ${
+                canJoinActive
+                  ? 'border border-border text-fg hover:bg-surface'
+                  : 'bg-gradient-brand text-white shadow-glow'
+              }`}
+            >
+              {t('errors.roomNotFound.cta')}
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   if (!roomCode) {

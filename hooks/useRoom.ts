@@ -24,6 +24,9 @@ const DEFAULT_STATE: RoomState = {
 export function useRoom(roomId: string | null) {
   const [roomData, setRoomData] = useState<RoomState>(DEFAULT_STATE);
   const [isLoading, setIsLoading] = useState(false);
+  // null while we haven't heard back from Firebase yet, true/false after the
+  // first snapshot. Lets the UI distinguish "still loading" from "missing".
+  const [roomExists, setRoomExists] = useState<boolean | null>(null);
   // Ref so write functions always see fresh state without stale closure issues
   const roomDataRef = useRef(roomData);
   roomDataRef.current = roomData;
@@ -32,12 +35,14 @@ export function useRoom(roomId: string | null) {
     if (!roomId) {
       setRoomData(DEFAULT_STATE);
       setIsLoading(false);
+      setRoomExists(null);
       return;
     }
 
     // Instantly clear stale data and show loading state when room changes
     setRoomData(DEFAULT_STATE);
     setIsLoading(true);
+    setRoomExists(null);
 
     const roomRef = ref(db, `rooms/${roomId}`);
     const unsub = onValue(roomRef, (snapshot) => {
@@ -52,8 +57,11 @@ export function useRoom(roomId: string | null) {
       if (!data) {
         setRoomData(DEFAULT_STATE);
         setIsLoading(false);
+        setRoomExists(false);
         return;
       }
+
+      setRoomExists(true);
 
       const queue: QueueItem[] = data.queue
         ? Object.entries(data.queue).map(([key, item]) => ({ ...item, queueId: key }))
@@ -220,6 +228,7 @@ export function useRoom(roomId: string | null) {
   return {
     roomData,
     isLoading,
+    roomExists,
     addSongToQueue,
     removeSong,
     reorderQueue,
