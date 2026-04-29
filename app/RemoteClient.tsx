@@ -294,7 +294,13 @@ function RemoteInner() {
               <NowPlayingCard
                 track={roomData.currentPlaying}
                 isPlaying={roomData.isPlaying}
-                onExpand={() => setPlayerOpen(true)}
+                onExpand={() => {
+                  // requestFullscreen must run synchronously inside the user
+                  // gesture; deferring to the FullscreenPlayer's mount effect
+                  // loses the activation token in some browsers.
+                  document.documentElement.requestFullscreen?.().catch(() => {});
+                  setPlayerOpen(true);
+                }}
               />
             </div>
           )}
@@ -323,12 +329,15 @@ function RemoteInner() {
 
       {playerOpen && roomData.currentPlaying && (
         <FullscreenPlayer
-          key={roomData.currentPlaying.id}
           track={roomData.currentPlaying}
           isPlaying={roomData.isPlaying}
           volume={roomData.volume}
+          hasHistory={roomData.history.length > 0}
+          hasQueue={roomData.queue.length > 0}
           onSongEnd={playNext}
           onClose={() => setPlayerOpen(false)}
+          onPrev={playPrevious}
+          onNext={playNext}
           onPlayingChange={setIsPlaying}
         />
       )}

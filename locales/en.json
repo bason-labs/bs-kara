@@ -79,7 +79,9 @@
   },
   "player": {
     "openFullscreen": "Open fullscreen",
-    "closeFullscreen": "Close fullscreen"
+    "closeFullscreen": "Close fullscreen",
+    "play": "Play",
+    "pause": "Pause"
   },
   "toast": {
     "addedToQueue": "Added to queue",

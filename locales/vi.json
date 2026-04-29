@@ -79,7 +79,9 @@
   },
   "player": {
     "openFullscreen": "Mở toàn màn hình",
-    "closeFullscreen": "Đóng toàn màn hình"
+    "closeFullscreen": "Đóng toàn màn hình",
+    "play": "Phát",
+    "pause": "Tạm dừng"
   },
   "toast": {
     "addedToQueue": "Đã thêm vào hàng chờ",
