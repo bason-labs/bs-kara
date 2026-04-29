@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { GripVertical, ListMusic, Trash2 } from 'lucide-react';
+import { GripVertical, ListMusic, Mic, Pencil, Plus, Trash2 } from 'lucide-react';
 import { QueueItem } from '@/lib/youtube';
 
 // Flips to true on the first client render (post-hydration), so we don't
@@ -18,6 +18,10 @@ interface ClientQueueProps {
   isLoading?: boolean;
   onReorder: (startIndex: number, endIndex: number) => void;
   onRemove: (queueId: string) => void;
+  // Opens the requester dialog scoped to this queue item. Optional — when
+  // omitted, the edit affordance is hidden (e.g. for a future read-only
+  // viewer).
+  onEditRequester?: (item: QueueItem) => void;
   // Room-wide setting. When false we render the static list (same path used
   // during SSR/pre-hydration), so songs can still be removed but not dragged.
   dragDropEnabled?: boolean;
@@ -28,6 +32,7 @@ export function ClientQueue({
   isLoading,
   onReorder,
   onRemove,
+  onEditRequester,
   dragDropEnabled = true,
 }: ClientQueueProps) {
   const { t } = useTranslation();
@@ -94,7 +99,7 @@ export function ClientQueue({
                               {...drag.draggableProps}
                               {...drag.dragHandleProps}
                               aria-label="Reorder song"
-                              className={`group flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-grab active:cursor-grabbing ${
+                              className={`group flex items-center gap-3 p-3 lg:gap-2.5 lg:p-2.5 rounded-xl border transition-colors cursor-grab active:cursor-grabbing ${
                                 snapshot.isDragging
                                   ? 'bg-surface-2 border-glow shadow-glow'
                                   : 'bg-surface border-border hover:border-glow/40 hover:bg-surface-2/60'
@@ -102,16 +107,16 @@ export function ClientQueue({
                             >
                               <div
                                 aria-hidden="true"
-                                className="shrink-0 -ml-1 p-1 rounded-md text-muted group-hover:text-fg"
+                                className="shrink-0 -ml-1 text-muted group-hover:text-fg"
                               >
-                                <GripVertical size={16} />
+                                <GripVertical className="w-4 h-4 lg:w-3.5 lg:h-3.5" />
                               </div>
 
-                              <span className="tabular shrink-0 w-5 text-xs font-semibold text-muted text-center">
+                              <span className="tabular shrink-0 w-5 lg:w-4 text-xs lg:text-[11px] font-semibold text-muted text-center">
                                 {index + 1}
                               </span>
 
-                              <div className="relative w-20 h-12 shrink-0 rounded-md overflow-hidden bg-surface-2">
+                              <div className="relative w-24 h-14 lg:w-16 lg:h-10 shrink-0 rounded-lg lg:rounded-md overflow-hidden bg-surface-2">
                                 <Image
                                   src={item.thumbnail}
                                   alt={item.title}
@@ -121,14 +126,10 @@ export function ClientQueue({
                                 />
                               </div>
 
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-fg line-clamp-2 leading-snug">
-                                  {item.title}
-                                </p>
-                                <p className="text-xs text-muted truncate mt-0.5">
-                                  {item.channel}
-                                </p>
-                              </div>
+                              <QueueItemBody
+                                item={item}
+                                onEditRequester={onEditRequester}
+                              />
 
                               <button
                                 type="button"
@@ -137,9 +138,9 @@ export function ClientQueue({
                                   onRemove(item.queueId);
                                 }}
                                 aria-label={t('queue.removeAriaLabel')}
-                                className="shrink-0 p-1.5 rounded-md text-muted hover:text-danger hover:bg-surface transition-colors"
+                                className="shrink-0 p-2 lg:p-1.5 rounded-md text-muted hover:text-danger hover:bg-surface transition-colors"
                               >
-                                <Trash2 size={16} />
+                                <Trash2 className="w-[18px] h-[18px] lg:w-[15px] lg:h-[15px]" />
                               </button>
                             </div>
                           )}
@@ -155,13 +156,13 @@ export function ClientQueue({
                 {items.map((item, index) => (
                   <div
                     key={item.queueId}
-                    className="flex items-center gap-3 p-3 bg-surface rounded-xl border border-border"
+                    className="flex items-center gap-3 p-3 lg:gap-2.5 lg:p-2.5 bg-surface rounded-xl border border-border"
                   >
-                    <span className="tabular shrink-0 w-5 text-xs font-semibold text-muted text-center">
+                    <span className="tabular shrink-0 w-5 lg:w-4 text-xs lg:text-[11px] font-semibold text-muted text-center">
                       {index + 1}
                     </span>
 
-                    <div className="relative w-20 h-12 shrink-0 rounded-md overflow-hidden bg-surface-2">
+                    <div className="relative w-24 h-14 lg:w-16 lg:h-10 shrink-0 rounded-lg lg:rounded-md overflow-hidden bg-surface-2">
                       <Image
                         src={item.thumbnail}
                         alt={item.title}
@@ -171,12 +172,10 @@ export function ClientQueue({
                       />
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-fg line-clamp-2 leading-snug">
-                        {item.title}
-                      </p>
-                      <p className="text-xs text-muted truncate mt-0.5">{item.channel}</p>
-                    </div>
+                    <QueueItemBody
+                      item={item}
+                      onEditRequester={onEditRequester}
+                    />
 
                     <button
                       type="button"
@@ -185,9 +184,9 @@ export function ClientQueue({
                         onRemove(item.queueId);
                       }}
                       aria-label={t('queue.removeAriaLabel')}
-                      className="shrink-0 p-1.5 rounded-md text-muted hover:text-danger hover:bg-surface-2 transition-colors"
+                      className="shrink-0 p-2 lg:p-1.5 rounded-md text-muted hover:text-danger hover:bg-surface-2 transition-colors"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 className="w-[18px] h-[18px] lg:w-[15px] lg:h-[15px]" />
                     </button>
                   </div>
                 ))}
@@ -195,6 +194,70 @@ export function ClientQueue({
             )}
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+function QueueItemBody({
+  item,
+  onEditRequester,
+}: {
+  item: QueueItem;
+  onEditRequester?: (item: QueueItem) => void;
+}) {
+  const { t } = useTranslation();
+  const hasName = !!item.requesterName;
+  const editable = !!onEditRequester;
+
+  return (
+    <div className="min-w-0 flex-1">
+      <p
+        title={item.title}
+        className="text-[15px] lg:text-sm font-medium text-fg line-clamp-2 lg:line-clamp-1 leading-snug"
+      >
+        {item.title}
+      </p>
+      <div className="flex items-center gap-1.5 mt-1 lg:mt-0.5 min-w-0">
+        <p className="hidden lg:block text-[11px] text-muted truncate min-w-0 flex-shrink">
+          {item.channel}
+        </p>
+
+        {hasName ? (
+          <button
+            type="button"
+            disabled={!editable}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (editable) onEditRequester!(item);
+            }}
+            aria-label={editable ? t('requester.editAriaLabel') : undefined}
+            className={`shrink-0 inline-flex items-center gap-1 max-w-[55%] px-2 py-0.5 lg:px-1.5 rounded-full bg-glow/15 text-glow text-xs lg:text-[11px] font-medium truncate transition-colors ${
+              editable
+                ? 'cursor-pointer hover:bg-glow/25 active:scale-95'
+                : 'cursor-default'
+            }`}
+          >
+            <Mic className="shrink-0 w-3 h-3 lg:w-[10px] lg:h-[10px]" />
+            <span className="truncate">{item.requesterName}</span>
+            {editable && (
+              <Pencil className="shrink-0 opacity-70 w-3 h-3 lg:w-[10px] lg:h-[10px]" />
+            )}
+          </button>
+        ) : editable ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditRequester!(item);
+            }}
+            aria-label={t('requester.addAriaLabel')}
+            className="shrink-0 inline-flex items-center gap-0.5 px-2 py-0.5 lg:px-1.5 rounded-full border border-dashed border-border text-muted text-xs lg:text-[11px] font-medium hover:text-fg hover:border-glow/50 active:scale-95 transition-colors cursor-pointer"
+          >
+            <Plus className="w-3 h-3 lg:w-[10px] lg:h-[10px]" />
+            <span>{t('requester.addLabel')}</span>
+          </button>
+        ) : null}
       </div>
     </div>
   );

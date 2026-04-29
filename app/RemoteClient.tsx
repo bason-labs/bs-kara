@@ -20,6 +20,9 @@ import { NeonOrbs } from './components/NeonOrbs';
 import { OTPInput } from './components/OTPInput';
 import { ThemeToggle } from './components/ThemeToggle';
 import { AddedToast } from './components/AddedToast';
+import { RequesterDialog } from './components/RequesterDialog';
+
+const LAST_SINGER_KEY = 'lastSingerName';
 
 type Tab = 'search' | 'queue';
 
@@ -111,6 +114,7 @@ function RemoteInner() {
     isLoading,
     roomExists,
     addSongToQueue,
+    updateRequesterName,
     removeSong,
     reorderQueue,
     togglePlayPause,
@@ -122,6 +126,7 @@ function RemoteInner() {
     setAutoRandomMode,
     setRandomFilters,
     setDragDropEnabled,
+    setRequesterPromptEnabled,
     removeCurrentPlaying,
     addToPlayedHistory,
     setCurrentPlayingDirectly,
@@ -202,12 +207,75 @@ function RemoteInner() {
     };
   }, []);
 
-  function handleAddToQueue(video: YouTubeVideo) {
-    addSongToQueue(video);
-    setToastSong(video);
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => setToastSong(null), 2500);
+  // Pending video while the requester dialog is open. Capturing the target
+  // here means the dialog stays decoupled from the search panel — the panel
+  // just fires `onAdd(video)` like before.
+  const [pendingAdd, setPendingAdd] = useState<YouTubeVideo | null>(null);
+  // Edit mode keys off a queue item; null when we're in add mode.
+  const [editingQueueId, setEditingQueueId] = useState<string | null>(null);
+  const [dialogInitialName, setDialogInitialName] = useState('');
+
+  function rememberSinger(name: string) {
+    try {
+      localStorage.setItem(LAST_SINGER_KEY, name);
+    } catch {}
   }
+
+  function handleAddToQueue(video: YouTubeVideo) {
+    // Honor the room-wide setting: when the prompt is off, skip the dialog
+    // and add the song straight to the queue (no requester attached). The
+    // toast still fires so the user gets feedback.
+    if (!roomData.requesterPromptEnabled) {
+      addSongToQueue(video);
+      setToastSong(video);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setToastSong(null), 2500);
+      return;
+    }
+    setPendingAdd(video);
+    setEditingQueueId(null);
+    // Each "Add" opens with an empty input — multiple users share one device,
+    // so prefilling with the previous singer would make them backspace every
+    // time. Edit mode still shows the song's current requester (below).
+    setDialogInitialName('');
+  }
+
+  function handleEditRequester(item: { queueId: string; requesterName?: string }) {
+    setPendingAdd(null);
+    setEditingQueueId(item.queueId);
+    setDialogInitialName(item.requesterName ?? '');
+  }
+
+  function closeRequesterDialog() {
+    setPendingAdd(null);
+    setEditingQueueId(null);
+  }
+
+  function handleRequesterConfirm(name: string | null) {
+    if (pendingAdd) {
+      const video = pendingAdd;
+      addSongToQueue(video, name);
+      if (name) rememberSinger(name);
+      setToastSong(video);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setToastSong(null), 2500);
+    } else if (editingQueueId) {
+      updateRequesterName(editingQueueId, name);
+      if (name) rememberSinger(name);
+    }
+    closeRequesterDialog();
+  }
+
+  const requesterDialogOpen = pendingAdd !== null || editingQueueId !== null;
+  const requesterDialogMode: 'add' | 'edit' = pendingAdd ? 'add' : 'edit';
+  // Tying the key to the current target remounts the dialog each time we open
+  // it for a different song. Guarantees stale local state (a half-typed name
+  // from a previous open) can't survive into the next session.
+  const requesterDialogKey = pendingAdd
+    ? `add-${pendingAdd.id}`
+    : editingQueueId
+      ? `edit-${editingQueueId}`
+      : 'closed';
 
   // videoId → queueId for songs currently waiting in the queue. Used by
   // SearchPanel to toggle the "+ Add" / "Added" button into a remove action.
@@ -454,6 +522,9 @@ function RemoteInner() {
               isLoading={isLoading}
               onReorder={reorderQueue}
               onRemove={removeSong}
+              onEditRequester={
+                roomData.requesterPromptEnabled ? handleEditRequester : undefined
+              }
               dragDropEnabled={roomData.dragDropEnabled}
             />
           </div>
@@ -528,6 +599,17 @@ function RemoteInner() {
         onFiltersChange={setRandomFilters}
         dragDropEnabled={roomData.dragDropEnabled}
         onDragDropToggle={setDragDropEnabled}
+        requesterPromptEnabled={roomData.requesterPromptEnabled}
+        onRequesterPromptToggle={setRequesterPromptEnabled}
+      />
+
+      <RequesterDialog
+        key={requesterDialogKey}
+        open={requesterDialogOpen}
+        initialName={dialogInitialName}
+        mode={requesterDialogMode}
+        onConfirm={handleRequesterConfirm}
+        onCancel={closeRequesterDialog}
       />
 
       <AddedToast

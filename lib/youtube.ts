@@ -4,6 +4,10 @@ export interface YouTubeVideo {
   channel: string;
   thumbnail: string;
   duration: string;
+  // Singer's name attached when the song was added to the queue. Optional
+  // because search results don't have one and auto-random picks bypass the
+  // requester prompt entirely.
+  requesterName?: string;
 }
 
 export interface QueueItem extends YouTubeVideo {

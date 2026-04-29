@@ -20,6 +20,7 @@ export interface RoomState {
   randomFilters: RandomFilters;
   playedHistory: string[];
   dragDropEnabled: boolean;
+  requesterPromptEnabled: boolean;
 }
 
 const DEFAULT_STATE: RoomState = {
@@ -32,6 +33,7 @@ const DEFAULT_STATE: RoomState = {
   randomFilters: DEFAULT_RANDOM_FILTERS,
   playedHistory: [],
   dragDropEnabled: true,
+  requesterPromptEnabled: true,
 };
 
 export function useRoom(roomId: string | null) {
@@ -69,6 +71,7 @@ export function useRoom(roomId: string | null) {
         randomFilters?: Partial<RandomFilters>;
         playedHistory?: Record<string, string> | string[];
         dragDropEnabled?: boolean;
+        requesterPromptEnabled?: boolean;
       } | null;
 
       if (!data) {
@@ -114,6 +117,9 @@ export function useRoom(roomId: string | null) {
         // Default to enabled when the field is missing — existing rooms
         // shouldn't lose drag-and-drop just because they predate this setting.
         dragDropEnabled: data.dragDropEnabled !== false,
+        // Same default-on pattern: rooms that predate this setting still
+        // get the singer-name prompt unless explicitly turned off.
+        requesterPromptEnabled: data.requesterPromptEnabled !== false,
       });
       setIsLoading(false);
     });
@@ -121,15 +127,31 @@ export function useRoom(roomId: string | null) {
   }, [roomId]);
 
   const addSongToQueue = useCallback(
-    (item: YouTubeVideo) => {
+    (item: YouTubeVideo, requesterName?: string | null) => {
       if (!roomId) return;
-      push(ref(db, `rooms/${roomId}/queue`), {
+      const trimmed = requesterName?.trim();
+      const payload: Omit<QueueItem, 'queueId'> = {
         id: item.id,
         title: item.title,
         channel: item.channel,
         thumbnail: item.thumbnail,
         duration: item.duration,
-      });
+      };
+      // Firebase rejects `undefined`; only include the field when there's a
+      // real name. Empty strings are treated as "no requester" too.
+      if (trimmed) payload.requesterName = trimmed;
+      push(ref(db, `rooms/${roomId}/queue`), payload);
+    },
+    [roomId],
+  );
+
+  const updateRequesterName = useCallback(
+    (queueId: string, newName: string | null) => {
+      if (!roomId) return;
+      const trimmed = newName?.trim();
+      // Writing `null` removes the field — keeps the database clean instead
+      // of leaving an empty string lingering.
+      set(ref(db, `rooms/${roomId}/queue/${queueId}/requesterName`), trimmed || null);
     },
     [roomId],
   );
@@ -211,13 +233,15 @@ export function useRoom(roomId: string | null) {
       await set(ref(db, `rooms/${roomId}/history`), histObj);
     }
 
-    await set(ref(db, `rooms/${roomId}/currentPlaying`), {
+    const nextPayload: YouTubeVideo = {
       id: next.id,
       title: next.title,
       channel: next.channel,
       thumbnail: next.thumbnail,
       duration: next.duration,
-    });
+    };
+    if (next.requesterName) nextPayload.requesterName = next.requesterName;
+    await set(ref(db, `rooms/${roomId}/currentPlaying`), nextPayload);
     await remove(ref(db, `rooms/${roomId}/queue/${next.queueId}`));
   }, [roomId]);
 
@@ -290,6 +314,14 @@ export function useRoom(roomId: string | null) {
     [roomId],
   );
 
+  const setRequesterPromptEnabled = useCallback(
+    (enabled: boolean) => {
+      if (!roomId) return;
+      set(ref(db, `rooms/${roomId}/requesterPromptEnabled`), enabled);
+    },
+    [roomId],
+  );
+
   // Append a YouTube videoId to playedHistory so the auto-random picker can
   // skip songs we've already pulled in this session.
   const addToPlayedHistory = useCallback(
@@ -355,6 +387,7 @@ export function useRoom(roomId: string | null) {
     isLoading,
     roomExists,
     addSongToQueue,
+    updateRequesterName,
     removeSong,
     reorderQueue,
     togglePlayPause,
@@ -368,6 +401,7 @@ export function useRoom(roomId: string | null) {
     setRandomFilters,
     addToPlayedHistory,
     setDragDropEnabled,
+    setRequesterPromptEnabled,
     removeCurrentPlaying,
     setCurrentPlayingDirectly,
   };

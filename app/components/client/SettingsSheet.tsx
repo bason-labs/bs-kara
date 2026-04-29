@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Shuffle, Palette, X, Hash, GripVertical } from 'lucide-react';
+import { Shuffle, Palette, X, Hash, GripVertical, Mic } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Genre, RandomFilters, SingerType, Tone } from '@/lib/youtube';
 import { ThemeToggle } from '../ThemeToggle';
@@ -16,6 +16,8 @@ interface SettingsSheetProps {
   onFiltersChange: (filters: Partial<RandomFilters>) => void;
   dragDropEnabled: boolean;
   onDragDropToggle: (enabled: boolean) => void;
+  requesterPromptEnabled: boolean;
+  onRequesterPromptToggle: (enabled: boolean) => void;
 }
 
 const TYPE_OPTIONS: SingerType[] = ['all', 'solo', 'duet'];
@@ -32,6 +34,8 @@ export function SettingsSheet({
   onFiltersChange,
   dragDropEnabled,
   onDragDropToggle,
+  requesterPromptEnabled,
+  onRequesterPromptToggle,
 }: SettingsSheetProps) {
   const { t } = useTranslation();
 
@@ -114,6 +118,8 @@ export function SettingsSheet({
               <QueueSection
                 dragDropEnabled={dragDropEnabled}
                 onDragDropToggle={onDragDropToggle}
+                requesterPromptEnabled={requesterPromptEnabled}
+                onRequesterPromptToggle={onRequesterPromptToggle}
               />
 
               <ThemeSection />
@@ -254,51 +260,78 @@ function AutoRandomSection({
 interface QueueSectionProps {
   dragDropEnabled: boolean;
   onDragDropToggle: (enabled: boolean) => void;
+  requesterPromptEnabled: boolean;
+  onRequesterPromptToggle: (enabled: boolean) => void;
 }
 
 function QueueSection({
   dragDropEnabled,
   onDragDropToggle,
+  requesterPromptEnabled,
+  onRequesterPromptToggle,
 }: QueueSectionProps) {
   const { t } = useTranslation();
   return (
-    <section aria-labelledby="settings-queue">
+    <section aria-labelledby="settings-queue" className="space-y-2">
       <SectionHeader
         id="settings-queue"
         Icon={GripVertical}
         title={t('settings.sections.queue')}
       />
-      <button
-        type="button"
-        onClick={() => onDragDropToggle(!dragDropEnabled)}
-        aria-pressed={dragDropEnabled}
-        className="w-full flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface-2/40 p-4 text-left active:scale-[0.99] transition-transform hover:border-glow/30"
-      >
-        <span className="flex flex-col min-w-0 pr-2">
-          <span className="text-sm font-semibold text-fg leading-tight">
-            {t('settings.dragDropLabel')}
-          </span>
-          <span className="text-xs leading-relaxed text-muted mt-1">
-            {t('settings.dragDropHint')}
-          </span>
-        </span>
-
-        <span
-          aria-hidden
-          className={`relative h-6 w-11 rounded-full transition-colors shrink-0 ${
-            dragDropEnabled
-              ? 'bg-gradient-brand'
-              : 'bg-surface-2 border border-border'
-          }`}
-        >
-          <span
-            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-              dragDropEnabled ? 'translate-x-5' : 'translate-x-0'
-            }`}
-          />
-        </span>
-      </button>
+      <ToggleRow
+        label={t('settings.dragDropLabel')}
+        hint={t('settings.dragDropHint')}
+        enabled={dragDropEnabled}
+        onToggle={onDragDropToggle}
+      />
+      <ToggleRow
+        Icon={Mic}
+        label={t('settings.requesterPromptLabel')}
+        hint={t('settings.requesterPromptHint')}
+        enabled={requesterPromptEnabled}
+        onToggle={onRequesterPromptToggle}
+      />
     </section>
+  );
+}
+
+interface ToggleRowProps {
+  label: string;
+  hint: string;
+  enabled: boolean;
+  onToggle: (enabled: boolean) => void;
+  Icon?: typeof Shuffle;
+}
+
+function ToggleRow({ label, hint, enabled, onToggle, Icon }: ToggleRowProps) {
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(!enabled)}
+      aria-pressed={enabled}
+      className="w-full flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface-2/40 p-4 text-left active:scale-[0.99] transition-transform hover:border-glow/30"
+    >
+      <span className="flex flex-col min-w-0 pr-2">
+        <span className="flex items-center gap-1.5 text-sm font-semibold text-fg leading-tight">
+          {Icon && <Icon size={14} strokeWidth={2.2} className="text-muted" />}
+          {label}
+        </span>
+        <span className="text-xs leading-relaxed text-muted mt-1">{hint}</span>
+      </span>
+
+      <span
+        aria-hidden
+        className={`relative h-6 w-11 rounded-full transition-colors shrink-0 ${
+          enabled ? 'bg-gradient-brand' : 'bg-surface-2 border border-border'
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+            enabled ? 'translate-x-5' : 'translate-x-0'
+          }`}
+        />
+      </span>
+    </button>
   );
 }
 

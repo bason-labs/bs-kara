@@ -139,7 +139,23 @@
     "themeHint": "Chọn giao diện sáng, tối hoặc theo hệ thống.",
     "roomCodeLabel": "Mã phòng hiện tại",
     "dragDropLabel": "Kéo thả sắp xếp",
-    "dragDropHint": "Cho phép kéo thả để thay đổi thứ tự bài hát trong hàng chờ."
+    "dragDropHint": "Cho phép kéo thả để thay đổi thứ tự bài hát trong hàng chờ.",
+    "requesterPromptLabel": "Hỏi tên ca sĩ",
+    "requesterPromptHint": "Khi tắt, bài hát sẽ được thêm ngay vào hàng chờ mà không hỏi tên người hát."
+  },
+  "requester": {
+    "title": "Ai sẽ hát bài này?",
+    "hint": "Nhập tên ca sĩ để hiển thị khi bài này được phát.",
+    "placeholder": "Tên ca sĩ",
+    "skipButton": "Bỏ qua",
+    "clearButton": "Xoá tên",
+    "confirmButton": "Xác nhận",
+    "cancelAriaLabel": "Đóng",
+    "editAriaLabel": "Sửa tên ca sĩ",
+    "addAriaLabel": "Thêm tên ca sĩ",
+    "addLabel": "Tên ca sĩ",
+    "noneLabel": "Chưa có tên ca sĩ",
+    "tvLabel": "Trình bày:"
   },
   "errors": {
     "notFound": {

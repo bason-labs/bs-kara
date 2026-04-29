@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
-import { Maximize2, Trash2 } from 'lucide-react';
+import { Maximize2, Mic, Trash2 } from 'lucide-react';
 import { YouTubeVideo } from '@/lib/youtube';
 
 interface NowPlayingCardProps {
@@ -48,6 +48,14 @@ export function NowPlayingCard({
             {track.title}
           </p>
           <p className="text-xs text-muted truncate">{track.channel}</p>
+          {track.requesterName && (
+            <div className="mt-1">
+              <span className="inline-flex items-center gap-1 max-w-full px-1.5 py-0.5 rounded-full bg-glow/15 text-glow text-[11px] font-medium truncate">
+                <Mic size={10} className="shrink-0" />
+                <span className="truncate">{track.requesterName}</span>
+              </span>
+            </div>
+          )}
         </div>
 
         <div

@@ -139,7 +139,23 @@
     "themeHint": "Pick a light, dark, or system-matching theme.",
     "roomCodeLabel": "Current room code",
     "dragDropLabel": "Drag-to-reorder",
-    "dragDropHint": "Let users drag songs to change the queue order."
+    "dragDropHint": "Let users drag songs to change the queue order.",
+    "requesterPromptLabel": "Ask for singer name",
+    "requesterPromptHint": "When off, songs go straight into the queue without asking who's singing."
+  },
+  "requester": {
+    "title": "Who's singing this?",
+    "hint": "Add a singer name so it shows up when the song plays.",
+    "placeholder": "Singer's name",
+    "skipButton": "Skip",
+    "clearButton": "Clear name",
+    "confirmButton": "Confirm",
+    "cancelAriaLabel": "Close",
+    "editAriaLabel": "Edit singer name",
+    "addAriaLabel": "Add singer name",
+    "addLabel": "Add singer",
+    "noneLabel": "No singer assigned",
+    "tvLabel": "Performed by:"
   },
   "errors": {
     "notFound": {

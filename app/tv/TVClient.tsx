@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
-import { Maximize2, Minimize2, Music } from 'lucide-react';
+import { Maximize2, Mic, Minimize2, Music } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useRoom } from '@/hooks/useRoom';
 import { useAutoHide } from '@/hooks/useAutoHide';
@@ -189,6 +189,20 @@ export default function TVClient() {
                 volume={roomData.volume}
                 onPlayingChange={setIsPlaying}
               />
+              {roomData.currentPlaying.requesterName && (
+                <div
+                  aria-live="polite"
+                  className="absolute top-3 left-3 z-20 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-sm font-semibold shadow-lg border border-white/10"
+                >
+                  <Mic size={14} className="text-pink-400" />
+                  <span className="text-pink-300 tracking-wide">
+                    {t('requester.tvLabel')}
+                  </span>
+                  <span className="text-white">
+                    {roomData.currentPlaying.requesterName}
+                  </span>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={toggleFullscreen}
@@ -278,6 +292,12 @@ export default function TVClient() {
                       {item.title}
                     </p>
                     <p className="text-xs text-gray-500 truncate">{item.channel}</p>
+                    {item.requesterName && (
+                      <span className="mt-0.5 inline-flex items-center gap-1 max-w-full px-1.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 text-[10px] font-medium truncate">
+                        <Mic size={9} className="shrink-0" />
+                        <span className="truncate">{item.requesterName}</span>
+                      </span>
+                    )}
                   </div>
                 </li>
               ))}
