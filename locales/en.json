@@ -77,17 +77,69 @@
     "queue": "Queue"
   },
   "nowPlaying": {
-    "label": "Now playing"
+    "label": "Now playing",
+    "removeAriaLabel": "Skip current song",
+    "removeConfirm": {
+      "title": "Skip this song?",
+      "message": "The current song will be skipped and the next one will play.",
+      "confirm": "Skip",
+      "cancel": "Cancel"
+    }
   },
   "player": {
     "openFullscreen": "Open fullscreen",
     "closeFullscreen": "Close fullscreen",
     "play": "Play",
-    "pause": "Pause"
+    "pause": "Pause",
+    "mute": "Mute",
+    "unmute": "Unmute"
   },
   "toast": {
     "addedToQueue": "Added to queue",
     "viewQueue": "View"
+  },
+  "autoRandom": {
+    "toggleLabel": "Auto-random next song",
+    "toggleAriaOn": "Turn off auto-random",
+    "toggleAriaOff": "Turn on auto-random",
+    "onBadge": "On",
+    "offBadge": "Off",
+    "description": "When the queue is empty, a new song is picked automatically using the filters below.",
+    "filtersHint": "When the queue is empty, pick a new song using these filters.",
+    "typeLabel": "Singer",
+    "toneLabel": "Tone",
+    "genreLabel": "Genre",
+    "type": {
+      "all": "All",
+      "solo": "Solo",
+      "duet": "Duet"
+    },
+    "tone": {
+      "all": "All",
+      "male": "Male",
+      "female": "Female"
+    },
+    "genre": {
+      "all": "All",
+      "bolero": "Bolero",
+      "caco": "Vọng cổ",
+      "tre": "Pop"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "openLabel": "Open settings",
+    "closeLabel": "Close settings",
+    "sections": {
+      "autoRandom": "Auto-play",
+      "queue": "Queue",
+      "appearance": "Appearance",
+      "room": "Room"
+    },
+    "themeHint": "Pick a light, dark, or system-matching theme.",
+    "roomCodeLabel": "Current room code",
+    "dragDropLabel": "Drag-to-reorder",
+    "dragDropHint": "Let users drag songs to change the queue order."
   },
   "errors": {
     "notFound": {

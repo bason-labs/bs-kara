@@ -18,11 +18,21 @@ interface ClientQueueProps {
   isLoading?: boolean;
   onReorder: (startIndex: number, endIndex: number) => void;
   onRemove: (queueId: string) => void;
+  // Room-wide setting. When false we render the static list (same path used
+  // during SSR/pre-hydration), so songs can still be removed but not dragged.
+  dragDropEnabled?: boolean;
 }
 
-export function ClientQueue({ items, isLoading, onReorder, onRemove }: ClientQueueProps) {
+export function ClientQueue({
+  items,
+  isLoading,
+  onReorder,
+  onRemove,
+  dragDropEnabled = true,
+}: ClientQueueProps) {
   const { t } = useTranslation();
   const mounted = useSyncExternalStore(subscribeNoop, getClientMounted, getServerMounted);
+  const dndActive = mounted && dragDropEnabled;
 
   function handleDragEnd(result: DropResult) {
     if (!result.destination) return;
@@ -67,7 +77,7 @@ export function ClientQueue({ items, isLoading, onReorder, onRemove }: ClientQue
               </div>
             )}
 
-            {mounted ? (
+            {dndActive ? (
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable droppableId="queue">
                   {(provided) => (

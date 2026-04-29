@@ -4,17 +4,19 @@ import { Suspense, FormEvent, useState, useEffect, useCallback, useMemo, useRef 
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { LogOut, QrCode, Search, ListMusic, DoorClosed } from 'lucide-react';
+import { LogOut, QrCode, Search, ListMusic, DoorClosed, Settings } from 'lucide-react';
 import { YouTubeVideo } from '@/lib/youtube';
 import { useRoom } from '@/hooks/useRoom';
+import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { claimOrGetActiveRoom, subscribeActiveRoom } from '@/lib/activeRoom';
 import { SearchPanel } from './components/SearchPanel';
 import { ClientQueue } from './components/ClientQueue';
 import { RemoteControls } from './components/client/RemoteControls';
 import { EmojiPad } from './components/client/EmojiPad';
+import { SettingsSheet } from './components/client/SettingsSheet';
+import { NowPlayingCard } from './components/NowPlayingCard';
 import { FullscreenPlayer } from './components/FullscreenPlayer';
 import { NeonOrbs } from './components/NeonOrbs';
-import { NowPlayingCard } from './components/NowPlayingCard';
 import { OTPInput } from './components/OTPInput';
 import { ThemeToggle } from './components/ThemeToggle';
 import { AddedToast } from './components/AddedToast';
@@ -103,6 +105,7 @@ function RemoteInner() {
   const [inputCode, setInputCode] = useState('');
   const [tab, setTab] = useState<Tab>('search');
   const [playerOpen, setPlayerOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const {
     roomData,
     isLoading,
@@ -116,7 +119,41 @@ function RemoteInner() {
     playNext,
     playPrevious,
     sendEmoji,
+    setAutoRandomMode,
+    setRandomFilters,
+    setDragDropEnabled,
+    removeCurrentPlaying,
+    addToPlayedHistory,
+    setCurrentPlayingDirectly,
   } = useRoom(roomCode);
+
+  // Mobile drives auto-random whenever a room is joined, so the room never
+  // goes silent even when no TV is connected. The TV (if also open) drives
+  // it too — both clients have an internal busy ref, and the second client's
+  // effect bails as soon as Firebase reports a song landed in currentPlaying.
+  useAutoRandom({
+    enabled: roomData.isAutoRandomMode,
+    ready: !!roomCode,
+    hasCurrentPlaying: !!roomData.currentPlaying,
+    queueLength: roomData.queue.length,
+    randomFilters: roomData.randomFilters,
+    playedHistory: roomData.playedHistory,
+    setCurrentPlayingDirectly,
+    addToPlayedHistory,
+  });
+
+  // Auto-promote queue[0] → currentPlaying when nothing is playing. The TV
+  // already does this; mirroring it here makes mobile-only sessions
+  // self-sufficient: a freshly added song starts playing immediately
+  // instead of sitting in the queue waiting for a host that never appears.
+  // playNext is idempotent against the same queue state, so even if the
+  // TV is also open and races us, nothing breaks.
+  useEffect(() => {
+    if (!roomCode) return;
+    if (roomData.currentPlaying) return;
+    if (roomData.queue.length === 0) return;
+    playNext();
+  }, [roomCode, roomData.currentPlaying, roomData.queue.length, playNext]);
 
   // True when the URL points at a room that can't be entered: either a
   // malformed code, or a 4-digit code Firebase says doesn't exist.
@@ -354,7 +391,20 @@ function RemoteInner() {
           </span>
         </div>
 
-        <ThemeToggle />
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          aria-label={t('settings.openLabel')}
+          className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted hover:text-fg hover:bg-surface-2 active:scale-95 transition"
+        >
+          <Settings size={18} strokeWidth={2.2} />
+          {roomData.isAutoRandomMode && (
+            <span
+              aria-hidden
+              className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-gradient-brand shadow-glow"
+            />
+          )}
+        </button>
       </header>
 
       {/* Main content: mobile shows one tab at a time; lg+ shows two columns */}
@@ -394,6 +444,7 @@ function RemoteInner() {
                   document.documentElement.requestFullscreen?.().catch(() => {});
                   setPlayerOpen(true);
                 }}
+                onRemove={removeCurrentPlaying}
               />
             </div>
           )}
@@ -403,6 +454,7 @@ function RemoteInner() {
               isLoading={isLoading}
               onReorder={reorderQueue}
               onRemove={removeSong}
+              dragDropEnabled={roomData.dragDropEnabled}
             />
           </div>
           <EmojiPad onSendEmoji={sendEmoji} />
@@ -465,6 +517,18 @@ function RemoteInner() {
           );
         })}
       </nav>
+
+      <SettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        roomCode={roomCode}
+        autoRandomEnabled={roomData.isAutoRandomMode}
+        filters={roomData.randomFilters}
+        onAutoRandomToggle={setAutoRandomMode}
+        onFiltersChange={setRandomFilters}
+        dragDropEnabled={roomData.dragDropEnabled}
+        onDragDropToggle={setDragDropEnabled}
+      />
 
       <AddedToast
         song={toastSong}

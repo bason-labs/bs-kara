@@ -77,17 +77,69 @@
     "queue": "Hàng chờ"
   },
   "nowPlaying": {
-    "label": "Đang phát"
+    "label": "Đang phát",
+    "removeAriaLabel": "Bỏ qua bài đang phát",
+    "removeConfirm": {
+      "title": "Bỏ qua bài này?",
+      "message": "Bài đang phát sẽ bị bỏ qua và chuyển sang bài tiếp theo.",
+      "confirm": "Bỏ qua",
+      "cancel": "Huỷ"
+    }
   },
   "player": {
     "openFullscreen": "Mở toàn màn hình",
     "closeFullscreen": "Đóng toàn màn hình",
     "play": "Phát",
-    "pause": "Tạm dừng"
+    "pause": "Tạm dừng",
+    "mute": "Tắt tiếng",
+    "unmute": "Bật tiếng"
   },
   "toast": {
     "addedToQueue": "Đã thêm vào hàng chờ",
     "viewQueue": "Xem"
+  },
+  "autoRandom": {
+    "toggleLabel": "Tự động phát ngẫu nhiên",
+    "toggleAriaOn": "Tắt tự động phát ngẫu nhiên",
+    "toggleAriaOff": "Bật tự động phát ngẫu nhiên",
+    "onBadge": "Đang bật",
+    "offBadge": "Đang tắt",
+    "description": "Khi hàng chờ trống, hệ thống sẽ tự chọn bài mới theo bộ lọc bên dưới.",
+    "filtersHint": "Khi hàng chờ trống, tự động chọn bài mới theo bộ lọc.",
+    "typeLabel": "Kiểu hát",
+    "toneLabel": "Tông giọng",
+    "genreLabel": "Thể loại",
+    "type": {
+      "all": "Tất cả",
+      "solo": "Đơn ca",
+      "duet": "Song ca"
+    },
+    "tone": {
+      "all": "Tất cả",
+      "male": "Tone Nam",
+      "female": "Tone Nữ"
+    },
+    "genre": {
+      "all": "Tất cả",
+      "bolero": "Bolero",
+      "caco": "Ca cổ",
+      "tre": "Nhạc trẻ"
+    }
+  },
+  "settings": {
+    "title": "Cài đặt",
+    "openLabel": "Mở cài đặt",
+    "closeLabel": "Đóng cài đặt",
+    "sections": {
+      "autoRandom": "Tự động phát",
+      "queue": "Hàng chờ",
+      "appearance": "Giao diện",
+      "room": "Phòng"
+    },
+    "themeHint": "Chọn giao diện sáng, tối hoặc theo hệ thống.",
+    "roomCodeLabel": "Mã phòng hiện tại",
+    "dragDropLabel": "Kéo thả sắp xếp",
+    "dragDropHint": "Cho phép kéo thả để thay đổi thứ tự bài hát trong hàng chờ."
   },
   "errors": {
     "notFound": {

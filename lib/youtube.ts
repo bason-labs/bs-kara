@@ -10,6 +10,22 @@ export interface QueueItem extends YouTubeVideo {
   queueId: string;
 }
 
+export type SingerType = 'all' | 'solo' | 'duet';
+export type Tone = 'all' | 'male' | 'female';
+export type Genre = 'all' | 'bolero' | 'caco' | 'tre';
+
+export interface RandomFilters {
+  type: SingerType;
+  tone: Tone;
+  genre: Genre;
+}
+
+export const DEFAULT_RANDOM_FILTERS: RandomFilters = {
+  type: 'all',
+  tone: 'all',
+  genre: 'all',
+};
+
 export type SearchError = 'quota' | 'generic';
 
 export interface SearchResult {

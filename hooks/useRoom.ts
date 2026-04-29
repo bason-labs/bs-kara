@@ -1,9 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { ref, onValue, push, remove, set } from 'firebase/database';
+import { ref, onValue, push, remove, set, update } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import { QueueItem, YouTubeVideo } from '@/lib/youtube';
+import {
+  DEFAULT_RANDOM_FILTERS,
+  QueueItem,
+  RandomFilters,
+  YouTubeVideo,
+} from '@/lib/youtube';
 
 export interface RoomState {
   queue: QueueItem[];
@@ -11,6 +16,10 @@ export interface RoomState {
   isPlaying: boolean;
   volume: number;
   history: YouTubeVideo[];
+  isAutoRandomMode: boolean;
+  randomFilters: RandomFilters;
+  playedHistory: string[];
+  dragDropEnabled: boolean;
 }
 
 const DEFAULT_STATE: RoomState = {
@@ -19,6 +28,10 @@ const DEFAULT_STATE: RoomState = {
   isPlaying: true,
   volume: 100,
   history: [],
+  isAutoRandomMode: false,
+  randomFilters: DEFAULT_RANDOM_FILTERS,
+  playedHistory: [],
+  dragDropEnabled: true,
 };
 
 export function useRoom(roomId: string | null) {
@@ -52,6 +65,10 @@ export function useRoom(roomId: string | null) {
         isPlaying?: boolean;
         volume?: number;
         history?: Record<string, YouTubeVideo>;
+        isAutoRandomMode?: boolean;
+        randomFilters?: Partial<RandomFilters>;
+        playedHistory?: Record<string, string> | string[];
+        dragDropEnabled?: boolean;
       } | null;
 
       if (!data) {
@@ -73,12 +90,30 @@ export function useRoom(roomId: string | null) {
             .map(([, item]) => item)
         : [];
 
+      const playedHistory: string[] = Array.isArray(data.playedHistory)
+        ? data.playedHistory.filter((v): v is string => typeof v === 'string')
+        : data.playedHistory
+          ? Object.values(data.playedHistory).filter(
+              (v): v is string => typeof v === 'string',
+            )
+          : [];
+
       setRoomData({
         queue,
         currentPlaying: data.currentPlaying ?? null,
         isPlaying: data.isPlaying !== undefined ? data.isPlaying : true,
         volume: data.volume !== undefined ? data.volume : 100,
         history,
+        isAutoRandomMode: data.isAutoRandomMode === true,
+        randomFilters: {
+          type: data.randomFilters?.type ?? 'all',
+          tone: data.randomFilters?.tone ?? 'all',
+          genre: data.randomFilters?.genre ?? 'all',
+        },
+        playedHistory,
+        // Default to enabled when the field is missing — existing rooms
+        // shouldn't lose drag-and-drop just because they predate this setting.
+        dragDropEnabled: data.dragDropEnabled !== false,
       });
       setIsLoading(false);
     });
@@ -150,14 +185,25 @@ export function useRoom(roomId: string | null) {
     [roomId],
   );
 
-  // Promotes the first queued song to currentPlaying, removes it from queue,
-  // and pushes the old currentPlaying into history.
+  // Advances playback. With items in the queue: promotes queue[0] to
+  // currentPlaying. With an empty queue: clears currentPlaying after pushing
+  // it to history — this frees the "now playing" slot so auto-random (or the
+  // user) can fill it next, instead of leaving the just-finished song stuck.
   const playNext = useCallback(async () => {
     if (!roomId) return;
     const { queue, currentPlaying, history } = roomDataRef.current;
-    if (queue.length === 0) return;
-    const next = queue[0];
 
+    if (queue.length === 0) {
+      if (!currentPlaying) return;
+      const newHistory = [...history, currentPlaying];
+      const histObj: Record<number, YouTubeVideo> = {};
+      newHistory.forEach((item, i) => { histObj[i] = item; });
+      await set(ref(db, `rooms/${roomId}/history`), histObj);
+      await remove(ref(db, `rooms/${roomId}/currentPlaying`));
+      return;
+    }
+
+    const next = queue[0];
     if (currentPlaying) {
       const newHistory = [...history, currentPlaying];
       const histObj: Record<number, YouTubeVideo> = {};
@@ -175,10 +221,89 @@ export function useRoom(roomId: string | null) {
     await remove(ref(db, `rooms/${roomId}/queue/${next.queueId}`));
   }, [roomId]);
 
+  // Used by auto-random to bypass the queue entirely: writes the picked
+  // video straight to currentPlaying. Only safe to call when the slot is
+  // already empty (i.e. nothing is playing) — the caller is responsible
+  // for that check.
+  const setCurrentPlayingDirectly = useCallback(
+    async (item: YouTubeVideo) => {
+      if (!roomId) return;
+      await set(ref(db, `rooms/${roomId}/currentPlaying`), {
+        id: item.id,
+        title: item.title,
+        channel: item.channel,
+        thumbnail: item.thumbnail,
+        duration: item.duration,
+      });
+    },
+    [roomId],
+  );
+
   const clearRoom = useCallback(async () => {
     if (!roomId) return;
     await remove(ref(db, `rooms/${roomId}`));
   }, [roomId]);
+
+  // Removes the currently-playing song without skipping to the next via
+  // queue. Pushes it onto history (so playPrevious can restore it) and
+  // clears currentPlaying. The TV's auto-promote effect will pick up the
+  // next queued song; if the queue is empty and auto-random is on, the
+  // idle effect will fetch a new one.
+  const removeCurrentPlaying = useCallback(async () => {
+    if (!roomId) return;
+    const { currentPlaying, history } = roomDataRef.current;
+    if (!currentPlaying) return;
+
+    const newHistory = [...history, currentPlaying];
+    const histObj: Record<number, YouTubeVideo> = {};
+    newHistory.forEach((item, i) => { histObj[i] = item; });
+    await set(ref(db, `rooms/${roomId}/history`), histObj);
+    await remove(ref(db, `rooms/${roomId}/currentPlaying`));
+  }, [roomId]);
+
+  const setAutoRandomMode = useCallback(
+    (enabled: boolean) => {
+      if (!roomId) return;
+      set(ref(db, `rooms/${roomId}/isAutoRandomMode`), enabled);
+    },
+    [roomId],
+  );
+
+  const setRandomFilters = useCallback(
+    (filters: Partial<RandomFilters>) => {
+      if (!roomId) return;
+      const current = roomDataRef.current.randomFilters;
+      update(ref(db, `rooms/${roomId}/randomFilters`), {
+        type: filters.type ?? current.type,
+        tone: filters.tone ?? current.tone,
+        genre: filters.genre ?? current.genre,
+      });
+    },
+    [roomId],
+  );
+
+  const setDragDropEnabled = useCallback(
+    (enabled: boolean) => {
+      if (!roomId) return;
+      set(ref(db, `rooms/${roomId}/dragDropEnabled`), enabled);
+    },
+    [roomId],
+  );
+
+  // Append a YouTube videoId to playedHistory so the auto-random picker can
+  // skip songs we've already pulled in this session.
+  const addToPlayedHistory = useCallback(
+    async (videoId: string) => {
+      if (!roomId) return;
+      const existing = roomDataRef.current.playedHistory;
+      if (existing.includes(videoId)) return;
+      const next = [...existing, videoId];
+      const obj: Record<number, string> = {};
+      next.forEach((v, i) => { obj[i] = v; });
+      await set(ref(db, `rooms/${roomId}/playedHistory`), obj);
+    },
+    [roomId],
+  );
 
   const sendEmoji = useCallback(
     (emoji: string) => {
@@ -239,5 +364,11 @@ export function useRoom(roomId: string | null) {
     playPrevious,
     sendEmoji,
     clearRoom,
+    setAutoRandomMode,
+    setRandomFilters,
+    addToPlayedHistory,
+    setDragDropEnabled,
+    removeCurrentPlaying,
+    setCurrentPlayingDirectly,
   };
 }

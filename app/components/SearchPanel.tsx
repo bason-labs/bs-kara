@@ -471,7 +471,17 @@ export function SearchPanel({
                       className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
                     >
                       <History size={16} className="flex-shrink-0 text-muted" />
-                      <span className="truncate">{item.q}</span>
+                      <span className="truncate flex-1">{item.q}</span>
+                      {item.thumb && (
+                        <Image
+                          src={item.thumb}
+                          alt=""
+                          width={64}
+                          height={36}
+                          className="rounded object-cover flex-shrink-0"
+                          unoptimized
+                        />
+                      )}
                     </button>
                     <button
                       type="button"

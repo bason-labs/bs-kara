@@ -18,4 +18,13 @@ if (!i18n.isInitialized) {
   });
 }
 
+// Always re-merge the resource bundles. The init guard above only runs once
+// per i18next singleton lifetime, but Turbopack/Next can re-evaluate this
+// module after a JSON edit while the singleton (and its old resources) is
+// preserved — that produces a server/client hydration mismatch where the
+// server returns the raw key and the client returns the new translation.
+// The deepMerge=true flag makes addResourceBundle update existing keys.
+i18n.addResourceBundle('vi', 'translation', vi, true, true);
+i18n.addResourceBundle('en', 'translation', en, true, true);
+
 export default i18n;

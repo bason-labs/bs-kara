@@ -7,6 +7,7 @@ import { Maximize2, Minimize2, Music } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useRoom } from '@/hooks/useRoom';
 import { useAutoHide } from '@/hooks/useAutoHide';
+import { useAutoRandom } from '@/hooks/useAutoRandom';
 import {
   claimOrGetActiveRoom,
   clearActiveRoomIfMatches,
@@ -45,9 +46,33 @@ export default function TVClient() {
     setJoinUrl(`${window.location.origin}/?room=${roomCode}`);
   }, [roomCode]);
 
-  const { roomData, isLoading, playNext, clearRoom, setIsPlaying } = useRoom(roomCode);
+  const {
+    roomData,
+    isLoading,
+    playNext,
+    clearRoom,
+    setIsPlaying,
+    addToPlayedHistory,
+    setCurrentPlayingDirectly,
+  } = useRoom(roomCode);
+
+  useAutoRandom({
+    enabled: roomData.isAutoRandomMode,
+    ready: isInitialized,
+    hasCurrentPlaying: !!roomData.currentPlaying,
+    queueLength: roomData.queue.length,
+    randomFilters: roomData.randomFilters,
+    playedHistory: roomData.playedHistory,
+    setCurrentPlayingDirectly,
+    addToPlayedHistory,
+  });
 
   const handleSongEnd = useCallback(() => {
+    // playNext promotes queue[0] → currentPlaying when the queue has items,
+    // or pushes the just-ended song to history and clears currentPlaying
+    // when it's empty. The cleared slot then trips useAutoRandom (if on),
+    // which fetches the next random song. Single entry point keeps the
+    // state machine readable.
     playNext();
   }, [playNext]);
 
