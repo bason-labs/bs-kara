@@ -28,8 +28,8 @@ const APP_DESCRIPTION =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    template: "%s | Karaoke Party",
-    default: "Karaoke Party - Hát cùng nhau",
+    template: "%s | BS Kara",
+    default: "BS Kara - Hát cùng nhau",
   },
   description: APP_DESCRIPTION,
   keywords: [
@@ -52,17 +52,17 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    siteName: "Karaoke Party",
-    title: "Karaoke Party - Hát cùng nhau",
+    siteName: "BS Kara",
+    title: "BS Kara - Hát cùng nhau",
     description: APP_DESCRIPTION,
     images: [
-      { url: "/og-image.jpg", width: 1200, height: 630, alt: "Karaoke Party" },
+      { url: "/og-image.jpg", width: 1200, height: 630, alt: "BS Kara" },
     ],
     locale: "vi_VN",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Karaoke Party - Hát cùng nhau",
+    title: "BS Kara - Hát cùng nhau",
     description: APP_DESCRIPTION,
     images: ["/og-image.jpg"],
   },

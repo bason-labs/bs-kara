@@ -1,11 +1,11 @@
 {
   "home": {
-    "title": "Karaoke Remote",
+    "title": "BS Kara Remote",
     "subtitle": "Nhập mã phòng hiển thị trên TV",
     "roomCodePlaceholder": "0000",
     "joinButton": "Vào phòng",
-    "appHeading": "Karaoke Party",
-    "wordmark": "Karaoke Party",
+    "appHeading": "BS Kara",
+    "wordmark": "BS Kara",
     "tagline": "Hát cùng nhau. Từ mọi chiếc điện thoại.",
     "roomCodeLabel": "Mã phòng",
     "qrTip": "Hoặc quét mã QR hiển thị trên TV",
@@ -19,7 +19,7 @@
     "roomLabel": "Phòng"
   },
   "tv": {
-    "heading": "Karaoke Night",
+    "heading": "BS Kara",
     "roomLabel": "Phòng",
     "qrHint": "Quét\nđể tham gia",
     "startPrompt": "Nhấn vào bất kỳ đâu hoặc bấm phím để bắt đầu…",
@@ -133,6 +133,7 @@
     "sections": {
       "autoRandom": "Tự động phát",
       "queue": "Hàng chờ",
+      "aiMc": "MC",
       "appearance": "Giao diện",
       "room": "Phòng"
     },
@@ -141,7 +142,12 @@
     "dragDropLabel": "Kéo thả sắp xếp",
     "dragDropHint": "Cho phép kéo thả để thay đổi thứ tự bài hát trong hàng chờ.",
     "requesterPromptLabel": "Hỏi tên ca sĩ",
-    "requesterPromptHint": "Khi tắt, bài hát sẽ được thêm ngay vào hàng chờ mà không hỏi tên người hát."
+    "requesterPromptHint": "Khi tắt, bài hát sẽ được thêm ngay vào hàng chờ mà không hỏi tên người hát.",
+    "aiMcLabel": "Bật/Tắt MC",
+    "aiMcHint": "Trước mỗi bài, MC sẽ đọc lời giới thiệu ngắn bằng tiếng Việt qua loa TV."
+  },
+  "aiMc": {
+    "announcing": "MC đang giới thiệu"
   },
   "requester": {
     "title": "Ai sẽ hát bài này?",

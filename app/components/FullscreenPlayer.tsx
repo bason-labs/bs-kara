@@ -2,9 +2,10 @@
 
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pause, Play, SkipBack, SkipForward, X } from 'lucide-react';
+import { Pause, Play, SkipBack, SkipForward, Sparkles, X } from 'lucide-react';
 import { YouTubeVideo } from '@/lib/youtube';
 import { useAutoHide } from '@/hooks/useAutoHide';
+import { useMCPlayer } from '@/hooks/useMCPlayer';
 import { VideoPlayer } from './host/VideoPlayer';
 
 interface FullscreenPlayerProps {
@@ -13,6 +14,11 @@ interface FullscreenPlayerProps {
   volume: number;
   hasHistory: boolean;
   hasQueue: boolean;
+  // When true, the MC speaks before each new song reaches the iframe.
+  isMCEnabled: boolean;
+  // Cross-device lock from useRoom — passed through so this player can
+  // race the TV for the announcement and stay quiet if it loses.
+  tryClaimAnnouncementLock?: (songId: string) => Promise<boolean>;
   onSongEnd: () => void;
   onClose: () => void;
   onPrev: () => void;
@@ -26,6 +32,8 @@ export function FullscreenPlayer({
   volume,
   hasHistory,
   hasQueue,
+  isMCEnabled,
+  tryClaimAnnouncementLock,
   onSongEnd,
   onClose,
   onPrev,
@@ -35,6 +43,17 @@ export function FullscreenPlayer({
   const { t } = useTranslation();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { visible: chromeVisible, bump } = useAutoHide(2500);
+
+  // Opening the fullscreen player IS the user gesture, so speech can start
+  // immediately on subsequent transitions. The hook also handles the
+  // "don't announce the song that was already playing when we opened"
+  // case via its initial-skip pattern.
+  const { isMcGated, mcText } = useMCPlayer({
+    isMCEnabled,
+    currentPlaying: track,
+    ready: true,
+    tryClaimAnnouncementLock,
+  });
 
   // The browser Fullscreen API is entered by the caller (the user-gesture
   // handler that flips playerOpen). Here we just make sure to leave it on
@@ -89,7 +108,7 @@ export function FullscreenPlayer({
     bump();
   }
 
-  const showCenterControls = !isPlaying || chromeVisible;
+  const showCenterControls = !isMcGated && (!isPlaying || chromeVisible);
 
   return (
     <div
@@ -99,15 +118,48 @@ export function FullscreenPlayer({
       aria-modal="true"
       aria-label={t('nowPlaying.label')}
     >
-      {/* Video — fills the entire screen */}
+      {/* The iframe stays mounted from open — that load happens inside the
+          user gesture from the expand tap, so mobile won't block the
+          play() that runs after the MC finishes. While the MC speaks we
+          pause + mute the iframe and cover it with the announcement
+          overlay. */}
       <div className="absolute inset-0">
         <VideoPlayer
+          key={track.id}
           videoId={track.id}
           onSongEnd={onSongEnd}
-          isPlaying={isPlaying}
-          volume={volume}
-          onPlayingChange={onPlayingChange}
+          isPlaying={!isMcGated && isPlaying}
+          volume={isMcGated ? 0 : volume}
+          // Suppress the iframe → React sync while MC is speaking.
+          // The brief PLAYING/PAUSED state ping when autoplay starts and
+          // we immediately pause would otherwise echo back into Firebase
+          // and flip isPlaying to false.
+          onPlayingChange={isMcGated ? undefined : onPlayingChange}
         />
+        {isMcGated && (
+          <div className="absolute inset-0 z-[8] flex flex-col items-center justify-center gap-4 px-6 text-center bg-black">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-pink-500/20 border border-pink-400/40 text-pink-200 text-[10px] uppercase tracking-[0.3em]">
+              <Sparkles size={12} />
+              {t('aiMc.announcing')}
+            </div>
+            <p className="text-xl sm:text-2xl font-bold text-white max-w-2xl line-clamp-3">
+              {track.title}
+            </p>
+            {track.requesterName && (
+              <p className="text-sm text-pink-200">
+                {t('requester.tvLabel')}{' '}
+                <span className="text-white font-semibold">
+                  {track.requesterName}
+                </span>
+              </p>
+            )}
+            {mcText && (
+              <p className="text-xs sm:text-sm text-gray-300 max-w-xl italic">
+                “{mcText}”
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tap layer above iframe to capture touches that the iframe would
@@ -120,10 +172,12 @@ export function FullscreenPlayer({
         className="absolute inset-0 z-[5] cursor-default"
       />
 
-      {/* Top bar: badge + close, single flex row with safe-area padding */}
+      {/* Top bar: badge + close, single flex row with safe-area padding.
+          Hidden while the MC is speaking so the announcement overlay
+          stands alone. */}
       <div
         className={`absolute top-0 left-0 right-0 z-10 flex items-center justify-between gap-2 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] transition-opacity duration-300 ${
-          chromeVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          isMcGated || !chromeVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
         <div className="min-w-0 flex-1 flex">

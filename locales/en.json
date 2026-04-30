@@ -1,11 +1,11 @@
 {
   "home": {
-    "title": "Karaoke Remote",
+    "title": "BS Kara Remote",
     "subtitle": "Enter the room code shown on the TV",
     "roomCodePlaceholder": "0000",
     "joinButton": "Join Room",
-    "appHeading": "Karaoke Party",
-    "wordmark": "Karaoke Party",
+    "appHeading": "BS Kara",
+    "wordmark": "BS Kara",
     "tagline": "Sing together. From any phone.",
     "roomCodeLabel": "Room code",
     "qrTip": "Or scan the QR code on the TV",
@@ -19,7 +19,7 @@
     "roomLabel": "Room"
   },
   "tv": {
-    "heading": "Karaoke Night",
+    "heading": "BS Kara",
     "roomLabel": "Room",
     "qrHint": "Scan\nto join",
     "startPrompt": "Click anywhere or press any key to start the party…",
@@ -133,6 +133,7 @@
     "sections": {
       "autoRandom": "Auto-play",
       "queue": "Queue",
+      "aiMc": "AI MC",
       "appearance": "Appearance",
       "room": "Room"
     },
@@ -141,7 +142,12 @@
     "dragDropLabel": "Drag-to-reorder",
     "dragDropHint": "Let users drag songs to change the queue order.",
     "requesterPromptLabel": "Ask for singer name",
-    "requesterPromptHint": "When off, songs go straight into the queue without asking who's singing."
+    "requesterPromptHint": "When off, songs go straight into the queue without asking who's singing.",
+    "aiMcLabel": "AI MC intro",
+    "aiMcHint": "Before each song, an AI MC reads a short Vietnamese intro through the TV speakers."
+  },
+  "aiMc": {
+    "announcing": "AI MC is talking"
   },
   "requester": {
     "title": "Who's singing this?",

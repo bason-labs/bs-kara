@@ -1,7 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { ref, onValue, push, remove, set, update } from 'firebase/database';
+import {
+  ref,
+  onValue,
+  push,
+  remove,
+  runTransaction,
+  set,
+  update,
+} from 'firebase/database';
 import { db } from '@/lib/firebase';
 import {
   DEFAULT_RANDOM_FILTERS,
@@ -21,6 +29,15 @@ export interface RoomState {
   playedHistory: string[];
   dragDropEnabled: boolean;
   requesterPromptEnabled: boolean;
+  isMCEnabled: boolean;
+  // Cross-device announcement lock — devices race to write
+  // currentPlaying.id here. The winner announces; losers see this already
+  // matches and skip the MC. Persists across reconnects so a refresh of
+  // the announcing device doesn't double up.
+  lastAnnouncedSongId: string | null;
+  // Set by the TV via Firebase onDisconnect presence; mobile uses this to
+  // hide its now-playing card (the TV is already showing it).
+  isTvActive: boolean;
 }
 
 const DEFAULT_STATE: RoomState = {
@@ -34,6 +51,9 @@ const DEFAULT_STATE: RoomState = {
   playedHistory: [],
   dragDropEnabled: true,
   requesterPromptEnabled: true,
+  isMCEnabled: true,
+  lastAnnouncedSongId: null,
+  isTvActive: false,
 };
 
 export function useRoom(roomId: string | null) {
@@ -72,6 +92,12 @@ export function useRoom(roomId: string | null) {
         playedHistory?: Record<string, string> | string[];
         dragDropEnabled?: boolean;
         requesterPromptEnabled?: boolean;
+        isMCEnabled?: boolean;
+        // Legacy field — read for backwards-compat with rooms created
+        // before the rename, never written.
+        isAImcEnabled?: boolean;
+        lastAnnouncedSongId?: string | null;
+        isTvActive?: boolean;
       } | null;
 
       if (!data) {
@@ -120,11 +146,69 @@ export function useRoom(roomId: string | null) {
         // Same default-on pattern: rooms that predate this setting still
         // get the singer-name prompt unless explicitly turned off.
         requesterPromptEnabled: data.requesterPromptEnabled !== false,
+        // Default on for feature discoverability — hosts hear the MC the
+        // first time around and can disable it from settings if they don't
+        // want it. Read the new field, falling back to the legacy name so
+        // pre-rename rooms keep their existing setting.
+        isMCEnabled:
+          data.isMCEnabled !== undefined
+            ? data.isMCEnabled !== false
+            : data.isAImcEnabled !== false,
+        lastAnnouncedSongId:
+          typeof data.lastAnnouncedSongId === 'string'
+            ? data.lastAnnouncedSongId
+            : null,
+        isTvActive: data.isTvActive === true,
       });
       setIsLoading(false);
     });
     return unsub;
   }, [roomId]);
+
+  // Fire-and-forget: ask the BFF for an MC line and write it onto the queue
+  // item if it's still there by the time the response arrives. If the song
+  // has already been promoted to currentPlaying (or removed) the write goes
+  // to a stale path and the TV's announcer falls back to a live fetch.
+  const generateMCForQueueItem = useCallback(
+    async (
+      currentRoomId: string,
+      queueId: string,
+      title: string,
+      requesterName: string | null,
+    ) => {
+      try {
+        const res = await fetch('/api/generate-mc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ songTitle: title, singerName: requesterName }),
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { text?: unknown };
+        const text =
+          typeof data.text === 'string' && data.text.trim()
+            ? data.text.trim()
+            : null;
+        if (!text) return;
+        // Race guard: by the time the API responds the song may already
+        // have been promoted to currentPlaying (queue node deleted). A
+        // plain `set` on the deleted path would resurrect it with only
+        // { mcText } — no id/title/thumbnail — leaving a zombie entry in
+        // the queue UI. The transaction aborts cleanly when the parent
+        // node is gone.
+        await runTransaction(
+          ref(db, `rooms/${currentRoomId}/queue/${queueId}`),
+          (current) => {
+            if (current === null) return undefined; // node deleted — abort
+            return { ...current, mcText: text };
+          },
+        );
+      } catch {
+        // Pre-generation is opportunistic — failures are absorbed and the
+        // TV still has the live-fetch path.
+      }
+    },
+    [],
+  );
 
   const addSongToQueue = useCallback(
     (item: YouTubeVideo, requesterName?: string | null) => {
@@ -140,9 +224,16 @@ export function useRoom(roomId: string | null) {
       // Firebase rejects `undefined`; only include the field when there's a
       // real name. Empty strings are treated as "no requester" too.
       if (trimmed) payload.requesterName = trimmed;
-      push(ref(db, `rooms/${roomId}/queue`), payload);
+      const newRef = push(ref(db, `rooms/${roomId}/queue`), payload);
+      const newQueueId = newRef.key;
+      // Only spend an API call when the host actually wants an MC. Host
+      // can flip the toggle on later, but those earlier songs will fall
+      // through to the TV's live-fetch path — that's acceptable.
+      if (newQueueId && roomDataRef.current.isMCEnabled) {
+        generateMCForQueueItem(roomId, newQueueId, item.title, trimmed ?? null);
+      }
     },
-    [roomId],
+    [roomId, generateMCForQueueItem],
   );
 
   const updateRequesterName = useCallback(
@@ -152,8 +243,16 @@ export function useRoom(roomId: string | null) {
       // Writing `null` removes the field — keeps the database clean instead
       // of leaving an empty string lingering.
       set(ref(db, `rooms/${roomId}/queue/${queueId}/requesterName`), trimmed || null);
+      // Singer changed → previously-cached MC line is stale; regenerate so
+      // the new singer is referenced when the song plays.
+      if (roomDataRef.current.isMCEnabled) {
+        const item = roomDataRef.current.queue.find((q) => q.queueId === queueId);
+        if (item) {
+          generateMCForQueueItem(roomId, queueId, item.title, trimmed || null);
+        }
+      }
     },
-    [roomId],
+    [roomId, generateMCForQueueItem],
   );
 
   const removeSong = useCallback(
@@ -241,6 +340,9 @@ export function useRoom(roomId: string | null) {
       duration: next.duration,
     };
     if (next.requesterName) nextPayload.requesterName = next.requesterName;
+    // Carry the pre-generated MC line forward so the TV doesn't have to
+    // re-fetch when it picks up the new currentPlaying.
+    if (next.mcText) nextPayload.mcText = next.mcText;
     await set(ref(db, `rooms/${roomId}/currentPlaying`), nextPayload);
     await remove(ref(db, `rooms/${roomId}/queue/${next.queueId}`));
   }, [roomId]);
@@ -318,6 +420,32 @@ export function useRoom(roomId: string | null) {
     (enabled: boolean) => {
       if (!roomId) return;
       set(ref(db, `rooms/${roomId}/requesterPromptEnabled`), enabled);
+    },
+    [roomId],
+  );
+
+  const setMCEnabled = useCallback(
+    (enabled: boolean) => {
+      if (!roomId) return;
+      set(ref(db, `rooms/${roomId}/isMCEnabled`), enabled);
+    },
+    [roomId],
+  );
+
+  // Atomic claim: returns true iff this caller wins the race for `songId`.
+  // Losers (committed === false because the value already matched) skip
+  // the announcement and start the video immediately.
+  const tryClaimAnnouncementLock = useCallback(
+    async (songId: string): Promise<boolean> => {
+      if (!roomId) return false;
+      const result = await runTransaction(
+        ref(db, `rooms/${roomId}/lastAnnouncedSongId`),
+        (current) => {
+          if (current === songId) return undefined; // already claimed → abort
+          return songId;
+        },
+      );
+      return result.committed;
     },
     [roomId],
   );
@@ -402,6 +530,8 @@ export function useRoom(roomId: string | null) {
     addToPlayedHistory,
     setDragDropEnabled,
     setRequesterPromptEnabled,
+    setMCEnabled,
+    tryClaimAnnouncementLock,
     removeCurrentPlaying,
     setCurrentPlayingDirectly,
   };

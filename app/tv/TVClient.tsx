@@ -3,11 +3,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
-import { Maximize2, Mic, Minimize2, Music } from 'lucide-react';
+import { Maximize2, Mic, Minimize2, Music, Sparkles } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { onDisconnect, ref, remove, set } from 'firebase/database';
+import { db } from '@/lib/firebase';
 import { useRoom } from '@/hooks/useRoom';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
+import { useMCPlayer } from '@/hooks/useMCPlayer';
 import {
   claimOrGetActiveRoom,
   clearActiveRoomIfMatches,
@@ -21,7 +24,10 @@ export default function TVClient() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
 
+  // Claims (or attaches to) an active room whenever we don't have one.
+  // Runs on mount, and again after End Party clears `roomCode` back to null.
   useEffect(() => {
+    if (roomCode) return;
     let cancelled = false;
     (async () => {
       const fixed = process.env.NEXT_PUBLIC_FIXED_ROOM_ID;
@@ -39,7 +45,7 @@ export default function TVClient() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [roomCode]);
 
   useEffect(() => {
     if (!roomCode) return;
@@ -54,6 +60,7 @@ export default function TVClient() {
     setIsPlaying,
     addToPlayedHistory,
     setCurrentPlayingDirectly,
+    tryClaimAnnouncementLock,
   } = useRoom(roomCode);
 
   useAutoRandom({
@@ -80,9 +87,13 @@ export default function TVClient() {
     await clearRoom();
     if (roomCode) await clearActiveRoomIfMatches(roomCode);
     localStorage.removeItem('karaoke_tv_room');
-    const newCode = await claimOrGetActiveRoom();
-    localStorage.setItem('karaoke_tv_room', newCode);
-    setRoomCode(newCode);
+    // Drop back to the waiting/QR overlay so the next party starts from a
+    // fresh user gesture (which speechSynthesis and autoplay both need).
+    setIsInitialized(false);
+    // Hand off to the claim effect: clearing roomCode trips it, which
+    // generates a fresh code and writes it to both meta/activeRoom and
+    // localStorage. Keeps end + claim logic separated.
+    setRoomCode(null);
   }, [clearRoom, roomCode]);
 
   const initialize = useCallback(() => setIsInitialized(true), []);
@@ -101,6 +112,38 @@ export default function TVClient() {
       playNext();
     }
   }, [isInitialized, roomData.currentPlaying, roomData.queue.length, playNext]);
+
+  // ── AI MC announcement ─────────────────────────────────────────────────
+  // Speech is gated behind isInitialized so the first announcement runs
+  // inside a fresh user gesture (browsers block speechSynthesis until
+  // then). The hook itself decides when to fetch / speak. The lock
+  // ensures only one device speaks when both TV and a phone player are
+  // open at the same time.
+  const { isMcGated, mcText } = useMCPlayer({
+    isMCEnabled: roomData.isMCEnabled,
+    currentPlaying: roomData.currentPlaying,
+    ready: isInitialized,
+    tryClaimAnnouncementLock,
+  });
+
+  // ── TV presence ────────────────────────────────────────────────────────
+  // Mobile uses this flag to hide its now-playing card while the TV is on.
+  // We `remove` rather than `set(false)` on cleanup/disconnect: if the room
+  // was just nuked (End Party), `set` would re-create the node as
+  // `{ isTvActive: false }`, leaving a zombie room. `remove` is a no-op when
+  // the path is gone, and otherwise drops the field — phones treat the
+  // missing field as "TV not active" anyway.
+  useEffect(() => {
+    if (!roomCode) return;
+    const presenceRef = ref(db, `rooms/${roomCode}/isTvActive`);
+    set(presenceRef, true).catch(() => {});
+    const disconnect = onDisconnect(presenceRef);
+    disconnect.remove().catch(() => {});
+    return () => {
+      disconnect.cancel().catch(() => {});
+      remove(presenceRef).catch(() => {});
+    };
+  }, [roomCode]);
 
   const bgImageUrl = roomData.currentPlaying?.id
     ? `https://img.youtube.com/vi/${roomData.currentPlaying.id}/maxresdefault.jpg`
@@ -181,15 +224,40 @@ export default function TVClient() {
             </div>
           ) : isInitialized && roomData.currentPlaying ? (
             <>
-              <VideoPlayer
-                key={roomData.currentPlaying.id}
-                videoId={roomData.currentPlaying.id}
-                onSongEnd={handleSongEnd}
-                isPlaying={roomData.isPlaying}
-                volume={roomData.volume}
-                onPlayingChange={setIsPlaying}
-              />
-              {roomData.currentPlaying.requesterName && (
+              {isMcGated ? (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-5 px-8 text-center">
+                  <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-pink-500/20 border border-pink-400/40 text-pink-200 text-xs uppercase tracking-[0.3em]">
+                    <Sparkles size={14} />
+                    {t('aiMc.announcing')}
+                  </div>
+                  <p className="text-3xl font-bold text-white max-w-3xl line-clamp-3">
+                    {roomData.currentPlaying.title}
+                  </p>
+                  {roomData.currentPlaying.requesterName && (
+                    <p className="text-base text-pink-200">
+                      {t('requester.tvLabel')}{' '}
+                      <span className="text-white font-semibold">
+                        {roomData.currentPlaying.requesterName}
+                      </span>
+                    </p>
+                  )}
+                  {mcText && (
+                    <p className="text-sm text-gray-300 max-w-2xl italic">
+                      “{mcText}”
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <VideoPlayer
+                  key={roomData.currentPlaying.id}
+                  videoId={roomData.currentPlaying.id}
+                  onSongEnd={handleSongEnd}
+                  isPlaying={roomData.isPlaying}
+                  volume={roomData.volume}
+                  onPlayingChange={setIsPlaying}
+                />
+              )}
+              {roomData.currentPlaying.requesterName && !isMcGated && (
                 <div
                   aria-live="polite"
                   className="absolute top-3 left-3 z-20 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-sm font-semibold shadow-lg border border-white/10"

@@ -1,13 +1,13 @@
 'use client';
 
 import { Suspense, FormEvent, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { LogOut, QrCode, Search, ListMusic, DoorClosed, Settings } from 'lucide-react';
+import { LogOut, QrCode, Search, ListMusic, Settings } from 'lucide-react';
 import { YouTubeVideo } from '@/lib/youtube';
 import { useRoom } from '@/hooks/useRoom';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
+import { primeAudio } from '@/hooks/useAIVoice';
 import { claimOrGetActiveRoom, subscribeActiveRoom } from '@/lib/activeRoom';
 import { SearchPanel } from './components/SearchPanel';
 import { ClientQueue } from './components/ClientQueue';
@@ -127,6 +127,8 @@ function RemoteInner() {
     setRandomFilters,
     setDragDropEnabled,
     setRequesterPromptEnabled,
+    setMCEnabled,
+    tryClaimAnnouncementLock,
     removeCurrentPlaying,
     addToPlayedHistory,
     setCurrentPlayingDirectly,
@@ -173,6 +175,34 @@ function RemoteInner() {
       localStorage.removeItem('karaoke_client_room');
     }
   }, [roomMissing]);
+
+  // Inline toast for transient notices (e.g. "the room you were in has
+  // ended"). Lives next to the rest of the home/main UI rather than the
+  // not-found panel that used to occupy this space.
+  const [notice, setNotice] = useState<string | null>(null);
+  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showNotice = useCallback((message: string) => {
+    setNotice(message);
+    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = setTimeout(() => setNotice(null), 4000);
+  }, []);
+  useEffect(() => {
+    return () => {
+      if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    };
+  }, []);
+
+  // When the TV ends the party (or the URL points at a stale/bad code), drop
+  // back to home and surface a toast so the user understands why. The home
+  // screen already surfaces whatever room is currently active, so they can
+  // rejoin from there if they want to. Translating a Firebase state
+  // transition into UI legitimately requires setState here.
+  useEffect(() => {
+    if (!roomMissing) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    showNotice(t('errors.roomNotFound.message'));
+    router.replace('/');
+  }, [roomMissing, router, showNotice, t]);
 
   // Joining is gated by the active-room pointer: a code is only accepted if
   // it matches the room currently in `meta/activeRoom`. This prevents users
@@ -296,60 +326,20 @@ function RemoteInner() {
     router.push('/');
   }
 
-  if (roomMissing) {
-    // Render the panel immediately — gating on pointerLoaded used to avoid a
-    // button flash, but it can leave the user stranded on a spinner forever
-    // if the Firebase listener never settles (e.g. coming back here via
-    // browser history). The "Join active room" button just stays hidden
-    // until activeRoom resolves.
-    const canJoinActive = !!activeRoom && activeRoom !== roomCode;
-    return (
-      <main className="relative min-h-[100dvh] w-full flex items-center justify-center px-6 py-10 bg-bg text-fg">
-        <div className="w-full max-w-sm rounded-2xl border border-glow/40 bg-surface-2 p-8 shadow-glow text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface text-glow">
-            <DoorClosed size={28} aria-hidden="true" />
-          </div>
-          <h1 className="text-lg font-semibold text-fg">
-            {t('errors.roomNotFound.title')}
-          </h1>
-          <p className="mt-2 text-sm text-muted">
-            {t('errors.roomNotFound.message')}
-          </p>
-          <div className="mt-6 flex flex-col gap-2">
-            {canJoinActive && (
-              <button
-                type="button"
-                onClick={() => {
-                  localStorage.setItem('karaoke_client_room', activeRoom);
-                  router.push(`/?room=${activeRoom}`);
-                }}
-                className="w-full py-3 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98]"
-              >
-                {t('home.joinActiveRoom', { code: activeRoom })}
-              </button>
-            )}
-            <Link
-              href="/"
-              onClick={() => {
-                localStorage.removeItem('karaoke_client_room');
-              }}
-              className={`inline-block w-full py-3 rounded-full font-semibold tracking-wide transition-transform active:scale-[0.98] ${
-                canJoinActive
-                  ? 'border border-border text-fg hover:bg-surface'
-                  : 'bg-gradient-brand text-white shadow-glow'
-              }`}
-            >
-              {t('errors.roomNotFound.cta')}
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  const noticeBanner = notice ? (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] max-w-[90vw] px-4 py-2.5 rounded-full bg-surface-2 border border-glow/40 shadow-glow text-sm text-fg text-center"
+    >
+      {notice}
+    </div>
+  ) : null;
 
   if (!roomCode) {
     return (
       <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center px-6 py-10 overflow-hidden bg-bg text-fg">
+        {noticeBanner}
         <NeonOrbs />
 
         <div className="absolute top-4 right-4 z-20">
@@ -436,6 +426,7 @@ function RemoteInner() {
 
   return (
     <main className="h-[100dvh] w-full flex flex-col overflow-hidden bg-bg text-fg">
+      {noticeBanner}
       <h1 className="sr-only">{t('home.appHeading')}</h1>
 
       <header className="flex items-center justify-between px-4 py-3 bg-surface/70 backdrop-blur-md border-b border-border shrink-0">
@@ -500,7 +491,10 @@ function RemoteInner() {
             tab === 'queue' ? 'flex h-full' : 'hidden'
           }`}
         >
-          {roomData.currentPlaying && (
+          {/* When the TV is showing the song, hide the duplicate card on
+              mobile but keep transport controls so the phone is still a
+              remote. */}
+          {roomData.currentPlaying && !roomData.isTvActive && (
             <div className="p-3">
               <NowPlayingCard
                 track={roomData.currentPlaying}
@@ -509,6 +503,11 @@ function RemoteInner() {
                   // requestFullscreen must run synchronously inside the user
                   // gesture; deferring to the FullscreenPlayer's mount effect
                   // loses the activation token in some browsers.
+                  // primeAudio() also runs inside the gesture so the MC
+                  // announcement (which fires from an async useEffect after
+                  // the player mounts) can actually produce audio on iOS
+                  // Safari and mobile Chrome.
+                  primeAudio();
                   document.documentElement.requestFullscreen?.().catch(() => {});
                   setPlayerOpen(true);
                 }}
@@ -550,6 +549,14 @@ function RemoteInner() {
           volume={roomData.volume}
           hasHistory={roomData.history.length > 0}
           hasQueue={roomData.queue.length > 0}
+          isMCEnabled={roomData.isMCEnabled}
+          // Only consult the cross-device lock when the TV is actually
+          // racing us. Without this, a stale lastAnnouncedSongId from a
+          // prior session makes the claim fail and the gate releases
+          // immediately — the video plays without an announcement.
+          tryClaimAnnouncementLock={
+            roomData.isTvActive ? tryClaimAnnouncementLock : undefined
+          }
           onSongEnd={playNext}
           onClose={() => setPlayerOpen(false)}
           onPrev={playPrevious}
@@ -601,6 +608,8 @@ function RemoteInner() {
         onDragDropToggle={setDragDropEnabled}
         requesterPromptEnabled={roomData.requesterPromptEnabled}
         onRequesterPromptToggle={setRequesterPromptEnabled}
+        mcEnabled={roomData.isMCEnabled}
+        onMCToggle={setMCEnabled}
       />
 
       <RequesterDialog

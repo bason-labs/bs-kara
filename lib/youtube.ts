@@ -8,6 +8,10 @@ export interface YouTubeVideo {
   // because search results don't have one and auto-random picks bypass the
   // requester prompt entirely.
   requesterName?: string;
+  // Pre-generated AI MC line. We fire the API call at add-time so the line
+  // is ready by the time the song reaches the top, removing the awkward
+  // gap between the previous song ending and the MC starting to talk.
+  mcText?: string;
 }
 
 export interface QueueItem extends YouTubeVideo {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Shuffle, Palette, X, Hash, GripVertical, Mic } from 'lucide-react';
+import { Shuffle, Palette, X, Hash, GripVertical, Mic, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Genre, RandomFilters, SingerType, Tone } from '@/lib/youtube';
 import { ThemeToggle } from '../ThemeToggle';
@@ -18,6 +18,8 @@ interface SettingsSheetProps {
   onDragDropToggle: (enabled: boolean) => void;
   requesterPromptEnabled: boolean;
   onRequesterPromptToggle: (enabled: boolean) => void;
+  mcEnabled: boolean;
+  onMCToggle: (enabled: boolean) => void;
 }
 
 const TYPE_OPTIONS: SingerType[] = ['all', 'solo', 'duet'];
@@ -36,6 +38,8 @@ export function SettingsSheet({
   onDragDropToggle,
   requesterPromptEnabled,
   onRequesterPromptToggle,
+  mcEnabled,
+  onMCToggle,
 }: SettingsSheetProps) {
   const { t } = useTranslation();
 
@@ -120,6 +124,11 @@ export function SettingsSheet({
                 onDragDropToggle={onDragDropToggle}
                 requesterPromptEnabled={requesterPromptEnabled}
                 onRequesterPromptToggle={onRequesterPromptToggle}
+              />
+
+              <AIMcSection
+                enabled={mcEnabled}
+                onToggle={onMCToggle}
               />
 
               <ThemeSection />
@@ -332,6 +341,31 @@ function ToggleRow({ label, hint, enabled, onToggle, Icon }: ToggleRowProps) {
         />
       </span>
     </button>
+  );
+}
+
+interface AIMcSectionProps {
+  enabled: boolean;
+  onToggle: (enabled: boolean) => void;
+}
+
+function AIMcSection({ enabled, onToggle }: AIMcSectionProps) {
+  const { t } = useTranslation();
+  return (
+    <section aria-labelledby="settings-aimc" className="space-y-2">
+      <SectionHeader
+        id="settings-aimc"
+        Icon={Sparkles}
+        title={t('settings.sections.aiMc')}
+      />
+      <ToggleRow
+        Icon={Sparkles}
+        label={t('settings.aiMcLabel')}
+        hint={t('settings.aiMcHint')}
+        enabled={enabled}
+        onToggle={onToggle}
+      />
+    </section>
   );
 }
 

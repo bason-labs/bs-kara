@@ -22,17 +22,33 @@ export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingCh
     isPlayingRef.current = isPlaying;
     const player = playerRef.current;
     if (!player) return;
-    if (isPlaying) {
-      player.playVideo();
-    } else {
-      player.pauseVideo();
+    try {
+      if (isPlaying) {
+        player.playVideo();
+      } else {
+        player.pauseVideo();
+      }
+    } catch {
+      // YT widget API can throw if the iframe is mid-teardown; ignore.
     }
   }, [isPlaying]);
 
   useEffect(() => {
     const player = playerRef.current;
     if (!player) return;
-    player.setVolume(volume);
+    // The YT widget API throws "Cannot read properties of null (reading 'src')"
+    // when these methods are called while the iframe is being torn down or
+    // re-attached. Swallow — the next ready event will reapply volume/mute.
+    try {
+      if (volume === 0) {
+        player.mute();
+      } else {
+        player.unMute();
+        player.setVolume(volume);
+      }
+    } catch {
+      // ignore
+    }
   }, [volume]);
 
   // react-youtube already swaps videoId on prop change; manually calling
@@ -44,6 +60,16 @@ export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingCh
 
   function handleReady(event: YouTubeEvent) {
     playerRef.current = event.target;
+    // Apply current volume immediately so a mounted-muted iframe (e.g. the
+    // mobile FullscreenPlayer during the MC announcement) doesn't leak
+    // autoplay audio at default volume in the brief window before the
+    // volume useEffect runs.
+    if (volume === 0) {
+      event.target.mute();
+    } else {
+      event.target.unMute();
+      event.target.setVolume(volume);
+    }
     // Honor whatever isPlaying is at the moment the player finishes loading,
     // including a pause that arrived before the player was ready (otherwise
     // the iframe's autoplay=1 would keep playing past the pause command).
@@ -82,6 +108,17 @@ export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingCh
           controls: 0,
           disablekb: 1,
           modestbranding: 1,
+          // Mount muted when the caller starts at volume 0 (mobile
+          // FullscreenPlayer during MC). playerVars are baked at iframe
+          // creation, so this prevents the iframe's own autoplay from
+          // emitting audio before the JS API mute() call lands.
+          mute: volume === 0 ? 1 : 0,
+          // Pass the page origin so the YT widgetapi can verify postMessage
+          // targets when the iframe is unmounted mid-flight (which we do
+          // every time the MC gate flips). Silences the noisy
+          // "target origin provided ... does not match" console warning.
+          origin:
+            typeof window !== 'undefined' ? window.location.origin : undefined,
         },
       }}
       onReady={handleReady}
