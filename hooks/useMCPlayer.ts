@@ -16,6 +16,9 @@ interface UseMCPlayerArgs {
   // isInitialized; FullscreenPlayer can pass true since opening it IS a
   // gesture). Speech APIs require a user gesture on most browsers.
   ready: boolean;
+  // Google TTS voice id chosen by the host (Settings dropdown). Falls back
+  // to the default when undefined/empty so older rooms keep working.
+  mcVoice?: string;
   // Cross-device lock: returns true if this caller won the race to be
   // the announcer for `songId`. False means another device beat us — we
   // skip MC and let the video play immediately. Optional so the hook
@@ -40,9 +43,15 @@ export function useMCPlayer({
   isMCEnabled,
   currentPlaying,
   ready,
+  mcVoice,
   tryClaimAnnouncementLock,
 }: UseMCPlayerArgs): UseMCPlayerResult {
   const { speak, cancel: cancelSpeech } = useAIVoice();
+  // Mirror the voice choice in a ref so the announcer effect doesn't have
+  // to depend on it — switching voices mid-announcement would otherwise
+  // cancel the in-flight speech and re-fetch the line.
+  const mcVoiceRef = useRef(mcVoice);
+  mcVoiceRef.current = mcVoice;
   // Lazy init: if MC is set up to fire on this mount, gate the iframe
   // synchronously from render 1. Without this, the YT embed has time to
   // start loading (and autoplay audio) during the brief window between
@@ -152,7 +161,7 @@ export function useMCPlayer({
       }
       if (cancelled) return;
       setMcText(text);
-      await speak(text);
+      await speak(text, mcVoiceRef.current);
       if (cancelled) return;
       // Only release the gate if it's still the song we were announcing —
       // a fast skip could have moved on already.

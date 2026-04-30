@@ -144,7 +144,14 @@
     "requesterPromptLabel": "Hỏi tên ca sĩ",
     "requesterPromptHint": "Khi tắt, bài hát sẽ được thêm ngay vào hàng chờ mà không hỏi tên người hát.",
     "aiMcLabel": "Bật/Tắt MC",
-    "aiMcHint": "Trước mỗi bài, MC sẽ đọc lời giới thiệu ngắn bằng tiếng Việt qua loa TV."
+    "aiMcHint": "Trước mỗi bài, MC sẽ đọc lời giới thiệu ngắn bằng tiếng Việt qua loa TV.",
+    "mcVoiceLabel": "Giọng MC",
+    "mcVoiceOptions": {
+      "neural2A": "Nữ trung",
+      "wavenetC": "Nữ trầm",
+      "neural2D": "Nam trầm",
+      "wavenetB": "Nam trung"
+    }
   },
   "aiMc": {
     "announcing": "MC đang giới thiệu"

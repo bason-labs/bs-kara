@@ -123,6 +123,7 @@ export default function TVClient() {
     isMCEnabled: roomData.isMCEnabled,
     currentPlaying: roomData.currentPlaying,
     ready: isInitialized,
+    mcVoice: roomData.mcVoice,
     tryClaimAnnouncementLock,
   });
 

@@ -30,6 +30,9 @@ export interface RoomState {
   dragDropEnabled: boolean;
   requesterPromptEnabled: boolean;
   isMCEnabled: boolean;
+  // Google TTS voice id (from the Settings dropdown). Read by useMCPlayer
+  // and forwarded to /api/tts. Falls back to the default if missing.
+  mcVoice: string;
   // Cross-device announcement lock — devices race to write
   // currentPlaying.id here. The winner announces; losers see this already
   // matches and skip the MC. Persists across reconnects so a refresh of
@@ -52,6 +55,7 @@ const DEFAULT_STATE: RoomState = {
   dragDropEnabled: true,
   requesterPromptEnabled: true,
   isMCEnabled: true,
+  mcVoice: 'vi-VN-Neural2-A',
   lastAnnouncedSongId: null,
   isTvActive: false,
 };
@@ -93,6 +97,7 @@ export function useRoom(roomId: string | null) {
         dragDropEnabled?: boolean;
         requesterPromptEnabled?: boolean;
         isMCEnabled?: boolean;
+        mcVoice?: string;
         // Legacy field — read for backwards-compat with rooms created
         // before the rename, never written.
         isAImcEnabled?: boolean;
@@ -154,6 +159,10 @@ export function useRoom(roomId: string | null) {
           data.isMCEnabled !== undefined
             ? data.isMCEnabled !== false
             : data.isAImcEnabled !== false,
+        mcVoice:
+          typeof data.mcVoice === 'string' && data.mcVoice
+            ? data.mcVoice
+            : 'vi-VN-Neural2-A',
         lastAnnouncedSongId:
           typeof data.lastAnnouncedSongId === 'string'
             ? data.lastAnnouncedSongId
@@ -432,6 +441,15 @@ export function useRoom(roomId: string | null) {
     [roomId],
   );
 
+  const setMcVoice = useCallback(
+    (voice: string) => {
+      if (!roomId) return;
+      if (!voice) return;
+      set(ref(db, `rooms/${roomId}/mcVoice`), voice);
+    },
+    [roomId],
+  );
+
   // Atomic claim: returns true iff this caller wins the race for `songId`.
   // Losers (committed === false because the value already matched) skip
   // the announcement and start the video immediately.
@@ -531,6 +549,7 @@ export function useRoom(roomId: string | null) {
     setDragDropEnabled,
     setRequesterPromptEnabled,
     setMCEnabled,
+    setMcVoice,
     tryClaimAnnouncementLock,
     removeCurrentPlaying,
     setCurrentPlayingDirectly,

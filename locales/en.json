@@ -144,7 +144,14 @@
     "requesterPromptLabel": "Ask for singer name",
     "requesterPromptHint": "When off, songs go straight into the queue without asking who's singing.",
     "aiMcLabel": "AI MC intro",
-    "aiMcHint": "Before each song, an AI MC reads a short Vietnamese intro through the TV speakers."
+    "aiMcHint": "Before each song, an AI MC reads a short Vietnamese intro through the TV speakers.",
+    "mcVoiceLabel": "MC voice",
+    "mcVoiceOptions": {
+      "neural2A": "Female alto (Neural2-A)",
+      "wavenetC": "Female low (Wavenet-C)",
+      "neural2D": "Male low (Neural2-D)",
+      "wavenetB": "Male mid (Wavenet-B)"
+    }
   },
   "aiMc": {
     "announcing": "AI MC is talking"

@@ -128,6 +128,7 @@ function RemoteInner() {
     setDragDropEnabled,
     setRequesterPromptEnabled,
     setMCEnabled,
+    setMcVoice,
     tryClaimAnnouncementLock,
     removeCurrentPlaying,
     addToPlayedHistory,
@@ -552,6 +553,7 @@ function RemoteInner() {
           hasHistory={roomData.history.length > 0}
           hasQueue={roomData.queue.length > 0}
           isMCEnabled={roomData.isMCEnabled}
+          mcVoice={roomData.mcVoice}
           // Only consult the cross-device lock when the TV is actually
           // racing us. Without this, a stale lastAnnouncedSongId from a
           // prior session makes the claim fail and the gate releases
@@ -612,6 +614,8 @@ function RemoteInner() {
         onRequesterPromptToggle={setRequesterPromptEnabled}
         mcEnabled={roomData.isMCEnabled}
         onMCToggle={setMCEnabled}
+        mcVoice={roomData.mcVoice}
+        onMcVoiceChange={setMcVoice}
       />
 
       <RequesterDialog

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
-import { Shuffle, Palette, X, Hash, GripVertical, Mic, Sparkles } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Shuffle, Palette, X, Hash, GripVertical, Mic, Sparkles, ChevronDown, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Genre, RandomFilters, SingerType, Tone } from '@/lib/youtube';
 import { ThemeToggle } from '../ThemeToggle';
@@ -20,7 +21,17 @@ interface SettingsSheetProps {
   onRequesterPromptToggle: (enabled: boolean) => void;
   mcEnabled: boolean;
   onMCToggle: (enabled: boolean) => void;
+  mcVoice: string;
+  onMcVoiceChange: (voice: string) => void;
 }
+
+// Keep in sync with the ALLOWED_VOICES whitelist in app/api/tts/route.ts.
+const MC_VOICE_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: 'vi-VN-Neural2-A', labelKey: 'settings.mcVoiceOptions.neural2A' },
+  { value: 'vi-VN-Wavenet-C', labelKey: 'settings.mcVoiceOptions.wavenetC' },
+  { value: 'vi-VN-Neural2-D', labelKey: 'settings.mcVoiceOptions.neural2D' },
+  { value: 'vi-VN-Wavenet-B', labelKey: 'settings.mcVoiceOptions.wavenetB' },
+];
 
 const TYPE_OPTIONS: SingerType[] = ['all', 'solo', 'duet'];
 const TONE_OPTIONS: Tone[] = ['all', 'male', 'female'];
@@ -40,6 +51,8 @@ export function SettingsSheet({
   onRequesterPromptToggle,
   mcEnabled,
   onMCToggle,
+  mcVoice,
+  onMcVoiceChange,
 }: SettingsSheetProps) {
   const { t } = useTranslation();
 
@@ -129,6 +142,8 @@ export function SettingsSheet({
               <AIMcSection
                 enabled={mcEnabled}
                 onToggle={onMCToggle}
+                mcVoice={mcVoice}
+                onMcVoiceChange={onMcVoiceChange}
               />
 
               <ThemeSection />
@@ -347,9 +362,16 @@ function ToggleRow({ label, hint, enabled, onToggle, Icon }: ToggleRowProps) {
 interface AIMcSectionProps {
   enabled: boolean;
   onToggle: (enabled: boolean) => void;
+  mcVoice: string;
+  onMcVoiceChange: (voice: string) => void;
 }
 
-function AIMcSection({ enabled, onToggle }: AIMcSectionProps) {
+function AIMcSection({
+  enabled,
+  onToggle,
+  mcVoice,
+  onMcVoiceChange,
+}: AIMcSectionProps) {
   const { t } = useTranslation();
   return (
     <section aria-labelledby="settings-aimc" className="space-y-2">
@@ -365,6 +387,34 @@ function AIMcSection({ enabled, onToggle }: AIMcSectionProps) {
         enabled={enabled}
         onToggle={onToggle}
       />
+      {/* Animated reveal mirrors the auto-random sub-section pattern: the
+          voice picker only matters when MC is on. */}
+      <div
+        className={`grid transition-all duration-300 ease-out ${
+          enabled ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="rounded-2xl border border-border bg-surface-2/40 p-4 mt-2 flex flex-col gap-2">
+            <label
+              htmlFor="settings-mc-voice"
+              className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted"
+            >
+              {t('settings.mcVoiceLabel')}
+            </label>
+            <CustomSelect
+              id="settings-mc-voice"
+              value={mcVoice}
+              disabled={!enabled}
+              options={MC_VOICE_OPTIONS.map((opt) => ({
+                value: opt.value,
+                label: t(opt.labelKey),
+              }))}
+              onChange={onMcVoiceChange}
+            />
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -409,6 +459,179 @@ function RoomSection({ code }: { code: string }) {
         </span>
       </div>
     </section>
+  );
+}
+
+interface CustomSelectProps {
+  id?: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}
+
+// Custom popover dropdown — replaces the native <select> so the menu has the
+// same surface/border styling as the rest of the sheet and isn't bound to
+// the browser's chrome. Opens below by default and flips above when there
+// isn't enough viewport room beneath the trigger.
+interface MenuRect {
+  left: number;
+  top: number;
+  width: number;
+  placement: 'above' | 'below';
+}
+
+function CustomSelect({
+  id,
+  value,
+  options,
+  onChange,
+  disabled,
+}: CustomSelectProps) {
+  const [open, setOpen] = useState(false);
+  const [rect, setRect] = useState<MenuRect | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLUListElement>(null);
+
+  const current = options.find((o) => o.value === value) ?? options[0];
+
+  // Measure the trigger before paint and pick a placement. The menu is
+  // portaled to the body to escape the sheet's overflow-hidden ancestors,
+  // so we drive its position with fixed coordinates from the trigger rect.
+  useLayoutEffect(() => {
+    if (!open) {
+      setRect(null);
+      return;
+    }
+    function measure() {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+      const r = trigger.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - r.bottom;
+      const MENU_ESTIMATE = 280;
+      const placement: 'above' | 'below' =
+        spaceBelow < MENU_ESTIMATE && r.top > spaceBelow ? 'above' : 'below';
+      setRect({
+        left: r.left,
+        top: placement === 'below' ? r.bottom + 8 : r.top - 8,
+        width: r.width,
+        placement,
+      });
+    }
+    measure();
+    // Reposition while open if anything resizes/scrolls (the sheet body is
+    // a scroll container).
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
+  }, [open]);
+
+  // Close on outside click or Escape.
+  useEffect(() => {
+    if (!open) return;
+    function handlePointer(e: MouseEvent | TouchEvent) {
+      const target = e.target as Node;
+      if (
+        triggerRef.current?.contains(target) ||
+        menuRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setOpen(false);
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
+    document.addEventListener('mousedown', handlePointer);
+    document.addEventListener('touchstart', handlePointer);
+    window.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handlePointer);
+      document.removeEventListener('touchstart', handlePointer);
+      window.removeEventListener('keydown', handleKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative">
+      <button
+        id={id}
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 pr-10 text-sm text-fg text-left focus:outline-none focus:border-glow/60 active:scale-[0.99] transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
+      >
+        <span className="truncate">{current?.label}</span>
+        <ChevronDown
+          size={16}
+          strokeWidth={2.2}
+          aria-hidden
+          className={`pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted transition-transform ${
+            open ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {open &&
+        rect &&
+        typeof window !== 'undefined' &&
+        createPortal(
+          <ul
+            ref={menuRef}
+            role="listbox"
+            aria-labelledby={id}
+            style={{
+              position: 'fixed',
+              left: rect.left,
+              top: rect.placement === 'below' ? rect.top : undefined,
+              bottom:
+                rect.placement === 'above'
+                  ? window.innerHeight - rect.top
+                  : undefined,
+              width: rect.width,
+            }}
+            // z-index has to clear the SettingsSheet (z-40) and any sibling
+            // overlays that might be above it.
+            className="z-[70] rounded-xl border border-border bg-surface shadow-2xl overflow-hidden py-1"
+          >
+            {options.map((opt) => {
+              const active = opt.value === value;
+              return (
+                <li key={opt.value} role="option" aria-selected={active}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange(opt.value);
+                      setOpen(false);
+                      triggerRef.current?.focus();
+                    }}
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-sm text-left transition-colors ${
+                      active
+                        ? 'bg-gradient-brand text-white'
+                        : 'text-fg hover:bg-surface-2'
+                    }`}
+                  >
+                    <span className="truncate">{opt.label}</span>
+                    {active && (
+                      <Check size={14} strokeWidth={2.4} aria-hidden className="shrink-0" />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>,
+          document.body,
+        )}
+    </div>
   );
 }
 

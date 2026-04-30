@@ -9,8 +9,11 @@ const TTS_PROVIDER = (
   process.env.NEXT_PUBLIC_TTS_PROVIDER ?? 'browser'
 ).toLowerCase();
 
-// Web-Speech path with Vietnamese voice picking.
-function speakViaBrowser(text: string): Promise<void> {
+export const DEFAULT_MC_VOICE = 'vi-VN-Neural2-A';
+
+// Web-Speech path with Vietnamese voice picking. Pulled out of the hook so
+// the Google path can call it as a fallback when the /api/tts route fails.
+function speakWithBrowser(text: string): Promise<void> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined') return resolve();
     const synth = window.speechSynthesis;
@@ -86,9 +89,13 @@ export function useAIVoice() {
 
   const cancel = useCallback(() => {
     if (typeof window === 'undefined') return;
-    if (TTS_PROVIDER === 'browser') {
+    // Cancel both engines unconditionally: a fallback may have hopped from
+    // Google → browser mid-announcement, so cancelling only the configured
+    // provider would leave a stale utterance running.
+    try {
       window.speechSynthesis?.cancel();
-      return;
+    } catch {
+      // ignore
     }
     const audio = currentAudioRef.current;
     if (audio) {
@@ -102,8 +109,61 @@ export function useAIVoice() {
     }
   }, []);
 
+  // Plays a Google-TTS audioContent payload. Resolves when playback ends
+  // (or fails). Throws only on non-runtime errors so the caller can decide
+  // whether to fall back.
+  const playGoogleAudio = useCallback(
+    (audioContent: string): Promise<void> =>
+      new Promise<void>((resolve, reject) => {
+        try {
+          // Stop any prior playback (cancel() already nulls handlers).
+          const prior = currentAudioRef.current;
+          if (prior) {
+            prior.onended = null;
+            prior.onerror = null;
+            prior.pause();
+            prior.removeAttribute('src');
+            prior.load();
+          }
+          const audio = new Audio(`data:audio/mpeg;base64,${audioContent}`);
+          currentAudioRef.current = audio;
+          let settled = false;
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            if (currentAudioRef.current === audio) {
+              currentAudioRef.current = null;
+            }
+            resolve();
+          };
+          audio.onended = finish;
+          // onerror should fall back rather than silently resolve — the
+          // browser engine is still available and can deliver the line.
+          audio.onerror = () => {
+            if (settled) return;
+            settled = true;
+            if (currentAudioRef.current === audio) {
+              currentAudioRef.current = null;
+            }
+            reject(new Error('audio_playback_error'));
+          };
+          audio.play().catch((err) => {
+            if (settled) return;
+            settled = true;
+            if (currentAudioRef.current === audio) {
+              currentAudioRef.current = null;
+            }
+            reject(err instanceof Error ? err : new Error(String(err)));
+          });
+        } catch (err) {
+          reject(err instanceof Error ? err : new Error(String(err)));
+        }
+      }),
+    [],
+  );
+
   const speak = useCallback(
-    async (text: string): Promise<void> => {
+    async (text: string, voiceName?: string): Promise<void> => {
       const trimmed = text.trim();
       if (!trimmed) return;
       if (typeof window === 'undefined') return;
@@ -113,47 +173,38 @@ export function useAIVoice() {
           const res = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: trimmed }),
+            body: JSON.stringify({
+              text: trimmed,
+              voiceName: voiceName || DEFAULT_MC_VOICE,
+            }),
           });
-          if (res.ok) {
-            const data = (await res.json()) as { audioContent?: string | null };
-            if (data.audioContent) {
-              await new Promise<void>((resolve) => {
-                // Stop any prior playback (cancel() already nulls handlers).
-                cancel();
-                const audio = new Audio(
-                  `data:audio/mpeg;base64,${data.audioContent}`,
-                );
-                currentAudioRef.current = audio;
-                let settled = false;
-                const finish = () => {
-                  if (settled) return;
-                  settled = true;
-                  if (currentAudioRef.current === audio) {
-                    currentAudioRef.current = null;
-                  }
-                  resolve();
-                };
-                audio.onended = finish;
-                audio.onerror = finish;
-                audio.play().catch(finish);
-              });
-              return;
-            }
+          if (!res.ok) {
+            // Quota / auth / 5xx — surface and fall through to browser TTS.
+            throw new Error(`tts_http_${res.status}`);
           }
-        } catch {
-          // Fall through to browser TTS as a graceful fallback.
+          const data = (await res.json()) as { audioContent?: string | null };
+          if (!data.audioContent) {
+            throw new Error('tts_empty_audio');
+          }
+          await playGoogleAudio(data.audioContent);
+          return;
+        } catch (err) {
+          // Anything from the Google branch (network, non-2xx, empty body,
+          // HTMLAudio playback failure) routes to the browser engine so the
+          // user still hears the announcement.
+          console.warn(
+            '[useAIVoice] Google TTS failed, falling back to browser TTS:',
+            err,
+          );
+          await speakWithBrowser(trimmed);
+          return;
         }
-        // If Google TTS failed (no key, network, or empty audioContent),
-        // try the browser engine instead so the user still hears the line.
-        await speakViaBrowser(trimmed);
-        return;
       }
 
       // Default browser path
-      await speakViaBrowser(trimmed);
+      await speakWithBrowser(trimmed);
     },
-    [cancel],
+    [playGoogleAudio],
   );
 
   return { speak, cancel, voicesReady };
@@ -167,6 +218,9 @@ export function useAIVoice() {
 // alive for the announcement that follows.
 export function primeAudio(): void {
   if (typeof window === 'undefined') return;
+  // Always prime speechSynthesis — even with the Google backend configured
+  // we may fall back to it on quota errors, and the unlock has to happen
+  // inside the original gesture.
   try {
     const synth = window.speechSynthesis;
     if (synth) {

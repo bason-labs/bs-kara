@@ -16,6 +16,8 @@ interface FullscreenPlayerProps {
   hasQueue: boolean;
   // When true, the MC speaks before each new song reaches the iframe.
   isMCEnabled: boolean;
+  // Google TTS voice id selected in Settings. Forwarded to useMCPlayer.
+  mcVoice: string;
   // Cross-device lock from useRoom — passed through so this player can
   // race the TV for the announcement and stay quiet if it loses.
   tryClaimAnnouncementLock?: (songId: string) => Promise<boolean>;
@@ -33,6 +35,7 @@ export function FullscreenPlayer({
   hasHistory,
   hasQueue,
   isMCEnabled,
+  mcVoice,
   tryClaimAnnouncementLock,
   onSongEnd,
   onClose,
@@ -52,6 +55,7 @@ export function FullscreenPlayer({
     isMCEnabled,
     currentPlaying: track,
     ready: true,
+    mcVoice,
     tryClaimAnnouncementLock,
   });
 
