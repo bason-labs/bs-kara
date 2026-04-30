@@ -10,17 +10,17 @@ interface EmojiPadProps {
 export function EmojiPad({ onSendEmoji }: EmojiPadProps) {
   const { t } = useTranslation();
   return (
-    <div className="flex justify-around items-center px-3 py-2.5 bg-surface/80 backdrop-blur-sm border-t border-border">
+    <div className="flex justify-around items-center gap-1 px-3 py-2">
       {REACTIONS.map((emoji) => (
         <button
           key={emoji}
           onClick={() => onSendEmoji(emoji)}
           aria-label={t('emoji.sendAriaLabel', { emoji })}
           className="
-            flex items-center justify-center w-12 h-12 rounded-full
+            flex items-center justify-center w-11 h-11 rounded-full
             cursor-pointer transition-all duration-200
-            hover:scale-150 hover:drop-shadow-lg
-            active:scale-75
+            hover:scale-125 hover:bg-glow/10 hover:drop-shadow-lg
+            active:scale-90
             select-none
           "
         >
@@ -28,10 +28,10 @@ export function EmojiPad({ onSendEmoji }: EmojiPadProps) {
           <img
             src={getGifUrl(emoji)}
             alt={emoji}
-            width={36}
-            height={36}
+            width={32}
+            height={32}
             draggable={false}
-            className="w-9 h-9 object-contain"
+            className="w-8 h-8 object-contain"
           />
         </button>
       ))}

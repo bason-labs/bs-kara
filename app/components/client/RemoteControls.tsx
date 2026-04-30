@@ -29,7 +29,7 @@ export function RemoteControls({
 }: RemoteControlsProps) {
   const { t } = useTranslation();
   return (
-    <div className="shrink-0 bg-surface/80 backdrop-blur-sm border-t border-border px-3 py-3">
+    <div className="shrink-0 border-t border-border/60 px-3 py-3">
       <div className="flex items-center gap-3">
         <button
           onClick={onPrev}

@@ -55,6 +55,18 @@ export function FullscreenPlayer({
     tryClaimAnnouncementLock,
   });
 
+  // When the MC announcement finishes, kick the video back into play.
+  // The iframe was paused throughout the MC, and root isPlaying may have
+  // been false (paused before expand) or echoed false during the MC's
+  // mute/pause dance — either way the user expects the song to start.
+  const wasMcGatedRef = useRef(isMcGated);
+  useEffect(() => {
+    if (wasMcGatedRef.current && !isMcGated) {
+      if (!isPlaying) onPlayingChange?.(true);
+    }
+    wasMcGatedRef.current = isMcGated;
+  }, [isMcGated, isPlaying, onPlayingChange]);
+
   // The browser Fullscreen API is entered by the caller (the user-gesture
   // handler that flips playerOpen). Here we just make sure to leave it on
   // unmount so closing the overlay also exits native fullscreen.

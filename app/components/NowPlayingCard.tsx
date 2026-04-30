@@ -28,9 +28,9 @@ export function NowPlayingCard({
   return (
     <>
       <div
-        className={`relative flex items-center gap-3 rounded-2xl border border-glow/40 bg-surface-2 p-3 shadow-glow ${className}`}
+        className={`relative flex items-stretch gap-3 rounded-2xl border border-glow/40 bg-gradient-to-br from-surface-2 to-surface p-3 shadow-glow ${className}`}
       >
-        <div className="relative w-20 h-12 shrink-0 rounded-lg overflow-hidden bg-surface">
+        <div className="relative w-24 h-16 lg:w-28 lg:h-[72px] shrink-0 rounded-xl overflow-hidden bg-surface ring-1 ring-glow/30">
           <Image
             src={track.thumbnail}
             alt={track.title}
@@ -38,37 +38,53 @@ export function NowPlayingCard({
             className="object-cover"
             unoptimized
           />
+          <div
+            aria-hidden="true"
+            data-playing={isPlaying ? 'true' : 'false'}
+            className="now-eq absolute bottom-1 left-1 flex items-end gap-0.5 h-4 w-5 rounded-md bg-black/55 backdrop-blur-sm px-1 py-0.5"
+          >
+            <i />
+            <i />
+            <i />
+          </div>
         </div>
 
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-glow font-semibold">
-            {t('nowPlaying.label')}
-          </p>
-          <p className="text-sm font-medium text-fg line-clamp-1 leading-tight">
-            {track.title}
-          </p>
-          <p className="text-xs text-muted truncate">{track.channel}</p>
-          {track.requesterName && (
-            <div className="mt-1">
-              <span className="inline-flex items-center gap-1 max-w-full px-1.5 py-0.5 rounded-full bg-glow/15 text-glow text-[11px] font-medium truncate">
+        <div className="min-w-0 flex-1 flex flex-col justify-between py-0.5">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-glow font-semibold">
+              {t('nowPlaying.label')}
+            </p>
+            <p
+              title={track.title}
+              className="mt-0.5 text-sm font-semibold text-fg line-clamp-2 leading-snug"
+            >
+              {track.title}
+            </p>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 min-w-0">
+            <p className="text-xs text-muted truncate min-w-0 flex-shrink">
+              {track.channel}
+            </p>
+            {track.requesterName && (
+              <span className="inline-flex items-center gap-1 max-w-full lg:max-w-[55%] px-1.5 py-0.5 rounded-full bg-glow/15 text-glow text-[11px] font-medium">
                 <Mic size={10} className="shrink-0" />
-                <span className="truncate">{track.requesterName}</span>
+                <span className="lg:truncate">{track.requesterName}</span>
               </span>
-            </div>
+            )}
+          </div>
+        </div>
+
+        <div className="shrink-0 flex flex-col items-center justify-between gap-1">
+          {onExpand && (
+            <button
+              type="button"
+              onClick={onExpand}
+              aria-label={t('player.openFullscreen')}
+              className="p-2 rounded-lg text-glow bg-glow/10 hover:bg-glow/20 hover:text-fg transition-colors"
+            >
+              <Maximize2 size={16} />
+            </button>
           )}
-        </div>
-
-        <div
-          aria-hidden="true"
-          data-playing={isPlaying ? 'true' : 'false'}
-          className="now-eq shrink-0 flex items-end gap-0.5 h-5 w-5"
-        >
-          <i />
-          <i />
-          <i />
-        </div>
-
-        <div className="shrink-0 flex items-center gap-0.5 ml-1">
           {onRemove && (
             <button
               type="button"
@@ -77,16 +93,6 @@ export function NowPlayingCard({
               className="p-2 rounded-lg text-muted hover:text-danger hover:bg-surface transition-colors"
             >
               <Trash2 size={16} />
-            </button>
-          )}
-          {onExpand && (
-            <button
-              type="button"
-              onClick={onExpand}
-              aria-label={t('player.openFullscreen')}
-              className="p-2 rounded-lg text-muted hover:text-fg hover:bg-surface transition-colors"
-            >
-              <Maximize2 size={16} />
             </button>
           )}
         </div>

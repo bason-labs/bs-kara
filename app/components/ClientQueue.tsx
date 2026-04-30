@@ -116,12 +116,12 @@ export function ClientQueue({
                                 {index + 1}
                               </span>
 
-                              <div className="relative w-24 h-14 lg:w-16 lg:h-10 shrink-0 rounded-lg lg:rounded-md overflow-hidden bg-surface-2">
+                              <div className="relative w-24 h-14 lg:w-24 lg:h-14 shrink-0 rounded-lg overflow-hidden bg-black/40">
                                 <Image
                                   src={item.thumbnail}
                                   alt={item.title}
                                   fill
-                                  className="object-cover"
+                                  className="object-contain object-center"
                                   unoptimized
                                 />
                               </div>
@@ -162,12 +162,12 @@ export function ClientQueue({
                       {index + 1}
                     </span>
 
-                    <div className="relative w-24 h-14 lg:w-16 lg:h-10 shrink-0 rounded-lg lg:rounded-md overflow-hidden bg-surface-2">
+                    <div className="relative w-24 h-14 lg:w-24 lg:h-14 shrink-0 rounded-lg overflow-hidden bg-black/40">
                       <Image
                         src={item.thumbnail}
                         alt={item.title}
                         fill
-                        className="object-cover"
+                        className="object-contain object-center"
                         unoptimized
                       />
                     </div>
@@ -214,11 +214,11 @@ function QueueItemBody({
     <div className="min-w-0 flex-1">
       <p
         title={item.title}
-        className="text-[15px] lg:text-sm font-medium text-fg line-clamp-2 lg:line-clamp-1 leading-snug"
+        className="text-[15px] lg:text-sm font-medium text-fg line-clamp-2 leading-snug"
       >
         {item.title}
       </p>
-      <div className="flex items-center gap-1.5 mt-1 lg:mt-0.5 min-w-0">
+      <div className="flex flex-col lg:flex-row lg:items-center gap-1 lg:gap-1.5 mt-1 lg:mt-0.5 min-w-0">
         <p className="hidden lg:block text-[11px] text-muted truncate min-w-0 flex-shrink">
           {item.channel}
         </p>
@@ -232,14 +232,14 @@ function QueueItemBody({
               if (editable) onEditRequester!(item);
             }}
             aria-label={editable ? t('requester.editAriaLabel') : undefined}
-            className={`shrink-0 inline-flex items-center gap-1 max-w-[55%] px-2 py-0.5 lg:px-1.5 rounded-full bg-glow/15 text-glow text-xs lg:text-[11px] font-medium truncate transition-colors ${
+            className={`self-start shrink-0 inline-flex items-center gap-1 max-w-full lg:max-w-[55%] px-2 py-0.5 lg:px-1.5 rounded-full bg-glow/15 text-glow text-xs lg:text-[11px] font-medium transition-colors ${
               editable
                 ? 'cursor-pointer hover:bg-glow/25 active:scale-95'
                 : 'cursor-default'
             }`}
           >
             <Mic className="shrink-0 w-3 h-3 lg:w-[10px] lg:h-[10px]" />
-            <span className="truncate">{item.requesterName}</span>
+            <span className="lg:truncate">{item.requesterName}</span>
             {editable && (
               <Pencil className="shrink-0 opacity-70 w-3 h-3 lg:w-[10px] lg:h-[10px]" />
             )}
@@ -252,7 +252,7 @@ function QueueItemBody({
               onEditRequester!(item);
             }}
             aria-label={t('requester.addAriaLabel')}
-            className="shrink-0 inline-flex items-center gap-0.5 px-2 py-0.5 lg:px-1.5 rounded-full border border-dashed border-border text-muted text-xs lg:text-[11px] font-medium hover:text-fg hover:border-glow/50 active:scale-95 transition-colors cursor-pointer"
+            className="self-start shrink-0 inline-flex items-center gap-0.5 px-2 py-0.5 lg:px-1.5 rounded-full border border-dashed border-border text-muted text-xs lg:text-[11px] font-medium hover:text-fg hover:border-glow/50 active:scale-95 transition-colors cursor-pointer"
           >
             <Plus className="w-3 h-3 lg:w-[10px] lg:h-[10px]" />
             <span>{t('requester.addLabel')}</span>

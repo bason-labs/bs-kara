@@ -467,7 +467,7 @@ function RemoteInner() {
       </header>
 
       {/* Main content: mobile shows one tab at a time; lg+ shows two columns */}
-      <div className="flex-1 min-h-0 overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="flex-1 min-h-0 overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_460px] xl:grid-cols-[minmax(0,1fr)_500px]">
         {/* Search column */}
         <section
           aria-label="Search"
@@ -487,7 +487,7 @@ function RemoteInner() {
         {/* Queue column — queue + reactions + transport controls stacked */}
         <section
           aria-label="Queue and controls"
-          className={`min-h-0 flex flex-col overflow-hidden lg:flex ${
+          className={`min-h-0 flex flex-col overflow-hidden lg:flex lg:bg-surface/40 ${
             tab === 'queue' ? 'flex h-full' : 'hidden'
           }`}
         >
@@ -495,7 +495,7 @@ function RemoteInner() {
               mobile but keep transport controls so the phone is still a
               remote. */}
           {roomData.currentPlaying && !roomData.isTvActive && (
-            <div className="p-3">
+            <div className="px-3 pt-3 pb-1">
               <NowPlayingCard
                 track={roomData.currentPlaying}
                 isPlaying={roomData.isPlaying}
@@ -527,18 +527,20 @@ function RemoteInner() {
               dragDropEnabled={roomData.dragDropEnabled}
             />
           </div>
-          <EmojiPad onSendEmoji={sendEmoji} />
-          <RemoteControls
-            isPlaying={roomData.isPlaying}
-            volume={roomData.volume}
-            hasHistory={roomData.history.length > 0}
-            hasQueue={roomData.queue.length > 0}
-            currentPlaying={roomData.currentPlaying}
-            onTogglePlayPause={() => togglePlayPause(roomData.isPlaying)}
-            onVolumeChange={setVolume}
-            onPrev={playPrevious}
-            onNext={playNext}
-          />
+          <div className="shrink-0 bg-surface/85 backdrop-blur-md border-t border-border">
+            <EmojiPad onSendEmoji={sendEmoji} />
+            <RemoteControls
+              isPlaying={roomData.isPlaying}
+              volume={roomData.volume}
+              hasHistory={roomData.history.length > 0}
+              hasQueue={roomData.queue.length > 0}
+              currentPlaying={roomData.currentPlaying}
+              onTogglePlayPause={() => togglePlayPause(roomData.isPlaying)}
+              onVolumeChange={setVolume}
+              onPrev={playPrevious}
+              onNext={playNext}
+            />
+          </div>
         </section>
       </div>
 
