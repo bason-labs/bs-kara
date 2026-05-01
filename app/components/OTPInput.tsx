@@ -42,7 +42,7 @@ export function OTPInput({
     next[index] = digit;
     const joined = next.join('').slice(0, length);
     onChange(joined);
-    if (joined.length === length && !joined.includes('') && onComplete) {
+    if (joined.length === length && onComplete) {
       onComplete(joined);
     }
   }
@@ -68,7 +68,7 @@ export function OTPInput({
       const joined = next.join('').slice(0, length);
       onChange(joined);
       focusIndex(i + incoming.length);
-      if (joined.length === length && !joined.includes('') && onComplete) {
+      if (joined.length === length && onComplete) {
         onComplete(joined);
       }
       return;
@@ -105,7 +105,7 @@ export function OTPInput({
     const joined = next.join('').slice(0, length);
     onChange(joined);
     focusIndex(i + incoming.length);
-    if (joined.length === length && !joined.includes('') && onComplete) {
+    if (joined.length === length && onComplete) {
       onComplete(joined);
     }
   }
