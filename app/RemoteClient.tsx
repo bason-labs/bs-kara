@@ -129,7 +129,6 @@ function RemoteInner() {
     reorderQueue,
     togglePlayPause,
     setIsPlaying,
-    setVolume,
     playNext,
     playPrevious,
     sendEmoji,
@@ -571,12 +570,10 @@ function RemoteInner() {
             <EmojiPad onSendEmoji={sendEmoji} />
             <RemoteControls
               isPlaying={roomData.isPlaying}
-              volume={roomData.volume}
               hasHistory={roomData.history.length > 0}
               hasQueue={roomData.queue.length > 0}
               currentPlaying={roomData.currentPlaying}
               onTogglePlayPause={() => togglePlayPause(roomData.isPlaying)}
-              onVolumeChange={setVolume}
               onPrev={playPrevious}
               onNext={playNext}
             />
