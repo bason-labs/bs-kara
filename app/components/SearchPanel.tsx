@@ -340,15 +340,30 @@ export function SearchPanel({
               placeholder={t('search.placeholder')}
               className="flex-1 min-w-0 bg-surface text-fg placeholder:text-muted rounded-full px-4 py-2 text-sm border border-border focus:outline-none focus:border-glow focus:ring-1 focus:ring-glow"
             />
-            <button
-              type="button"
-              onClick={startVoiceSearch}
-              disabled={isListening}
-              aria-label={t('search.voiceAriaLabel')}
-              className="p-2 rounded-full bg-surface-2 text-fg border border-border disabled:opacity-50 cursor-pointer"
-            >
-              <Mic size={20} />
-            </button>
+            {query.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery('');
+                  setSuggestions([]);
+                  panelInputRef.current?.focus();
+                }}
+                aria-label={t('search.clearAriaLabel')}
+                className="p-2 rounded-full bg-surface-2 text-fg border border-border cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={startVoiceSearch}
+                disabled={isListening}
+                aria-label={t('search.voiceAriaLabel')}
+                className="p-2 rounded-full bg-surface-2 text-fg border border-border disabled:opacity-50 cursor-pointer"
+              >
+                <Mic size={20} />
+              </button>
+            )}
           </div>
           <ul className="flex-1 overflow-y-auto">
             {query.trim().length === 0
