@@ -132,6 +132,18 @@ export default function TVClient() {
     tryClaimAnnouncementLock,
   });
 
+  // When the MC announcement finishes, kick the video back into play.
+  // The iframe was paused+muted throughout the MC, and isPlaying may have
+  // echoed false during the MC's pause dance — either way the user
+  // expects the song to start automatically.
+  const wasMcGatedRef = useRef(isMcGated);
+  useEffect(() => {
+    if (wasMcGatedRef.current && !isMcGated) {
+      if (!roomData.isPlaying) setIsPlaying(true);
+    }
+    wasMcGatedRef.current = isMcGated;
+  }, [isMcGated, roomData.isPlaying, setIsPlaying]);
+
   // ── TV presence ────────────────────────────────────────────────────────
   // Mobile uses this flag to hide its now-playing card while the TV is on.
   // We `remove` rather than `set(false)` on cleanup/disconnect: if the room
@@ -245,8 +257,25 @@ export default function TVClient() {
             </div>
           ) : isInitialized && roomData.currentPlaying ? (
             <>
-              {isMcGated ? (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-5 px-8 text-center">
+              {/* Iframe stays mounted across the MC gate — its initial load
+                  happens inside the user gesture from the Waiting Room tap,
+                  so the play() call after the MC finishes is not blocked by
+                  the browser's autoplay policy. While MC speaks we pause +
+                  mute the iframe and cover it with the announcement overlay. */}
+              <VideoPlayer
+                key={roomData.currentPlaying.id}
+                videoId={roomData.currentPlaying.id}
+                onSongEnd={handleSongEnd}
+                isPlaying={!isMcGated && roomData.isPlaying}
+                volume={isMcGated ? 0 : roomData.volume}
+                // Suppress the iframe → React sync while MC is speaking.
+                // The brief PLAYING/PAUSED ping when autoplay starts and we
+                // immediately pause would otherwise echo back into Firebase
+                // and flip isPlaying to false.
+                onPlayingChange={isMcGated ? undefined : setIsPlaying}
+              />
+              {isMcGated && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-5 px-8 text-center bg-black">
                   <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-pink-500/20 border border-pink-400/40 text-pink-200 text-xs uppercase tracking-[0.3em]">
                     <Sparkles size={14} />
                     {t('aiMc.announcing')}
@@ -268,15 +297,6 @@ export default function TVClient() {
                     </p>
                   )}
                 </div>
-              ) : (
-                <VideoPlayer
-                  key={roomData.currentPlaying.id}
-                  videoId={roomData.currentPlaying.id}
-                  onSongEnd={handleSongEnd}
-                  isPlaying={roomData.isPlaying}
-                  volume={roomData.volume}
-                  onPlayingChange={setIsPlaying}
-                />
               )}
               {roomData.currentPlaying.requesterName && !isMcGated && (
                 <div
