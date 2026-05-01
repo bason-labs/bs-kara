@@ -174,14 +174,19 @@ export function useRoom(roomId: string | null) {
     return unsub;
   }, [roomId]);
 
-  // Fire-and-forget: ask the BFF for an MC line and write it onto the queue
-  // item if it's still there by the time the response arrives. If the song
-  // has already been promoted to currentPlaying (or removed) the write goes
-  // to a stale path and the TV's announcer falls back to a live fetch.
+  // Fire-and-forget: ask the BFF for an MC line and write it onto whichever
+  // node holds the song by the time the response arrives. The LLM call
+  // typically takes 1–3s; in that window the song often gets promoted from
+  // `queue/${queueId}` to `currentPlaying` (especially when it was added to
+  // an empty queue with nothing playing — the auto-promote effect fires
+  // immediately). We try the queue path first; if the node is already gone,
+  // we fall through to currentPlaying matched by videoId so the announcer
+  // still gets the AI line instead of the static fallback.
   const generateMCForQueueItem = useCallback(
     async (
       currentRoomId: string,
       queueId: string,
+      videoId: string,
       title: string,
       requesterName: string | null,
     ) => {
@@ -198,22 +203,31 @@ export function useRoom(roomId: string | null) {
             ? data.text.trim()
             : null;
         if (!text) return;
-        // Race guard: by the time the API responds the song may already
-        // have been promoted to currentPlaying (queue node deleted). A
-        // plain `set` on the deleted path would resurrect it with only
-        // { mcText } — no id/title/thumbnail — leaving a zombie entry in
-        // the queue UI. The transaction aborts cleanly when the parent
-        // node is gone.
-        await runTransaction(
+        // Use a transaction (not `set`) so a deleted node can't be
+        // resurrected with only { mcText } — that would leave a zombie
+        // entry with no id/title/thumbnail.
+        const queueResult = await runTransaction(
           ref(db, `rooms/${currentRoomId}/queue/${queueId}`),
           (current) => {
             if (current === null) return undefined; // node deleted — abort
             return { ...current, mcText: text };
           },
         );
+        // Queue write committed → song was still queued → done.
+        if (queueResult.committed && queueResult.snapshot.exists()) return;
+        // Otherwise the song likely already promoted; write to
+        // currentPlaying iff its id still matches (avoids clobbering the
+        // line with a stale write after the next song has started).
+        await runTransaction(
+          ref(db, `rooms/${currentRoomId}/currentPlaying`),
+          (current) => {
+            if (!current || current.id !== videoId) return undefined;
+            return { ...current, mcText: text };
+          },
+        );
       } catch {
         // Pre-generation is opportunistic — failures are absorbed and the
-        // TV still has the live-fetch path.
+        // announcer falls through to the static fallback line.
       }
     },
     [],
@@ -239,7 +253,13 @@ export function useRoom(roomId: string | null) {
       // can flip the toggle on later, but those earlier songs will fall
       // through to the TV's live-fetch path — that's acceptable.
       if (newQueueId && roomDataRef.current.isMCEnabled) {
-        generateMCForQueueItem(roomId, newQueueId, item.title, trimmed ?? null);
+        generateMCForQueueItem(
+          roomId,
+          newQueueId,
+          item.id,
+          item.title,
+          trimmed ?? null,
+        );
       }
     },
     [roomId, generateMCForQueueItem],
@@ -257,7 +277,13 @@ export function useRoom(roomId: string | null) {
       if (roomDataRef.current.isMCEnabled) {
         const item = roomDataRef.current.queue.find((q) => q.queueId === queueId);
         if (item) {
-          generateMCForQueueItem(roomId, queueId, item.title, trimmed || null);
+          generateMCForQueueItem(
+            roomId,
+            queueId,
+            item.id,
+            item.title,
+            trimmed || null,
+          );
         }
       }
     },

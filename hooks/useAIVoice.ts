@@ -105,7 +105,7 @@ export function useAIVoice() {
   // Plays a Google-TTS audioContent payload. Resolves when playback ends,
   // rejects on playback failure so the caller can fall back to browser TTS.
   const playGoogleAudio = useCallback(
-    (audioContent: string): Promise<void> =>
+    (audioContent: string, text: string): Promise<void> =>
       new Promise<void>((resolve, reject) => {
         try {
           const prior = currentAudioRef.current;
@@ -119,31 +119,41 @@ export function useAIVoice() {
           const audio = new Audio(`data:audio/mpeg;base64,${audioContent}`);
           currentAudioRef.current = audio;
           let settled = false;
-          const finish = () => {
-            if (settled) return;
-            settled = true;
+          let safetyTimer: ReturnType<typeof setTimeout> | null = null;
+          const cleanupAudio = () => {
+            if (safetyTimer) clearTimeout(safetyTimer);
             if (currentAudioRef.current === audio) {
               currentAudioRef.current = null;
             }
+          };
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            cleanupAudio();
             resolve();
           };
           audio.onended = finish;
           audio.onerror = () => {
             if (settled) return;
             settled = true;
-            if (currentAudioRef.current === audio) {
-              currentAudioRef.current = null;
-            }
+            cleanupAudio();
             reject(new Error('audio_playback_error'));
           };
           audio.play().catch((err) => {
             if (settled) return;
             settled = true;
-            if (currentAudioRef.current === audio) {
-              currentAudioRef.current = null;
-            }
+            cleanupAudio();
             reject(err instanceof Error ? err : new Error(String(err)));
           });
+          // Safety net: in fullscreen mode (and occasionally on iOS) the
+          // `ended` event from a data-URI Audio element can drop silently,
+          // leaving the MC gate stuck and the song never starting. Resolve
+          // on a generous worst-case duration sized by text length so the
+          // gate releases even if `onended` never fires. Roughly ~600ms
+          // per word covers slow Vietnamese TTS with margin.
+          const wordCount = Math.max(1, text.trim().split(/\s+/).length);
+          const safetyMs = Math.max(6000, wordCount * 600 + 2000);
+          safetyTimer = setTimeout(finish, safetyMs);
         } catch (err) {
           reject(err instanceof Error ? err : new Error(String(err)));
         }
@@ -176,7 +186,7 @@ export function useAIVoice() {
         if (!data.audioContent) {
           throw new Error('Google TTS Failed (empty audio)');
         }
-        await playGoogleAudio(data.audioContent);
+        await playGoogleAudio(data.audioContent, trimmed);
       } catch (error) {
         console.warn(
           '[useAIVoice] Auto-falling back to browser TTS due to error:',

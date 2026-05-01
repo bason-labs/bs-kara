@@ -63,7 +63,10 @@ export function RequesterDialog({
       role="dialog"
       aria-modal="true"
       aria-label={t('requester.title')}
-      aria-hidden={!open}
+      // See NowPlayingCard for the rationale: `inert` instead of
+      // aria-hidden avoids the focus-retention warning when the user
+      // dismisses the dialog while a button inside still has focus.
+      inert={!open}
       className={`fixed inset-0 z-[60] flex items-end lg:items-center justify-center p-4 lg:p-8 transition-opacity duration-200 ${
         open ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}

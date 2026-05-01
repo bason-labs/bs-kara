@@ -173,7 +173,12 @@ function ConfirmDialog({
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      aria-hidden={!open}
+      // `inert` (not aria-hidden) when closed: aria-hidden on a node that
+      // still contains the element with browser focus — which happens the
+      // moment the user clicks Confirm and we flip `open` to false — emits
+      // an a11y violation in Chrome. `inert` automatically pulls focus out
+      // and blocks pointer/keyboard interactions during the fade.
+      inert={!open}
       className={`fixed inset-0 z-50 flex items-end lg:items-center justify-center p-4 lg:p-8 transition-opacity duration-200 ${
         open ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}

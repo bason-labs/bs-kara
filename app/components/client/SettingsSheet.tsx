@@ -70,7 +70,10 @@ export function SettingsSheet({
       role="dialog"
       aria-modal="true"
       aria-label={t('settings.title')}
-      aria-hidden={!open}
+      // See NowPlayingCard for the rationale: `inert` instead of
+      // aria-hidden avoids the focus-retention warning when the user
+      // closes the sheet while a control inside still has focus.
+      inert={!open}
       className={`fixed inset-0 z-40 ${open ? '' : 'pointer-events-none'}`}
     >
       {/* Backdrop */}

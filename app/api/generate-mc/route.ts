@@ -1,12 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Persona is intentionally constrained: the TTS engine reads the result aloud
-// verbatim, so any markdown, emoji, or quotes leak through as awkward speech.
-const PERSONA =
-  'Bạn là một MC quán karaoke cực kỳ duyên dáng, hài hước và nhiệt tình. Hãy giới thiệu bài hát tiếp theo, trêu đùa nhẹ nhàng, cổ vũ người hát. Trả lời cực kỳ ngắn gọn (tối đa 2-3 câu), nói bằng tiếng Việt văn xuôi tự nhiên để máy đọc (tuyệt đối không dùng emoji, hashtag, ký tự đặc biệt hay ngoặc kép).';
+const PERSONA = `Bạn là một MC Karaoke "lầy lội", siêu hài hước, hoạt ngôn và hay trêu đùa khách tại Việt Nam.
+Đầu vào của bạn là Tên video (thường chứa nhiều từ khóa rác) và Tên ca sĩ.
 
-const FALLBACK_TEXT =
-  'Xin mời quý vị cùng thưởng thức ca khúc tiếp theo ngay sau đây!';
+NHIỆM VỤ VÀ QUY TẮC SỐNG CÒN CỦA BẠN:
+
+1. BƠM VÁ & PHÓNG ĐẠI CA SĨ (QUAN TRỌNG NHẤT):
+Tuyệt đối không giới thiệu tên ca sĩ một cách bình thường. Hãy gán cho họ những danh xưng tấu hài, phóng đại, giật gân.
+Ví dụ: "Ngôi sao hạng A vừa đáp chuyên cơ về từ Châu Âu", "Báo thủ ăn chơi khét tiếng nhất xóm", "Chiến thần rớt nhịp", "Idol giới trẻ từ chối debut để đi hát karaoke", "Ông hoàng phá đò", "Giọng ca vàng trong làng huỷ diệt màng nhĩ"...
+*Nếu không có Tên ca sĩ (đầu vào bị trống)*: Hãy gọi họ là "Giọng ca bí ẩn giấu mặt", "Một lãng khách qua đường", hoặc "Kẻ thách thức dàn loa".
+
+2. XỬ LÝ TÊN BÀI HÁT THÔNG MINH:
+Tự động suy luận ra tên gốc của bài hát hoặc chủ đề. TUYỆT ĐỐI KHÔNG đọc các từ rác như: Karaoke, Tone Nam/Nữ, Nhạc Sống, Dễ Hát, Tuyển Chọn, Liên Khúc, HD, Beat...
+Có thể KHÔNG CẦN nhắc chính xác tên bài hát, chỉ cần khịa nội dung bài hát là được.
+
+3. SỰ ĐA DẠNG & KHÔNG THEO LỐI MÒN:
+CẤM sử dụng câu văn mẫu "Tiếp theo chương trình, xin mời quý vị thưởng thức...".
+Hãy dẫn dắt tự nhiên, ngẫu hứng. Có thể làm thơ chế lục bát 2 câu, có thể dùng giọng điệu đám cưới quê, có thể dùng từ ngữ Gen Z bắt trend. Mỗi lần sinh ra là một phong cách hoàn toàn khác nhau.
+
+4. ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:
+- CHỈ TRẢ VỀ ĐÚNG CÂU NÓI CỦA MC. Không giải thích thêm.
+- KHÔNG DÙNG EMOJI (biểu tượng cảm xúc).
+- KHÔNG dùng hành động trong ngoặc như: (cười lớn), (vỗ tay), (nhạc nổi lên).
+- Giới hạn độ dài: Siêu ngắn gọn, từ 2 đến 3 câu (dưới 60 từ) để nhạc lên nhanh.`;
 
 const TIMEOUT_MS = 4000;
 
@@ -16,11 +32,10 @@ interface GenerateMCBody {
 }
 
 function buildUserPrompt(songTitle: string, singerName: string | null): string {
-  const trimmedSinger = singerName?.trim();
-  if (trimmedSinger) {
-    return `Bài hát tiếp theo có tên: ${songTitle}. Người trình bày: ${trimmedSinger}. Hãy giới thiệu thật duyên dáng.`;
-  }
-  return `Bài hát tiếp theo có tên: ${songTitle}. Hãy giới thiệu thật duyên dáng.`;
+  // Pass empty string when singer is missing so the persona's "Anonymous
+  // singer" rule kicks in instead of the model seeing a generic placeholder.
+  const trimmedSinger = singerName?.trim() ?? '';
+  return `Tên video: "${songTitle}". Tên ca sĩ: "${trimmedSinger}". Lên kịch bản đi MC!`;
 }
 
 async function callOpenAI(
@@ -94,9 +109,17 @@ async function callGemini(
 }
 
 // Strip characters the TTS engine reads awkwardly even when the model is told
-// not to emit them. Belt-and-suspenders against persona drift.
+// not to emit them. Belt-and-suspenders against persona drift:
+// - emoji + zero-width joiners + variation selectors → TTS reads them as
+//   garbled tokens or skips entire phrases
+// - parenthetical stage directions like "(cười)", "(vỗ tay)" → the model
+//   was told not to produce these but sometimes does anyway
+// - markdown / quote characters → leak through as literal punctuation
 function sanitizeForTTS(text: string): string {
   return text
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\p{Extended_Pictographic}/gu, '')
+    .replace(/[‍️]/g, '')
     .replace(/["'`*_~#]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -116,7 +139,7 @@ export async function POST(req: NextRequest) {
     typeof body.singerName === 'string' ? body.singerName : null;
 
   if (!songTitle) {
-    return NextResponse.json({ text: FALLBACK_TEXT });
+    return NextResponse.json({ text: null }, { status: 400 });
   }
 
   const provider = (process.env.AI_MC_PROVIDER ?? '').toLowerCase().trim();
@@ -133,10 +156,15 @@ export async function POST(req: NextRequest) {
       throw new Error(`Unsupported AI_MC_PROVIDER: "${provider}"`);
     }
     const cleaned = sanitizeForTTS(text);
-    return NextResponse.json({ text: cleaned || FALLBACK_TEXT });
+    if (!cleaned) {
+      // Don't fabricate a static template — the caller decides whether to
+      // skip MC or retry. A boring template would defeat the persona work.
+      return NextResponse.json({ text: null }, { status: 502 });
+    }
+    return NextResponse.json({ text: cleaned });
   } catch (err) {
-    console.error('[generate-mc] falling back:', err);
-    return NextResponse.json({ text: FALLBACK_TEXT });
+    console.error('[generate-mc] generation failed:', err);
+    return NextResponse.json({ text: null }, { status: 502 });
   } finally {
     clearTimeout(timer);
   }

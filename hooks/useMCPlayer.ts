@@ -36,8 +36,33 @@ interface UseMCPlayerResult {
   mcText: string | null;
 }
 
-const FALLBACK_TEXT =
-  'Xin mời quý vị cùng thưởng thức ca khúc tiếp theo ngay sau đây!';
+// Live AI fetch used when the pre-generated mcText hasn't landed by the
+// time the song reaches the top (e.g. auto-random skipped pre-generation,
+// the LLM is still in flight past our poll budget, or the song was added
+// before MC was enabled). We refuse to fall back to a static template —
+// returning null tells the caller to skip the announcement entirely so we
+// never read the raw SEO-noisy YouTube title to the room.
+async function fetchLiveMcText(
+  title: string,
+  singer: string | null,
+  signal: AbortSignal,
+): Promise<string | null> {
+  try {
+    const res = await fetch('/api/generate-mc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ songTitle: title, singerName: singer }),
+      signal,
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { text?: unknown };
+    return typeof data.text === 'string' && data.text.trim()
+      ? data.text.trim()
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 export function useMCPlayer({
   isMCEnabled,
@@ -133,33 +158,51 @@ export function useMCPlayer({
         return;
       }
 
-      // Read fresh currentPlaying — by the time the lock resolves, the
-      // pre-generated mcText may have arrived in Firebase.
-      const cp = currentPlayingRef.current;
-      let text = FALLBACK_TEXT;
-      if (cp && cp.id === songId && cp.mcText && cp.mcText.trim()) {
-        text = cp.mcText.trim();
-      } else if (cp && cp.id === songId) {
-        try {
-          const res = await fetch('/api/generate-mc', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              songTitle: cp.title,
-              singerName: cp.requesterName ?? null,
-            }),
-          });
-          if (res.ok) {
-            const data = (await res.json()) as { text?: unknown };
-            if (typeof data.text === 'string' && data.text.trim()) {
-              text = data.text.trim();
-            }
-          }
-        } catch {
-          // Network failure — fall back to the default line above.
+      // The LLM call is fired at add-time but typically takes 1–3s. When a
+      // song is added to an empty queue with nothing playing, it gets
+      // promoted to currentPlaying within ~50ms — well before the API
+      // responds — so a naive read here would always miss. Poll the ref
+      // (Firebase keeps it fresh via onValue) for up to MAX_WAIT_MS before
+      // falling back, so the first-song case still gets the AI line
+      // instead of the static template.
+      const MAX_WAIT_MS = 4000;
+      const POLL_INTERVAL_MS = 150;
+      const startedAt = Date.now();
+      let pre: string | null = null;
+      while (true) {
+        const cp = currentPlayingRef.current;
+        if (!cp || cp.id !== songId) break; // song changed → bail
+        const t = cp.mcText?.trim();
+        if (t) {
+          pre = t;
+          break;
         }
+        if (Date.now() - startedAt >= MAX_WAIT_MS) break;
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+        if (cancelled) return;
       }
-      if (cancelled) return;
+      const cp = currentPlayingRef.current;
+      let text = pre;
+      if (!text && cp && cp.id === songId) {
+        // No pre-generated line landed in time — call the AI live with the
+        // song's singer so we still get a unique, personalized intro
+        // instead of skipping straight to a static template.
+        const live = await fetchLiveMcText(
+          cp.title,
+          cp.requesterName?.trim() || null,
+          AbortSignal.timeout(6000),
+        );
+        if (cancelled) return;
+        text = live;
+      }
+      if (!text) {
+        // AI unavailable — release the gate and let the song play. We do
+        // NOT fall back to a static "Tiếp theo chương trình..." template;
+        // the user prefers no MC over a canned one.
+        setMcGateForId((prev) => (prev === songId ? null : prev));
+        setMcText(null);
+        return;
+      }
       setMcText(text);
       await speak(text, mcVoiceRef.current);
       if (cancelled) return;
