@@ -587,6 +587,7 @@ function RemoteInner() {
       {playerOpen && roomData.currentPlaying && (
         <FullscreenPlayer
           track={roomData.currentPlaying}
+          roomId={roomCode}
           isPlaying={roomData.isPlaying}
           volume={roomData.volume}
           hasHistory={roomData.history.length > 0}

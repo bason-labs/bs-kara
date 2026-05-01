@@ -232,10 +232,13 @@ export default function TVClient() {
         </div>
       )}
 
-      {roomCode && <EmojiLayer roomId={roomCode} />}
       {/* Left: Video Player */}
       <section aria-label="Now playing" className="relative z-10 flex-1 min-w-0 overflow-hidden">
         <div ref={videoContainerRef} className="relative w-full h-full bg-black">
+          {/* Lives inside the fullscreen target so reactions remain visible
+              when the video is expanded — at <main> level the layer would
+              be detached from the fullscreened element and disappear. */}
+          {roomCode && <EmojiLayer roomId={roomCode} />}
           {isLoading ? (
             <div className="w-full h-full flex items-center justify-center">
               <div className="w-12 h-12 rounded-full border-4 border-gray-700 border-t-gray-400 animate-spin" />

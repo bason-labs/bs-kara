@@ -7,9 +7,11 @@ import { YouTubeVideo } from '@/lib/youtube';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
 import { VideoPlayer } from './host/VideoPlayer';
+import { EmojiLayer } from './host/EmojiLayer';
 
 interface FullscreenPlayerProps {
   track: YouTubeVideo;
+  roomId: string;
   isPlaying: boolean;
   volume: number;
   hasHistory: boolean;
@@ -30,6 +32,7 @@ interface FullscreenPlayerProps {
 
 export function FullscreenPlayer({
   track,
+  roomId,
   isPlaying,
   volume,
   hasHistory,
@@ -187,6 +190,10 @@ export function FullscreenPlayer({
         tabIndex={-1}
         className="absolute inset-0 z-[5] cursor-default"
       />
+
+      {/* Reactions float above the video and tap layer; pointer-events-none
+          inside EmojiLayer keeps the tap layer reachable. */}
+      <EmojiLayer roomId={roomId} />
 
       {/* Top bar: badge + close, single flex row with safe-area padding.
           Hidden while the MC is speaking so the announcement overlay
