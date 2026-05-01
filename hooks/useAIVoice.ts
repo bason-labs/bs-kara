@@ -60,6 +60,9 @@ export function useAIVoice() {
   // Keep a single Audio element ref so cancel() can stop a Google-TTS
   // playback mid-flight (browser TTS uses speechSynthesis.cancel directly).
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Tracks the in-flight /api/tts fetch from the most recent previewVoice
+  // call so a rapid second click can abort the first before its audio lands.
+  const previewAbortRef = useRef<AbortController | null>(null);
   // Google is the default path and doesn't need voice list warmup. We still
   // warm browser voices in the background for the fallback case.
   const [voicesReady, setVoicesReady] = useState(true);
@@ -198,7 +201,50 @@ export function useAIVoice() {
     [playGoogleAudio],
   );
 
-  return { speak, cancel, voicesReady };
+  // Plays a short sample of `sampleText` rendered with the requested voice.
+  // Built for the settings voice picker: spamming voices must not stack —
+  // each call cancels the prior preview's audio and aborts its in-flight
+  // fetch so only the latest selection is heard. Falls back to browser TTS
+  // on Google failure, same as speak().
+  const previewVoice = useCallback(
+    async (voiceName: string, sampleText: string): Promise<void> => {
+      const trimmed = sampleText.trim();
+      if (!trimmed) return;
+      if (typeof window === 'undefined') return;
+
+      cancel();
+      previewAbortRef.current?.abort();
+      const ac = new AbortController();
+      previewAbortRef.current = ac;
+
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: trimmed, voiceName }),
+          signal: ac.signal,
+        });
+        if (ac.signal.aborted) return;
+        if (!res.ok) throw new Error(`Google TTS Failed (HTTP ${res.status})`);
+        const data = (await res.json()) as { audioContent?: string | null };
+        if (ac.signal.aborted) return;
+        if (!data.audioContent) throw new Error('Google TTS Failed (empty audio)');
+        await playGoogleAudio(data.audioContent, trimmed);
+      } catch (error) {
+        if (ac.signal.aborted) return;
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        try {
+          await speakWithBrowser(trimmed);
+        } catch {
+          // Preview failures are non-critical — surface as a warning only.
+          console.warn('[useAIVoice] Voice preview fallback failed:', error);
+        }
+      }
+    },
+    [cancel, playGoogleAudio],
+  );
+
+  return { speak, cancel, previewVoice, voicesReady };
 }
 
 // Synchronous unlock used inside a click/tap handler. Browsers (notably

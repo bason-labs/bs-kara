@@ -1,11 +1,30 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { Shuffle, Palette, X, Hash, GripVertical, Mic, Sparkles, ChevronDown, Check } from 'lucide-react';
+import { useEffect } from 'react';
+import { Shuffle, Palette, X, Hash, GripVertical, Mic, Sparkles, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Genre, RandomFilters, SingerType, Tone } from '@/lib/youtube';
+import { useAIVoice } from '@/hooks/useAIVoice';
 import { ThemeToggle } from '../ThemeToggle';
+
+// Spoken inside the settings voice picker so the user hears each candidate
+// in context. Hardcoded in Vietnamese on purpose: every voice in the
+// picker is vi-VN-* and the sample needs to match the language being
+// rendered, regardless of the UI's current locale. Each voice gets its
+// own line, written to fit that voice's persona (cute / mature / warm /
+// energetic) so the previews don't all sound the same.
+const VOICE_PREVIEW_SAMPLES: Record<string, string> = {
+  'vi-VN-Neural2-A':
+    'Hí hí, em là MC đáng yêu của phòng karaoke, sẵn sàng quẩy cùng bạn nha!',
+  'vi-VN-Wavenet-C':
+    'Xin chào quý vị, một đêm âm nhạc thật trọn vẹn đang chờ mọi người phía trước.',
+  'vi-VN-Neural2-D':
+    'Chào bạn, hãy cùng nhau thả lỏng và thưởng thức những giai điệu ấm áp đêm nay.',
+  'vi-VN-Wavenet-B':
+    'Chào cả nhà, sân khấu nóng lên rồi, lên mic và bung hết sức nào!',
+};
+const VOICE_PREVIEW_FALLBACK =
+  'Xin chào, đây là giọng đọc thử của hệ thống.';
 
 interface SettingsSheetProps {
   open: boolean;
@@ -398,27 +417,88 @@ function AIMcSection({
         }`}
       >
         <div className="overflow-hidden">
-          <div className="rounded-2xl border border-border bg-surface-2/40 p-4 mt-2 flex flex-col gap-2">
-            <label
-              htmlFor="settings-mc-voice"
+          <div className="rounded-2xl border border-border bg-surface-2/40 p-4 mt-2 flex flex-col gap-3">
+            <span
+              id="settings-mc-voice-label"
               className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted"
             >
               {t('settings.mcVoiceLabel')}
-            </label>
-            <CustomSelect
-              id="settings-mc-voice"
+            </span>
+            <VoicePicker
               value={mcVoice}
               disabled={!enabled}
-              options={MC_VOICE_OPTIONS.map((opt) => ({
-                value: opt.value,
-                label: t(opt.labelKey),
-              }))}
               onChange={onMcVoiceChange}
             />
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+interface VoicePickerProps {
+  value: string;
+  disabled: boolean;
+  onChange: (voice: string) => void;
+}
+
+// Radio-card list with live audio preview. Each card click writes the new
+// voice through the parent's onChange (which Firebase-syncs the room) and
+// fires a device-local TTS preview — the preview never goes on the wire,
+// so other clients (TV, other phones) don't echo it.
+function VoicePicker({ value, disabled, onChange }: VoicePickerProps) {
+  const { t } = useTranslation();
+  const { previewVoice, cancel } = useAIVoice();
+
+  // Stop any in-flight preview when the picker unmounts (sheet closes).
+  // Without this, closing the sheet mid-playback leaves audio playing.
+  useEffect(() => {
+    return () => {
+      cancel();
+    };
+  }, [cancel]);
+
+  function handleSelect(voice: string) {
+    onChange(voice);
+    const sample = VOICE_PREVIEW_SAMPLES[voice] ?? VOICE_PREVIEW_FALLBACK;
+    void previewVoice(voice, sample);
+  }
+
+  return (
+    <div
+      role="radiogroup"
+      aria-labelledby="settings-mc-voice-label"
+      className="grid grid-cols-2 gap-2"
+    >
+      {MC_VOICE_OPTIONS.map((opt) => {
+        const active = opt.value === value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            disabled={disabled}
+            onClick={() => handleSelect(opt.value)}
+            className={`relative flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
+              active
+                ? 'border-transparent bg-gradient-brand text-white shadow-glow'
+                : 'border-border bg-surface text-fg hover:border-glow/40'
+            }`}
+          >
+            <span className="truncate leading-tight">{t(opt.labelKey)}</span>
+            {active && (
+              <Check
+                size={14}
+                strokeWidth={2.4}
+                aria-hidden
+                className="shrink-0"
+              />
+            )}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -462,179 +542,6 @@ function RoomSection({ code }: { code: string }) {
         </span>
       </div>
     </section>
-  );
-}
-
-interface CustomSelectProps {
-  id?: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-  disabled?: boolean;
-}
-
-// Custom popover dropdown — replaces the native <select> so the menu has the
-// same surface/border styling as the rest of the sheet and isn't bound to
-// the browser's chrome. Opens below by default and flips above when there
-// isn't enough viewport room beneath the trigger.
-interface MenuRect {
-  left: number;
-  top: number;
-  width: number;
-  placement: 'above' | 'below';
-}
-
-function CustomSelect({
-  id,
-  value,
-  options,
-  onChange,
-  disabled,
-}: CustomSelectProps) {
-  const [open, setOpen] = useState(false);
-  const [rect, setRect] = useState<MenuRect | null>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLUListElement>(null);
-
-  const current = options.find((o) => o.value === value) ?? options[0];
-
-  // Measure the trigger before paint and pick a placement. The menu is
-  // portaled to the body to escape the sheet's overflow-hidden ancestors,
-  // so we drive its position with fixed coordinates from the trigger rect.
-  useLayoutEffect(() => {
-    if (!open) {
-      setRect(null);
-      return;
-    }
-    function measure() {
-      const trigger = triggerRef.current;
-      if (!trigger) return;
-      const r = trigger.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - r.bottom;
-      const MENU_ESTIMATE = 280;
-      const placement: 'above' | 'below' =
-        spaceBelow < MENU_ESTIMATE && r.top > spaceBelow ? 'above' : 'below';
-      setRect({
-        left: r.left,
-        top: placement === 'below' ? r.bottom + 8 : r.top - 8,
-        width: r.width,
-        placement,
-      });
-    }
-    measure();
-    // Reposition while open if anything resizes/scrolls (the sheet body is
-    // a scroll container).
-    window.addEventListener('resize', measure);
-    window.addEventListener('scroll', measure, true);
-    return () => {
-      window.removeEventListener('resize', measure);
-      window.removeEventListener('scroll', measure, true);
-    };
-  }, [open]);
-
-  // Close on outside click or Escape.
-  useEffect(() => {
-    if (!open) return;
-    function handlePointer(e: MouseEvent | TouchEvent) {
-      const target = e.target as Node;
-      if (
-        triggerRef.current?.contains(target) ||
-        menuRef.current?.contains(target)
-      ) {
-        return;
-      }
-      setOpen(false);
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        setOpen(false);
-        triggerRef.current?.focus();
-      }
-    }
-    document.addEventListener('mousedown', handlePointer);
-    document.addEventListener('touchstart', handlePointer);
-    window.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handlePointer);
-      document.removeEventListener('touchstart', handlePointer);
-      window.removeEventListener('keydown', handleKey);
-    };
-  }, [open]);
-
-  return (
-    <div className="relative">
-      <button
-        id={id}
-        ref={triggerRef}
-        type="button"
-        disabled={disabled}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 pr-10 text-sm text-fg text-left focus:outline-none focus:border-glow/60 active:scale-[0.99] transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
-      >
-        <span className="truncate">{current?.label}</span>
-        <ChevronDown
-          size={16}
-          strokeWidth={2.2}
-          aria-hidden
-          className={`pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted transition-transform ${
-            open ? 'rotate-180' : ''
-          }`}
-        />
-      </button>
-
-      {open &&
-        rect &&
-        typeof window !== 'undefined' &&
-        createPortal(
-          <ul
-            ref={menuRef}
-            role="listbox"
-            aria-labelledby={id}
-            style={{
-              position: 'fixed',
-              left: rect.left,
-              top: rect.placement === 'below' ? rect.top : undefined,
-              bottom:
-                rect.placement === 'above'
-                  ? window.innerHeight - rect.top
-                  : undefined,
-              width: rect.width,
-            }}
-            // z-index has to clear the SettingsSheet (z-40) and any sibling
-            // overlays that might be above it.
-            className="z-[70] rounded-xl border border-border bg-surface shadow-2xl overflow-hidden py-1"
-          >
-            {options.map((opt) => {
-              const active = opt.value === value;
-              return (
-                <li key={opt.value} role="option" aria-selected={active}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onChange(opt.value);
-                      setOpen(false);
-                      triggerRef.current?.focus();
-                    }}
-                    className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-sm text-left transition-colors ${
-                      active
-                        ? 'bg-gradient-brand text-white'
-                        : 'text-fg hover:bg-surface-2'
-                    }`}
-                  >
-                    <span className="truncate">{opt.label}</span>
-                    {active && (
-                      <Check size={14} strokeWidth={2.4} aria-hidden className="shrink-0" />
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>,
-          document.body,
-        )}
-    </div>
   );
 }
 

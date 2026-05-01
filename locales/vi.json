@@ -147,10 +147,10 @@
     "aiMcHint": "Trước mỗi bài, MC sẽ đọc lời giới thiệu ngắn bằng tiếng Việt qua loa TV.",
     "mcVoiceLabel": "Giọng MC",
     "mcVoiceOptions": {
-      "neural2A": "Nữ trung",
-      "wavenetC": "Nữ trầm",
-      "neural2D": "Nam trầm",
-      "wavenetB": "Nam trung"
+      "neural2A": "Nữ trung (Dễ thương)",
+      "wavenetC": "Nữ trầm (Trưởng thành)",
+      "neural2D": "Nam trầm (Ấm áp)",
+      "wavenetB": "Nam trung (Năng động)"
     }
   },
   "aiMc": {
