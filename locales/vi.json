@@ -31,7 +31,14 @@
     "scanToJoin": "Quét mã để chọn bài",
     "queueLabel": "Tiếp theo",
     "emptyQueueMessage": "Hàng chờ trống",
-    "endPartyButton": "Kết thúc"
+    "endPartyButton": "Kết thúc",
+    "endPartyConfirm": {
+      "title": "Kết thúc tiệc?",
+      "message": "Hàng chờ, bài đang phát và lịch sử sẽ được xoá sạch. Các điện thoại vẫn ở trong phòng và có thể bắt đầu lượt mới.",
+      "confirm": "Kết thúc",
+      "cancel": "Huỷ"
+    },
+    "endPartyNotice": "Đã kết thúc tiệc. Thêm bài hát mới để bắt đầu lại."
   },
   "search": {
     "placeholder": "Tìm kiếm bài hát...",

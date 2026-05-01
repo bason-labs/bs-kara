@@ -70,10 +70,13 @@ function RemoteInner() {
   // Mobile devices skip the OTP form entirely: they auto-join whichever room
   // the TV (or a previous phone) has already claimed, or claim a new one if
   // nobody has yet. Desktops keep the OTP form but get a shortcut button when
-  // a pointer is live.
-  const isCoarsePointer = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia('(pointer: coarse)').matches;
+  // a pointer is live. Resolved post-mount so SSR and the first client render
+  // agree (avoids a hydration mismatch when the server returns false but the
+  // device is actually a phone).
+  const [isCoarsePointer, setIsCoarsePointer] = useState<boolean | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsCoarsePointer(window.matchMedia('(pointer: coarse)').matches);
   }, []);
 
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
@@ -92,7 +95,14 @@ function RemoteInner() {
   useEffect(() => {
     // Gate on rawRoomCode so a malformed `?room=` value still keeps us on
     // the not-found panel instead of silently auto-joining the active room.
-    if (rawRoomCode || !isCoarsePointer || autoJoinStartedRef.current) return;
+    // When we *do* have a room (or aren't on a coarse pointer), reset the
+    // ref so a later "end party" → bounce back to `/` triggers a fresh
+    // claim instead of stranding mobile on the spinner forever.
+    if (rawRoomCode || !isCoarsePointer) {
+      autoJoinStartedRef.current = false;
+      return;
+    }
+    if (autoJoinStartedRef.current) return;
     autoJoinStartedRef.current = true;
     let cancelled = false;
     (async () => {
@@ -204,6 +214,31 @@ function RemoteInner() {
     showNotice(t('errors.roomNotFound.message'));
     router.replace('/');
   }, [roomMissing, router, showNotice, t]);
+
+  // End-Party toast: the TV writes `lastEndedAt` when it resets the room.
+  // We seed the ref with whatever value Firebase reports on the first
+  // snapshot so historical resets (or rejoining after the fact) don't
+  // re-trigger the toast — only forward jumps that happen while we're
+  // connected fire the notice.
+  const lastEndedSeenRef = useRef<number | null | undefined>(undefined);
+  useEffect(() => {
+    const value = roomData.lastEndedAt;
+    if (lastEndedSeenRef.current === undefined) {
+      lastEndedSeenRef.current = value;
+      return;
+    }
+    if (value && value !== lastEndedSeenRef.current) {
+      lastEndedSeenRef.current = value;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      showNotice(t('tv.endPartyNotice'));
+    }
+  }, [roomData.lastEndedAt, showNotice, t]);
+
+  // Reset the seen marker when the room changes so a fresh subscribe
+  // re-seeds against the new room's history instead of replaying it.
+  useEffect(() => {
+    lastEndedSeenRef.current = undefined;
+  }, [roomCode]);
 
   // Joining is gated by the active-room pointer: a code is only accepted if
   // it matches the room currently in `meta/activeRoom`. This prevents users
@@ -328,12 +363,14 @@ function RemoteInner() {
   }
 
   const noticeBanner = notice ? (
-    <div
-      role="status"
-      aria-live="polite"
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] max-w-[90vw] px-4 py-2.5 rounded-full bg-surface-2 border border-glow/40 shadow-glow text-sm text-fg text-center"
-    >
-      {notice}
+    <div className="fixed top-4 inset-x-0 z-[60] flex justify-center px-16 sm:px-4 pointer-events-none">
+      <div
+        role="status"
+        aria-live="polite"
+        className="max-w-md px-4 py-2.5 rounded-2xl sm:rounded-full bg-surface-2 border border-glow/40 shadow-glow text-sm text-fg text-center pointer-events-auto"
+      >
+        {notice}
+      </div>
     </div>
   ) : null;
 
@@ -359,7 +396,9 @@ function RemoteInner() {
           </h1>
           <p className="text-sm sm:text-base text-muted mb-8">{t('home.tagline')}</p>
 
-          {isCoarsePointer ? (
+          {isCoarsePointer === null ? (
+            <div className="w-full h-[260px] rounded-3xl border border-border bg-surface/70 backdrop-blur-md shadow-glow" />
+          ) : isCoarsePointer ? (
             <div className="w-full flex flex-col items-center gap-4 rounded-3xl border border-border bg-surface/70 backdrop-blur-md p-8 shadow-glow">
               <div className="w-10 h-10 rounded-full border-4 border-border border-t-transparent animate-spin" />
               <p className="text-sm text-muted">{t('home.startingRoom')}</p>

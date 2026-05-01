@@ -41,6 +41,9 @@ export interface RoomState {
   // Set by the TV via Firebase onDisconnect presence; mobile uses this to
   // hide its now-playing card (the TV is already showing it).
   isTvActive: boolean;
+  // Timestamp written by `resetRoom` (End Party). Phones watch this so they
+  // can surface a "party ended" notice while staying connected to the room.
+  lastEndedAt: number | null;
 }
 
 const DEFAULT_STATE: RoomState = {
@@ -58,6 +61,7 @@ const DEFAULT_STATE: RoomState = {
   mcVoice: 'vi-VN-Neural2-A',
   lastAnnouncedSongId: null,
   isTvActive: false,
+  lastEndedAt: null,
 };
 
 export function useRoom(roomId: string | null) {
@@ -103,6 +107,7 @@ export function useRoom(roomId: string | null) {
         isAImcEnabled?: boolean;
         lastAnnouncedSongId?: string | null;
         isTvActive?: boolean;
+        lastEndedAt?: number | null;
       } | null;
 
       if (!data) {
@@ -168,6 +173,8 @@ export function useRoom(roomId: string | null) {
             ? data.lastAnnouncedSongId
             : null,
         isTvActive: data.isTvActive === true,
+        lastEndedAt:
+          typeof data.lastEndedAt === 'number' ? data.lastEndedAt : null,
       });
       setIsLoading(false);
     });
@@ -405,6 +412,25 @@ export function useRoom(roomId: string | null) {
     await remove(ref(db, `rooms/${roomId}`));
   }, [roomId]);
 
+  // Soft reset: drops everything that's "playable state" (queue, current song,
+  // history, played-history) but keeps the room itself, the active-room
+  // pointer, and per-room settings (auto-random / drag-drop / MC / etc.).
+  // Used by the TV's "End Party" button so connected phones stay attached
+  // and a fresh round can start without re-claiming a code.
+  const resetRoom = useCallback(async () => {
+    if (!roomId) return;
+    await Promise.all([
+      remove(ref(db, `rooms/${roomId}/queue`)),
+      remove(ref(db, `rooms/${roomId}/currentPlaying`)),
+      remove(ref(db, `rooms/${roomId}/history`)),
+      remove(ref(db, `rooms/${roomId}/playedHistory`)),
+      remove(ref(db, `rooms/${roomId}/isPlaying`)),
+      // Marker for connected phones — they compare against the last seen
+      // value and pop a "party ended" toast when this jumps forward.
+      set(ref(db, `rooms/${roomId}/lastEndedAt`), Date.now()),
+    ]);
+  }, [roomId]);
+
   // Removes the currently-playing song without skipping to the next via
   // queue. Pushes it onto history (so playPrevious can restore it) and
   // clears currentPlaying. The TV's auto-promote effect will pick up the
@@ -569,6 +595,7 @@ export function useRoom(roomId: string | null) {
     playPrevious,
     sendEmoji,
     clearRoom,
+    resetRoom,
     setAutoRandomMode,
     setRandomFilters,
     addToPlayedHistory,

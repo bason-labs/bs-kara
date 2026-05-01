@@ -11,18 +11,19 @@ import { useRoom } from '@/hooks/useRoom';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
-import {
-  claimOrGetActiveRoom,
-  clearActiveRoomIfMatches,
-} from '@/lib/activeRoom';
+import { claimOrGetActiveRoom } from '@/lib/activeRoom';
 import { VideoPlayer } from '../components/host/VideoPlayer';
 import { EmojiLayer } from '../components/host/EmojiLayer';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export default function TVClient() {
   const { t } = useTranslation();
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
+  const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+  const [endNotice, setEndNotice] = useState<string | null>(null);
+  const endNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Claims (or attaches to) an active room whenever we don't have one.
   // Runs on mount, and again after End Party clears `roomCode` back to null.
@@ -56,7 +57,7 @@ export default function TVClient() {
     roomData,
     isLoading,
     playNext,
-    clearRoom,
+    resetRoom,
     setIsPlaying,
     addToPlayedHistory,
     setCurrentPlayingDirectly,
@@ -83,18 +84,22 @@ export default function TVClient() {
     playNext();
   }, [playNext]);
 
+  // Soft reset: wipes the queue / current song / history but keeps the room
+  // and any connected phones intact. The TV stays in its initialized state
+  // (no need to re-tap to start) and `useAutoRandom` will idle until either
+  // a phone adds a song or auto-random picks one.
   const handleEndParty = useCallback(async () => {
-    await clearRoom();
-    if (roomCode) await clearActiveRoomIfMatches(roomCode);
-    localStorage.removeItem('karaoke_tv_room');
-    // Drop back to the waiting/QR overlay so the next party starts from a
-    // fresh user gesture (which speechSynthesis and autoplay both need).
-    setIsInitialized(false);
-    // Hand off to the claim effect: clearing roomCode trips it, which
-    // generates a fresh code and writes it to both meta/activeRoom and
-    // localStorage. Keeps end + claim logic separated.
-    setRoomCode(null);
-  }, [clearRoom, roomCode]);
+    await resetRoom();
+    setEndNotice(t('tv.endPartyNotice'));
+    if (endNoticeTimerRef.current) clearTimeout(endNoticeTimerRef.current);
+    endNoticeTimerRef.current = setTimeout(() => setEndNotice(null), 5000);
+  }, [resetRoom, t]);
+
+  useEffect(() => {
+    return () => {
+      if (endNoticeTimerRef.current) clearTimeout(endNoticeTimerRef.current);
+    };
+  }, []);
 
   const initialize = useCallback(() => setIsInitialized(true), []);
 
@@ -214,6 +219,18 @@ export default function TVClient() {
           {t('tv.startPrompt')}
         </p>
       </section>
+
+      {endNotice && (
+        <div className="fixed top-6 inset-x-0 z-[60] flex justify-center px-6 pointer-events-none">
+          <div
+            role="status"
+            aria-live="polite"
+            className="max-w-xl px-5 py-3 rounded-full bg-black/70 backdrop-blur-md border border-pink-400/40 text-pink-100 text-sm font-medium shadow-lg pointer-events-auto"
+          >
+            {endNotice}
+          </div>
+        </div>
+      )}
 
       {roomCode && <EmojiLayer roomId={roomCode} />}
       {/* Left: Video Player */}
@@ -376,13 +393,26 @@ export default function TVClient() {
         {/* End Party */}
         <div className="p-4 border-t border-gray-800">
           <button
-            onClick={handleEndParty}
+            onClick={() => setEndConfirmOpen(true)}
             className="w-full py-2 text-xs text-gray-600 hover:text-red-400 hover:border-red-800 border border-gray-800 rounded-lg transition-colors"
           >
             {t('tv.endPartyButton')}
           </button>
         </div>
       </aside>
+
+      <ConfirmDialog
+        open={endConfirmOpen}
+        title={t('tv.endPartyConfirm.title')}
+        message={t('tv.endPartyConfirm.message')}
+        confirmLabel={t('tv.endPartyConfirm.confirm')}
+        cancelLabel={t('tv.endPartyConfirm.cancel')}
+        onConfirm={() => {
+          setEndConfirmOpen(false);
+          handleEndParty();
+        }}
+        onCancel={() => setEndConfirmOpen(false)}
+      />
     </main>
   );
 }

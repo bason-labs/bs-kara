@@ -31,7 +31,14 @@
     "scanToJoin": "Scan to join",
     "queueLabel": "Up Next",
     "emptyQueueMessage": "Queue is empty",
-    "endPartyButton": "End Party"
+    "endPartyButton": "End Party",
+    "endPartyConfirm": {
+      "title": "End the party?",
+      "message": "The queue, current song, and history will be cleared. Connected phones stay in the room and can start a new round.",
+      "confirm": "End party",
+      "cancel": "Cancel"
+    },
+    "endPartyNotice": "Party ended. Queue cleared — add a new song to start again."
   },
   "search": {
     "placeholder": "Search",
