@@ -37,6 +37,25 @@ describe('NowPlayingCard', () => {
     expect(onExpand).toHaveBeenCalledTimes(1);
   });
 
+  it('clicking the card body calls onExpand (mobile tap target)', async () => {
+    const onExpand = vi.fn();
+    const user = userEvent.setup();
+    render(<NowPlayingCard track={track} onExpand={onExpand} />);
+    await user.click(screen.getByText('Track Title'));
+    expect(onExpand).toHaveBeenCalledTimes(1);
+  });
+
+  it('clicking the remove button does not bubble up to onExpand', async () => {
+    const onExpand = vi.fn();
+    const onRemove = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <NowPlayingCard track={track} onExpand={onExpand} onRemove={onRemove} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'nowPlaying.removeAriaLabel' }));
+    expect(onExpand).not.toHaveBeenCalled();
+  });
+
   it('remove button opens a confirm dialog and only fires onRemove on confirm', async () => {
     const onRemove = vi.fn();
     const user = userEvent.setup();

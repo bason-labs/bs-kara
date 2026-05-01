@@ -29,7 +29,8 @@ export function NowPlayingCard({
   return (
     <>
       <div
-        className={`relative flex items-stretch gap-3 rounded-2xl border border-glow/40 bg-gradient-to-br from-surface-2 to-surface p-3 shadow-glow ${className}`}
+        onClick={onExpand}
+        className={`relative flex items-center gap-3 rounded-2xl border border-glow/40 bg-gradient-to-br from-surface-2 to-surface p-3 shadow-glow ${onExpand ? 'cursor-pointer transition-transform active:scale-[0.99]' : ''} ${className}`}
       >
         <div className="relative w-24 h-16 lg:w-28 lg:h-[72px] shrink-0 rounded-xl overflow-hidden bg-surface ring-1 ring-glow/30">
           <Image
@@ -75,11 +76,14 @@ export function NowPlayingCard({
           </div>
         </div>
 
-        <div className="shrink-0 flex flex-col items-center justify-between gap-1">
+        <div className="shrink-0 flex flex-col items-center justify-center gap-1">
           {onExpand && (
             <button
               type="button"
-              onClick={onExpand}
+              onClick={(e) => {
+                e.stopPropagation();
+                onExpand();
+              }}
               aria-label={t('player.openFullscreen')}
               className="p-2 rounded-lg text-glow bg-glow/10 hover:bg-glow/20 hover:text-fg transition-colors"
             >
@@ -89,7 +93,10 @@ export function NowPlayingCard({
           {onRemove && (
             <button
               type="button"
-              onClick={() => setConfirmOpen(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmOpen(true);
+              }}
               aria-label={t('nowPlaying.removeAriaLabel')}
               className="p-2 rounded-lg text-muted hover:text-danger hover:bg-surface transition-colors"
             >
