@@ -12,6 +12,7 @@ class PlayerStub {
   mute = vi.fn();
   unMute = vi.fn();
   setVolume = vi.fn();
+  setPlaybackQuality = vi.fn();
 }
 
 vi.mock('react-youtube', () => ({
@@ -62,6 +63,23 @@ describe('VideoPlayer', () => {
     capturedReady!({ target: player });
     expect(player.mute).toHaveBeenCalled();
     expect(player.pauseVideo).toHaveBeenCalled();
+  });
+
+  it('requests auto-adaptive playback quality on ready so slow networks do not buffer at a pinned high quality', () => {
+    render(
+      <VideoPlayer videoId="x" onSongEnd={() => {}} isPlaying volume={50} />,
+    );
+    const player = new PlayerStub();
+    capturedReady!({ target: player });
+    expect(player.setPlaybackQuality).toHaveBeenCalledWith('default');
+  });
+
+  it('does not pin a fixed quality in playerVars (vq stays auto-adaptive)', () => {
+    render(
+      <VideoPlayer videoId="x" onSongEnd={() => {}} isPlaying volume={50} />,
+    );
+    const playerVars = (capturedProps?.opts as { playerVars: { vq?: string } }).playerVars;
+    expect(playerVars.vq).toBe('default');
   });
 
   it('forwards onSongEnd as onEnd to the underlying player', () => {

@@ -60,6 +60,15 @@ export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingCh
 
   function handleReady(event: YouTubeEvent) {
     playerRef.current = event.target;
+    // Let YouTube pick quality based on network + player size. 'default'
+    // is the auto-adaptive mode; without this an upstream caller could
+    // accidentally pin a high fixed quality and cause buffering on slow
+    // mobile connections.
+    try {
+      event.target.setPlaybackQuality('default');
+    } catch {
+      // ignore — method is suggestion-only and may be a no-op
+    }
     // Apply current volume immediately so a mounted-muted iframe (e.g. the
     // mobile FullscreenPlayer during the MC announcement) doesn't leak
     // autoplay audio at default volume in the brief window before the
@@ -108,6 +117,10 @@ export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingCh
           controls: 0,
           disablekb: 1,
           modestbranding: 1,
+          // Hint YouTube to pick quality adaptively based on network +
+          // player size. Paired with setPlaybackQuality('default') in
+          // handleReady; either alone is enough but both is harmless.
+          vq: 'default',
           // Mount muted when the caller starts at volume 0 (mobile
           // FullscreenPlayer during MC). playerVars are baked at iframe
           // creation, so this prevents the iframe's own autoplay from
