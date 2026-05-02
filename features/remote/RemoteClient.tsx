@@ -352,7 +352,7 @@ function RemoteInner() {
               hasHistory={roomData.history.length > 0}
               hasQueue={roomData.queue.length > 0}
               currentPlaying={roomData.currentPlaying}
-              onTogglePlayPause={() => togglePlayPause(roomData.isPlaying)}
+              onTogglePlayPause={togglePlayPause}
               onPrev={playPrevious}
               onNext={playNext}
             />
