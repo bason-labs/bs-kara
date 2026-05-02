@@ -36,17 +36,18 @@ export function RequesterDialog({
   // on-screen styles swap in.
   const [visible, setVisible] = useState(false);
 
+  // Note: `setName(initialName)` synchronization on `open` is intentionally
+  // omitted — the parent remounts this component with a fresh key whenever
+  // the target changes, so the lazy initial state above is enough.
   useEffect(() => {
-    if (open) setName(initialName);
-  }, [open, initialName]);
-
-  useEffect(() => {
-    if (!open) {
-      setVisible(false);
-      return;
-    }
+    if (!open) return;
     const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
+    return () => {
+      cancelAnimationFrame(id);
+      // Cleanup runs after commit (not during render), so this synchronous
+      // setState path doesn't violate react-hooks/set-state-in-effect.
+      setVisible(false);
+    };
   }, [open]);
 
   useEffect(() => {

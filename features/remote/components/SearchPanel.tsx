@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, FormEvent, useRef, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState, FormEvent } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowUpLeft, Check, History, Mic, Search, SearchX, X } from 'lucide-react';
-import { useDebounce } from 'use-debounce';
+import { ArrowLeft, ArrowUpLeft, History, Mic, Search, SearchX, X } from 'lucide-react';
 import type { SearchError, YouTubeVideo } from '@/lib/youtube/types';
 import { searchYouTube } from '@/lib/youtube/client';
-import { DEFAULT_HOT_HITS_QUERY } from '@/lib/config';
+import { useSearchHistory } from '@/features/remote/hooks/useSearchHistory';
+import { useSearchSuggestions } from '@/features/remote/hooks/useSearchSuggestions';
+import { useVoiceSearch } from '@/features/remote/hooks/useVoiceSearch';
+import { useHotHits } from '@/features/remote/hooks/useHotHits';
 import { SongSkeleton } from './SongSkeleton';
-
-type HistoryEntry = { q: string; thumb?: string };
+import { AddToQueueButton } from './AddToQueueButton';
 
 interface SearchPanelProps {
   onAdd: (video: YouTubeVideo) => void;
@@ -33,97 +34,94 @@ export function SearchPanel({
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [searchError, setSearchError] = useState<SearchError | null>(null);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showingHotHits, setShowingHotHits] = useState(true);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [history, setHistory] = useState<HistoryEntry[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const raw = window.localStorage.getItem('searchHistory');
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
-      return parsed
-        .map((entry): HistoryEntry | null => {
-          if (typeof entry === 'string') return { q: entry };
-          if (entry && typeof entry === 'object' && typeof entry.q === 'string') {
-            return {
-              q: entry.q,
-              thumb: typeof entry.thumb === 'string' ? entry.thumb : undefined,
-            };
-          }
-          return null;
-        })
-        .filter((e): e is HistoryEntry => e !== null);
-    } catch {
-      return [];
-    }
-  });
-  const [isListening, setIsListening] = useState(false);
-  const [interimTranscript, setInterimTranscript] = useState('');
   const [isFocused, setIsFocused] = useState(false);
-  const [debouncedQuery] = useDebounce(query, 300);
+
+  const { hotHits, isLoading: isInitialLoading } = useHotHits();
+  const { history, push: pushHistory, remove: removeHistoryEntry } = useSearchHistory();
+  const { suggestions, clear: clearSuggestions } = useSearchSuggestions(query);
+
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelInputRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<{ stop: () => void } | null>(null);
-  const startAudioRef = useRef<HTMLAudioElement | null>(null);
-  const endAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const { videos } = await searchYouTube(DEFAULT_HOT_HITS_QUERY);
-        if (!cancelled) setResults(videos);
-      } catch {
-        // Network/abort during back nav can reject. Swallowing here so the
-        // finally block still settles isInitialLoading — otherwise the panel
-        // is stuck on skeletons forever.
-      } finally {
-        if (!cancelled) setIsInitialLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  // Render-time choice between hot hits (initial) and user-search results.
+  // Avoids a useEffect that would copy hotHits into local state — that
+  // antipattern triggers react-hooks/set-state-in-effect AND the same
+  // "slow hot-hits clobbers a fast search" race we used to gate on
+  // `searched`.
+  const displayedResults = searched ? results : hotHits;
+
+  const dismissPanel = useCallback(() => {
+    setIsFocused(false);
+    setShowSuggestions(false);
+    inputRef.current?.blur();
+    panelInputRef.current?.blur();
   }, []);
 
-  // Fetch suggestions when debounced query changes
-  useEffect(() => {
-    if (!debouncedQuery.trim()) {
-      setSuggestions([]);
-      return;
-    }
-    fetch(`/api/suggestions?q=${encodeURIComponent(debouncedQuery)}`)
-      .then((r) => r.json())
-      .then((data) => setSuggestions(data.suggestions ?? []))
-      .catch(() => setSuggestions([]));
-  }, [debouncedQuery]);
-
-  function removeHistoryEntry(q: string) {
-    setHistory((prev) => {
-      const next = prev.filter((e) => e.q !== q);
+  const runSearch = useCallback(
+    async (q: string) => {
+      const trimmed = q.trim();
+      if (!trimmed) return;
+      dismissPanel();
+      setLoading(true);
+      setSearched(true);
+      setShowingHotHits(false);
+      setSearchError(null);
       try {
-        localStorage.setItem('searchHistory', JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  }
+        const { videos, error } = await searchYouTube(trimmed);
+        setResults(videos);
+        setSearchError(error ?? null);
+        if (videos.length > 0) {
+          pushHistory(trimmed, videos[0]?.thumbnail);
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dismissPanel, pushHistory],
+  );
 
-  function pushHistory(q: string, thumb?: string) {
-    const trimmed = q.trim();
-    if (!trimmed) return;
-    setHistory((prev) => {
-      const filtered = prev.filter((e) => e.q.toLowerCase() !== trimmed.toLowerCase());
-      const next: HistoryEntry[] = [{ q: trimmed, thumb }, ...filtered].slice(0, 15);
-      try {
-        localStorage.setItem('searchHistory', JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  }
+  const handleSubmit = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
+      await runSearch(query);
+    },
+    [query, runSearch],
+  );
+
+  const handleSuggestionClick = useCallback(
+    (suggestion: string) => {
+      setQuery(suggestion);
+      clearSuggestions();
+      runSearch(suggestion);
+    },
+    [clearSuggestions, runSearch],
+  );
+
+  const handleVoiceFinal = useCallback(
+    (transcript: string) => {
+      setQuery(transcript);
+      clearSuggestions();
+      runSearch(transcript);
+    },
+    [clearSuggestions, runSearch],
+  );
+
+  const handleVoiceUnsupported = useCallback(() => {
+    alert(t('search.voiceNotSupported'));
+  }, [t]);
+
+  const {
+    isListening,
+    interimTranscript,
+    start: startVoiceSearch,
+    stop: closeVoicePopup,
+  } = useVoiceSearch({
+    onFinal: handleVoiceFinal,
+    onUnsupported: handleVoiceUnsupported,
+  });
 
   useEffect(() => {
     if (isFocused) panelInputRef.current?.focus();
@@ -138,146 +136,6 @@ export function SearchPanel({
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  function dismissPanel() {
-    setIsFocused(false);
-    setShowSuggestions(false);
-    inputRef.current?.blur();
-    panelInputRef.current?.blur();
-  }
-
-  async function runSearch(q: string) {
-    const trimmed = q.trim();
-    if (!trimmed) return;
-    dismissPanel();
-    setLoading(true);
-    setSearched(true);
-    setShowingHotHits(false);
-    setSearchError(null);
-    try {
-      const { videos, error } = await searchYouTube(trimmed);
-      setResults(videos);
-      setSearchError(error ?? null);
-      if (videos.length > 0) {
-        pushHistory(trimmed, videos[0]?.thumbnail);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    await runSearch(query);
-  }
-
-  function handleSuggestionClick(suggestion: string) {
-    setQuery(suggestion);
-    setSuggestions([]);
-    runSearch(suggestion);
-  }
-
-  function playStartSound() {
-    if (!startAudioRef.current) startAudioRef.current = new Audio('/audio/pop.mp3');
-    startAudioRef.current.currentTime = 0;
-    startAudioRef.current.play().catch(() => {});
-  }
-
-  function playEndSound() {
-    if (!endAudioRef.current) endAudioRef.current = new Audio('/audio/ding.mp3');
-    endAudioRef.current.currentTime = 0;
-    endAudioRef.current.play().catch(() => {});
-  }
-
-  function startVoiceSearch() {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert(t('search.voiceNotSupported'));
-      return;
-    }
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'vi-VN';
-    recognition.continuous = false;
-    recognition.interimResults = true;
-
-    let endSoundPlayed = false;
-    const playEndOnce = () => {
-      if (!endSoundPlayed) {
-        endSoundPlayed = true;
-        playEndSound();
-      }
-    };
-
-    recognition.onresult = (event: any) => {
-      let interim = '';
-      let finalTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          finalTranscript += result[0].transcript;
-        } else {
-          interim += result[0].transcript;
-        }
-      }
-      if (finalTranscript) {
-        playEndOnce();
-        setQuery(finalTranscript);
-        setSuggestions([]);
-        setInterimTranscript('');
-        setIsListening(false);
-        runSearch(finalTranscript);
-      } else {
-        setInterimTranscript(interim);
-      }
-    };
-
-    recognition.onerror = () => {
-      playEndOnce();
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      playEndOnce();
-      recognitionRef.current = null;
-      setIsListening(false);
-      setInterimTranscript('');
-    };
-
-    recognitionRef.current = recognition;
-    playStartSound();
-    setInterimTranscript('');
-    setIsListening(true);
-    recognition.start();
-  }
-
-  function closeVoicePopup() {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    } else {
-      setIsListening(false);
-    }
-    setInterimTranscript('');
-  }
-
-  useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch {}
-        recognitionRef.current = null;
-      }
-      if (startAudioRef.current) {
-        startAudioRef.current.pause();
-        startAudioRef.current = null;
-      }
-      if (endAudioRef.current) {
-        endAudioRef.current.pause();
-        endAudioRef.current = null;
-      }
-    };
   }, []);
 
   return (
@@ -346,7 +204,7 @@ export function SearchPanel({
                 type="button"
                 onClick={() => {
                   setQuery('');
-                  setSuggestions([]);
+                  clearSuggestions();
                   panelInputRef.current?.focus();
                 }}
                 aria-label={t('search.clearAriaLabel')}
@@ -464,7 +322,7 @@ export function SearchPanel({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   setQuery('');
-                  setSuggestions([]);
+                  clearSuggestions();
                   setShowSuggestions(true);
                   inputRef.current?.focus();
                 }}
@@ -554,14 +412,14 @@ export function SearchPanel({
         {(isInitialLoading || loading) &&
           Array.from({ length: 8 }).map((_, i) => <SongSkeleton key={i} />)}
 
-        {!isInitialLoading && !loading && showingHotHits && results.length > 0 && (
+        {!isInitialLoading && !loading && showingHotHits && displayedResults.length > 0 && (
           <div className="flex items-center gap-2 px-1 pb-1">
             <span className="text-base">🔥</span>
             <h2 className="text-sm font-semibold text-fg">{t('search.hotHitsLabel')}</h2>
           </div>
         )}
 
-        {!isInitialLoading && !loading && searched && results.length === 0 && (
+        {!isInitialLoading && !loading && searched && displayedResults.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <SearchX size={64} className="mb-4 text-muted opacity-60" />
             <p className="text-muted text-sm">
@@ -574,7 +432,7 @@ export function SearchPanel({
           </div>
         )}
 
-        {!isInitialLoading && !loading && results.map((video) => (
+        {!isInitialLoading && !loading && displayedResults.map((video) => (
           <div
             key={video.id}
             className="flex gap-3 p-3 bg-surface rounded-lg border border-border hover:border-glow/40 transition-colors"
@@ -597,70 +455,14 @@ export function SearchPanel({
                 <p className="text-xs text-muted mt-0.5 truncate">{video.channel}</p>
               </div>
               <div className="flex items-center justify-end mt-2">
-                {(() => {
-                  // While the queue is still loading from Firebase we don't
-                  // yet know if this video is queued — render a placeholder
-                  // button that's disabled, so the user can't accidentally
-                  // double-add and the UI doesn't snap states once data
-                  // arrives.
-                  if (isQueueLoading) {
-                    return (
-                      <button
-                        type="button"
-                        disabled
-                        aria-hidden="true"
-                        className="px-4 py-1.5 text-sm lg:px-3 lg:py-1 lg:text-xs font-semibold rounded-full border border-border text-muted bg-surface-2 inline-flex items-center gap-1.5 lg:gap-1 opacity-60 transition-opacity duration-300"
-                      >
-                        <span className="inline-block w-4 h-4 lg:w-3.5 lg:h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                        {t('search.addToQueueButton')}
-                      </button>
-                    );
-                  }
-
-                  const queueId = queuedMap?.get(video.id);
-                  const isCurrent = currentPlayingId === video.id;
-
-                  if (queueId && onRemove) {
-                    // Added to queue → click removes it. Hover swaps icon to X
-                    // and tints the button danger to telegraph the action.
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => onRemove(queueId)}
-                        aria-label={t('search.addedToQueueButton')}
-                        className="group px-4 py-1.5 text-sm lg:px-3 lg:py-1 lg:text-xs font-semibold rounded-full border border-border text-muted bg-surface-2 inline-flex items-center gap-1.5 lg:gap-1 hover:border-danger hover:text-danger hover:bg-surface transition-colors duration-200"
-                      >
-                        <Check strokeWidth={2.4} className="w-4 h-4 lg:w-3.5 lg:h-3.5 group-hover:hidden" />
-                        <X strokeWidth={2.4} className="w-4 h-4 lg:w-3.5 lg:h-3.5 hidden group-hover:inline" />
-                        {t('search.addedToQueueButton')}
-                      </button>
-                    );
-                  }
-
-                  if (isCurrent) {
-                    // Playing right now — show as added but not removable.
-                    return (
-                      <button
-                        type="button"
-                        disabled
-                        aria-label={t('search.addedToQueueButton')}
-                        className="px-4 py-1.5 text-sm lg:px-3 lg:py-1 lg:text-xs font-semibold rounded-full border border-border text-muted bg-surface-2 inline-flex items-center gap-1.5 lg:gap-1 transition-colors duration-200"
-                      >
-                        <Check strokeWidth={2.4} className="w-4 h-4 lg:w-3.5 lg:h-3.5" />
-                        {t('search.addedToQueueButton')}
-                      </button>
-                    );
-                  }
-
-                  return (
-                    <button
-                      onClick={() => onAdd(video)}
-                      className="px-4 py-1.5 text-sm lg:px-3 lg:py-1 lg:text-xs font-semibold text-white bg-gradient-brand rounded-full shadow-glow hover:brightness-110 active:scale-[0.97] transition duration-200"
-                    >
-                      {t('search.addToQueueButton')}
-                    </button>
-                  );
-                })()}
+                <AddToQueueButton
+                  video={video}
+                  isQueueLoading={isQueueLoading}
+                  queuedMap={queuedMap}
+                  currentPlayingId={currentPlayingId}
+                  onAdd={onAdd}
+                  onRemove={onRemove}
+                />
               </div>
             </div>
           </div>

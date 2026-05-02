@@ -1,57 +1,29 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
-import { Maximize2, Mic, Minimize2, Music, Sparkles } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
-import { onDisconnect, ref, remove, set } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { Maximize2, Mic, Minimize2, Music } from 'lucide-react';
 import { useRoom } from '@/hooks/useRoom';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
-import { claimOrGetActiveRoom } from '@/lib/activeRoom';
+import { useMCKickPlay } from '@/hooks/useMCKickPlay';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { EmojiLayer } from '@/components/EmojiLayer';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
+import { useTVPresence } from '@/features/tv/hooks/useTVPresence';
+import { useEndParty } from '@/features/tv/hooks/useEndParty';
+import { BackdropLayers } from '@/features/tv/components/BackdropLayers';
+import { WaitingOverlay } from '@/features/tv/components/WaitingOverlay';
+import { QueuePanel } from '@/features/tv/components/QueuePanel';
 
 export default function TVClient() {
   const { t } = useTranslation();
-  const [roomCode, setRoomCode] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [joinUrl, setJoinUrl] = useState<string | null>(null);
-  const [endConfirmOpen, setEndConfirmOpen] = useState(false);
-  const [endNotice, setEndNotice] = useState<string | null>(null);
-  const endNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialize = useCallback(() => setIsInitialized(true), []);
 
-  // Claims (or attaches to) an active room whenever we don't have one.
-  // Runs on mount, and again after End Party clears `roomCode` back to null.
-  useEffect(() => {
-    if (roomCode) return;
-    let cancelled = false;
-    (async () => {
-      const fixed = process.env.NEXT_PUBLIC_FIXED_ROOM_ID;
-      if (fixed) {
-        if (!cancelled) setRoomCode(fixed);
-        return;
-      }
-      // Defer to the shared active-room pointer so a phone can start a party
-      // before the TV is on, and the TV will attach to whatever's already live.
-      const id = await claimOrGetActiveRoom();
-      if (cancelled) return;
-      localStorage.setItem('karaoke_tv_room', id);
-      setRoomCode(id);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [roomCode]);
-
-  useEffect(() => {
-    if (!roomCode) return;
-    setJoinUrl(`${window.location.origin}/?room=${roomCode}`);
-  }, [roomCode]);
+  const { roomCode, joinUrl } = useTVPresence();
 
   const {
     roomData,
@@ -84,24 +56,13 @@ export default function TVClient() {
     playNext();
   }, [playNext]);
 
-  // Soft reset: wipes the queue / current song / history but keeps the room
-  // and any connected phones intact. The TV stays in its initialized state
-  // (no need to re-tap to start) and `useAutoRandom` will idle until either
-  // a phone adds a song or auto-random picks one.
-  const handleEndParty = useCallback(async () => {
-    await resetRoom();
-    setEndNotice(t('tv.endPartyNotice'));
-    if (endNoticeTimerRef.current) clearTimeout(endNoticeTimerRef.current);
-    endNoticeTimerRef.current = setTimeout(() => setEndNotice(null), 5000);
-  }, [resetRoom, t]);
-
-  useEffect(() => {
-    return () => {
-      if (endNoticeTimerRef.current) clearTimeout(endNoticeTimerRef.current);
-    };
-  }, []);
-
-  const initialize = useCallback(() => setIsInitialized(true), []);
+  const {
+    endConfirmOpen,
+    openEndConfirm,
+    closeEndConfirm,
+    confirmEndParty,
+    endNotice,
+  } = useEndParty(resetRoom);
 
   // Global keydown listener for TV remote / keyboard interaction
   useEffect(() => {
@@ -132,40 +93,7 @@ export default function TVClient() {
     tryClaimAnnouncementLock,
   });
 
-  // When the MC announcement finishes, kick the video back into play.
-  // The iframe was paused+muted throughout the MC, and isPlaying may have
-  // echoed false during the MC's pause dance — either way the user
-  // expects the song to start automatically.
-  const wasMcGatedRef = useRef(isMcGated);
-  useEffect(() => {
-    if (wasMcGatedRef.current && !isMcGated) {
-      if (!roomData.isPlaying) setIsPlaying(true);
-    }
-    wasMcGatedRef.current = isMcGated;
-  }, [isMcGated, roomData.isPlaying, setIsPlaying]);
-
-  // ── TV presence ────────────────────────────────────────────────────────
-  // Mobile uses this flag to hide its now-playing card while the TV is on.
-  // We `remove` rather than `set(false)` on cleanup/disconnect: if the room
-  // was just nuked (End Party), `set` would re-create the node as
-  // `{ isTvActive: false }`, leaving a zombie room. `remove` is a no-op when
-  // the path is gone, and otherwise drops the field — phones treat the
-  // missing field as "TV not active" anyway.
-  useEffect(() => {
-    if (!roomCode) return;
-    const presenceRef = ref(db, `rooms/${roomCode}/isTvActive`);
-    set(presenceRef, true).catch(() => {});
-    const disconnect = onDisconnect(presenceRef);
-    disconnect.remove().catch(() => {});
-    return () => {
-      disconnect.cancel().catch(() => {});
-      remove(presenceRef).catch(() => {});
-    };
-  }, [roomCode]);
-
-  const bgImageUrl = roomData.currentPlaying?.id
-    ? `https://img.youtube.com/vi/${roomData.currentPlaying.id}/maxresdefault.jpg`
-    : '';
+  useMCKickPlay(isMcGated, roomData.isPlaying, setIsPlaying);
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const [isFs, setIsFs] = useState(false);
@@ -191,46 +119,14 @@ export default function TVClient() {
 
   return (
     <main className="relative h-[100dvh] w-full flex overflow-hidden bg-black text-white">
-      {/* Ambient glow background layers */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-110 blur-[100px] opacity-60 transition-all duration-1000"
-          style={{ backgroundImage: bgImageUrl ? `url(${bgImageUrl})` : 'none' }}
-        />
-        <div className="absolute inset-0 bg-black/60" />
-      </div>
+      <BackdropLayers videoId={roomData.currentPlaying?.id} />
 
-      {/* Waiting Room overlay — fades out on first interaction */}
-      <section
-        role="button"
-        aria-label="Waiting room"
-        onClick={initialize}
-        className={`absolute inset-0 z-50 flex flex-col items-center justify-center bg-gray-900 text-white transition-opacity duration-700 ${
-          isInitialized ? 'opacity-0 pointer-events-none' : 'opacity-100'
-        }`}
-      >
-        <h1 className="text-sm uppercase tracking-[0.3em] text-gray-400 mb-4">{t('tv.heading')}</h1>
-        <p className="text-2xl font-semibold text-gray-300 mb-2">{t('tv.roomLabel')}</p>
-        <div className="text-8xl font-black tracking-[0.25em] tabular-nums mb-10">
-          {roomCode ?? '----'}
-        </div>
-
-        {/* QR Code — scan to join */}
-        <div className="bg-white p-4 rounded-2xl mb-4 shadow-lg">
-          {joinUrl ? (
-            <QRCodeSVG value={joinUrl} size={200} level="M" />
-          ) : (
-            <div className="w-[200px] h-[200px]" />
-          )}
-        </div>
-        <p className="text-gray-400 text-sm font-medium leading-tight whitespace-pre-line text-center mb-10">
-          {t('tv.qrHint')}
-        </p>
-
-        <p className="text-gray-500 text-sm animate-pulse">
-          {t('tv.startPrompt')}
-        </p>
-      </section>
+      <WaitingOverlay
+        roomCode={roomCode}
+        joinUrl={joinUrl}
+        isInitialized={isInitialized}
+        onActivate={initialize}
+      />
 
       {endNotice && (
         <div className="fixed top-6 inset-x-0 z-[60] flex justify-center px-6 pointer-events-none">
@@ -275,28 +171,12 @@ export default function TVClient() {
                 onPlayingChange={isMcGated ? undefined : setIsPlaying}
               />
               {isMcGated && (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-5 px-8 text-center bg-black">
-                  <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-pink-500/20 border border-pink-400/40 text-pink-200 text-xs uppercase tracking-[0.3em]">
-                    <Sparkles size={14} />
-                    {t('aiMc.announcing')}
-                  </div>
-                  <p className="text-3xl font-bold text-white max-w-3xl line-clamp-3">
-                    {roomData.currentPlaying.title}
-                  </p>
-                  {roomData.currentPlaying.requesterName && (
-                    <p className="text-base text-pink-200">
-                      {t('requester.tvLabel')}{' '}
-                      <span className="text-white font-semibold">
-                        {roomData.currentPlaying.requesterName}
-                      </span>
-                    </p>
-                  )}
-                  {mcText && (
-                    <p className="text-sm text-gray-300 max-w-2xl italic">
-                      “{mcText}”
-                    </p>
-                  )}
-                </div>
+                <MCAnnouncementOverlay
+                  variant="tv"
+                  title={roomData.currentPlaying.title}
+                  requesterName={roomData.currentPlaying.requesterName}
+                  mcText={mcText ?? undefined}
+                />
               )}
               {roomData.currentPlaying.requesterName && !isMcGated && (
                 <div
@@ -333,96 +213,13 @@ export default function TVClient() {
         </div>
       </section>
 
-      {/* Right: Queue Panel */}
-      <aside aria-label="Queue" className="relative z-10 w-72 flex flex-col bg-gray-900/80 border-l border-gray-700 shrink-0">
-        {/* Room code */}
-        <div className="p-5 border-b border-gray-700">
-          <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">{t('tv.roomCodeLabel')}</p>
-          <div className="text-5xl font-bold tracking-[0.2em] tabular-nums">
-            {roomCode ?? '----'}
-          </div>
-          <p className="mt-2 text-xs text-gray-500">{t('tv.roomCodeHint')}</p>
-        </div>
-
-        {/* Mini QR — for latecomers */}
-        <div className="p-4 border-b border-gray-700 flex flex-col items-center gap-2">
-          <div className="bg-white p-2 rounded-lg">
-            {joinUrl ? (
-              <QRCodeSVG value={joinUrl} size={96} level="M" />
-            ) : (
-              <div className="w-24 h-24" />
-            )}
-          </div>
-          <p className="text-xs text-gray-400 text-center">{t('tv.scanToJoin')}</p>
-        </div>
-
-        {/* Queue */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <h2 className="text-xs text-gray-400 uppercase tracking-widest mb-3">
-            {t('tv.queueLabel')}
-            {roomData.queue.length > 0 && (
-              <span className="ml-1.5 text-gray-600 normal-case tracking-normal">
-                ({roomData.queue.length})
-              </span>
-            )}
-          </h2>
-
-          {isLoading ? (
-            <div className="space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex gap-2 items-center animate-pulse">
-                  <div className="w-4 h-3 bg-gray-700 rounded shrink-0" />
-                  <div className="w-14 h-8 bg-gray-700 rounded shrink-0" />
-                  <div className="flex-1 space-y-1.5">
-                    <div className="h-2.5 bg-gray-700 rounded w-full" />
-                    <div className="h-2.5 bg-gray-700 rounded w-2/3" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : roomData.queue.length === 0 ? (
-            <p className="text-sm text-gray-600 text-center py-8">{t('tv.emptyQueueMessage')}</p>
-          ) : (
-            <ul className="space-y-2">
-              {roomData.queue.map((item, i) => (
-                <li key={item.queueId} className="flex gap-2 items-center">
-                  <span className="text-xs text-gray-600 w-4 shrink-0 text-right">{i + 1}</span>
-                  <div className="relative w-14 h-8 shrink-0 rounded overflow-hidden bg-gray-800">
-                    <Image
-                      src={item.thumbnail}
-                      alt={item.title}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-200 line-clamp-2 leading-tight">
-                      {item.title}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">{item.channel}</p>
-                    {item.requesterName && (
-                      <span className="mt-0.5 inline-flex items-center gap-1 max-w-full px-1.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 text-[10px] font-medium truncate">
-                        <Mic size={9} className="shrink-0" />
-                        <span className="truncate">{item.requesterName}</span>
-                      </span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        {/* End Party */}
-        <div className="p-4 border-t border-gray-800">
-          <button
-            onClick={() => setEndConfirmOpen(true)}
-            className="w-full py-2 text-xs text-gray-600 hover:text-red-400 hover:border-red-800 border border-gray-800 rounded-lg transition-colors"
-          >
-            {t('tv.endPartyButton')}
-          </button>
-        </div>
-      </aside>
+      <QueuePanel
+        roomCode={roomCode}
+        joinUrl={joinUrl}
+        queue={roomData.queue}
+        isLoading={isLoading}
+        onEndParty={openEndConfirm}
+      />
 
       <ConfirmDialog
         open={endConfirmOpen}
@@ -430,11 +227,8 @@ export default function TVClient() {
         message={t('tv.endPartyConfirm.message')}
         confirmLabel={t('tv.endPartyConfirm.confirm')}
         cancelLabel={t('tv.endPartyConfirm.cancel')}
-        onConfirm={() => {
-          setEndConfirmOpen(false);
-          handleEndParty();
-        }}
-        onCancel={() => setEndConfirmOpen(false)}
+        onConfirm={confirmEndParty}
+        onCancel={closeEndConfirm}
       />
     </main>
   );

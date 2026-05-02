@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 import type { YouTubeVideo } from '@/lib/youtube/types';
+import { normalizeDiacritics } from '@/lib/text/normalize';
 
 const YOUTUBE_ENDPOINT = 'https://www.googleapis.com/youtube/v3/search';
 const CACHE_REVALIDATE_SECONDS = 3600;
@@ -12,13 +13,11 @@ class QuotaExhaustedError extends Error {
   }
 }
 
+// Normalises both diacritics and whitespace so equivalent spellings map to a
+// single cache entry. The whitespace collapse is BFF-specific (cache-key only)
+// and intentionally kept on top of the shared normaliser.
 function normalizeQuery(q: string): string {
-  return q
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, ' ');
+  return normalizeDiacritics(q).replace(/\s+/g, ' ');
 }
 
 function decodeEntities(s: string): string {

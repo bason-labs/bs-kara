@@ -1,4 +1,4 @@
-import { ref, runTransaction, get, onValue } from 'firebase/database';
+import { ref, runTransaction, onValue } from 'firebase/database';
 import { db } from './firebase';
 
 const ACTIVE_ROOM_PATH = 'meta/activeRoom';
@@ -16,11 +16,6 @@ export async function claimOrGetActiveRoom(): Promise<string> {
     return; // abort: keep existing
   });
   return result.snapshot.val() as string;
-}
-
-export async function getActiveRoom(): Promise<string | null> {
-  const snap = await get(ref(db, ACTIVE_ROOM_PATH));
-  return snap.exists() ? (snap.val() as string) : null;
 }
 
 // Only clears the pointer if it still matches `code`, so a fresh party started
