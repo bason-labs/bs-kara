@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { RandomFilters } from '@/lib/youtube/types';
@@ -46,6 +46,23 @@ export function SettingsSheet({
   onMcVoiceChange,
 }: SettingsSheetProps) {
   const { t } = useTranslation();
+  // Mirrors RequesterDialog / ConfirmDialog: when the parent lazy-mounts
+  // this component with `open` already true (e.g. via next/dynamic on first
+  // gear-icon click), the panel paints once at translate-y-0 and the
+  // slide-up transition has nothing to animate from. `visible` defers the
+  // on-screen styles by one frame so the off-screen styles paint first.
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const id = requestAnimationFrame(() => setVisible(true));
+    return () => {
+      cancelAnimationFrame(id);
+      // Cleanup runs after commit (not during render), so this synchronous
+      // setState path doesn't violate react-hooks/set-state-in-effect.
+      setVisible(false);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -74,7 +91,7 @@ export function SettingsSheet({
         tabIndex={open ? 0 : -1}
         onClick={onClose}
         className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200 ${
-          open ? 'opacity-100' : 'opacity-0'
+          visible ? 'opacity-100' : 'opacity-0'
         }`}
       />
 
@@ -87,7 +104,7 @@ export function SettingsSheet({
           if (e.target === e.currentTarget) onClose();
         }}
         className={`absolute inset-x-0 bottom-0 lg:inset-0 lg:flex lg:items-center lg:justify-center lg:p-8 transition-transform duration-300 ease-out ${
-          open
+          visible
             ? 'translate-y-0 lg:translate-y-0'
             : 'translate-y-full lg:translate-y-0 lg:opacity-0'
         }`}
