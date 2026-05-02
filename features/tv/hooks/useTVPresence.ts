@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { onDisconnect, ref, remove, set } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { claimOrGetActiveRoom } from '@/lib/activeRoom';
+import { getRoomDataPath } from '@/lib/roomPaths';
 
 const TV_ROOM_STORAGE_KEY = 'karaoke_tv_room';
 
@@ -56,7 +57,7 @@ export function useTVPresence() {
 
   useEffect(() => {
     if (!roomCode) return;
-    const presenceRef = ref(db, `rooms/${roomCode}/isTvActive`);
+    const presenceRef = ref(db, `${getRoomDataPath(roomCode)}/isTvActive`);
     set(presenceRef, true).catch(() => {});
     const disconnect = onDisconnect(presenceRef);
     disconnect.remove().catch(() => {});

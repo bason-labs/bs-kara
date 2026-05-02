@@ -3,6 +3,7 @@
 import { useCallback, type RefObject } from 'react';
 import { ref, push, remove, set } from 'firebase/database';
 import { db } from '@/lib/firebase';
+import { getRoomDataPath } from '@/lib/roomPaths';
 import type { QueueItem, YouTubeVideo } from '@/lib/youtube/types';
 import { arrayToRecord, type GenerateMCForQueueItem, type RoomState } from './types';
 
@@ -27,7 +28,7 @@ export function useRoomQueue(
       // Firebase rejects `undefined`; only include the field when there's a
       // real name. Empty strings are treated as "no requester" too.
       if (trimmed) payload.requesterName = trimmed;
-      const newRef = push(ref(db, `rooms/${roomId}/queue`), payload);
+      const newRef = push(ref(db, `${getRoomDataPath(roomId)}/queue`), payload);
       const newQueueId = newRef.key;
       // Only spend an API call when the host actually wants an MC. Host
       // can flip the toggle on later, but those earlier songs will fall
@@ -51,7 +52,7 @@ export function useRoomQueue(
       const trimmed = newName?.trim();
       // Writing `null` removes the field — keeps the database clean instead
       // of leaving an empty string lingering.
-      set(ref(db, `rooms/${roomId}/queue/${queueId}/requesterName`), trimmed || null);
+      set(ref(db, `${getRoomDataPath(roomId)}/queue/${queueId}/requesterName`), trimmed || null);
       // Singer changed → previously-cached MC line is stale; regenerate so
       // the new singer is referenced when the song plays.
       if (roomDataRef.current.isMCEnabled) {
@@ -73,7 +74,7 @@ export function useRoomQueue(
   const removeSong = useCallback(
     (songId: string) => {
       if (!roomId) return;
-      remove(ref(db, `rooms/${roomId}/queue/${songId}`));
+      remove(ref(db, `${getRoomDataPath(roomId)}/queue/${songId}`));
     },
     [roomId],
   );
@@ -93,7 +94,7 @@ export function useRoomQueue(
         const { queueId: _q, ...rest } = item;
         queueObject[i] = rest;
       });
-      await set(ref(db, `rooms/${roomId}/queue`), queueObject);
+      await set(ref(db, `${getRoomDataPath(roomId)}/queue`), queueObject);
     },
     [roomId, roomDataRef],
   );
@@ -101,7 +102,7 @@ export function useRoomQueue(
   const togglePlayPause = useCallback(
     (currentStatus: boolean) => {
       if (!roomId) return;
-      set(ref(db, `rooms/${roomId}/isPlaying`), !currentStatus);
+      set(ref(db, `${getRoomDataPath(roomId)}/isPlaying`), !currentStatus);
     },
     [roomId],
   );
@@ -111,7 +112,7 @@ export function useRoomQueue(
   const setIsPlaying = useCallback(
     (playing: boolean) => {
       if (!roomId) return;
-      set(ref(db, `rooms/${roomId}/isPlaying`), playing);
+      set(ref(db, `${getRoomDataPath(roomId)}/isPlaying`), playing);
     },
     [roomId],
   );
@@ -128,8 +129,8 @@ export function useRoomQueue(
       if (!currentPlaying) return;
       const newHistory = [...history, currentPlaying];
       const histObj = arrayToRecord(newHistory);
-      await set(ref(db, `rooms/${roomId}/history`), histObj);
-      await remove(ref(db, `rooms/${roomId}/currentPlaying`));
+      await set(ref(db, `${getRoomDataPath(roomId)}/history`), histObj);
+      await remove(ref(db, `${getRoomDataPath(roomId)}/currentPlaying`));
       return;
     }
 
@@ -137,7 +138,7 @@ export function useRoomQueue(
     if (currentPlaying) {
       const newHistory = [...history, currentPlaying];
       const histObj = arrayToRecord(newHistory);
-      await set(ref(db, `rooms/${roomId}/history`), histObj);
+      await set(ref(db, `${getRoomDataPath(roomId)}/history`), histObj);
     }
 
     const nextPayload: YouTubeVideo = {
@@ -151,8 +152,8 @@ export function useRoomQueue(
     // Carry the pre-generated MC line forward so the TV doesn't have to
     // re-fetch when it picks up the new currentPlaying.
     if (next.mcText) nextPayload.mcText = next.mcText;
-    await set(ref(db, `rooms/${roomId}/currentPlaying`), nextPayload);
-    await remove(ref(db, `rooms/${roomId}/queue/${next.queueId}`));
+    await set(ref(db, `${getRoomDataPath(roomId)}/currentPlaying`), nextPayload);
+    await remove(ref(db, `${getRoomDataPath(roomId)}/queue/${next.queueId}`));
   }, [roomId, roomDataRef]);
 
   // Used by auto-random to bypass the queue entirely: writes the picked
@@ -162,7 +163,7 @@ export function useRoomQueue(
   const setCurrentPlayingDirectly = useCallback(
     async (item: YouTubeVideo) => {
       if (!roomId) return;
-      await set(ref(db, `rooms/${roomId}/currentPlaying`), {
+      await set(ref(db, `${getRoomDataPath(roomId)}/currentPlaying`), {
         id: item.id,
         title: item.title,
         channel: item.channel,
@@ -185,8 +186,8 @@ export function useRoomQueue(
 
     const newHistory = [...history, currentPlaying];
     const histObj = arrayToRecord(newHistory);
-    await set(ref(db, `rooms/${roomId}/history`), histObj);
-    await remove(ref(db, `rooms/${roomId}/currentPlaying`));
+    await set(ref(db, `${getRoomDataPath(roomId)}/history`), histObj);
+    await remove(ref(db, `${getRoomDataPath(roomId)}/currentPlaying`));
   }, [roomId, roomDataRef]);
 
   // Restores the previous song from history, pushing currentPlaying back to queue front.
@@ -212,18 +213,18 @@ export function useRoomQueue(
 
     const histObj = arrayToRecord(newHistory);
 
-    await set(ref(db, `rooms/${roomId}/currentPlaying`), prev);
+    await set(ref(db, `${getRoomDataPath(roomId)}/currentPlaying`), prev);
 
     if (newQueue.length > 0) {
-      await set(ref(db, `rooms/${roomId}/queue`), queueObj);
+      await set(ref(db, `${getRoomDataPath(roomId)}/queue`), queueObj);
     } else {
-      await remove(ref(db, `rooms/${roomId}/queue`));
+      await remove(ref(db, `${getRoomDataPath(roomId)}/queue`));
     }
 
     if (newHistory.length > 0) {
-      await set(ref(db, `rooms/${roomId}/history`), histObj);
+      await set(ref(db, `${getRoomDataPath(roomId)}/history`), histObj);
     } else {
-      await remove(ref(db, `rooms/${roomId}/history`));
+      await remove(ref(db, `${getRoomDataPath(roomId)}/history`));
     }
   }, [roomId, roomDataRef]);
 

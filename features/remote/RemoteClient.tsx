@@ -47,6 +47,7 @@ function RemoteInner() {
     activeRoom,
     pointerLoaded,
     isCoarsePointer,
+    hasExplicitlyLeft,
     submitJoin,
     handleLeave,
     forgetSavedRoom,
@@ -216,13 +217,32 @@ function RemoteInner() {
           <p className="text-sm sm:text-base text-muted mb-8">{t('home.tagline')}</p>
 
           {isCoarsePointer === null ? (
+            // Pointer detection runs post-mount; show a sized skeleton so
+            // the layout doesn't jump when the real branch resolves.
             <div className="w-full h-[260px] rounded-3xl border border-border bg-surface/70 backdrop-blur-md shadow-glow" />
+          ) : hasExplicitlyLeft ? (
+            // Either an explicit Leave click or the room-missing auto-eject
+            // (RemoteClient.tsx → useEffect on roomMissing → handleLeave)
+            // tripped the latch. Render the JoinForm — including the
+            // "join active room" shortcut when the pointer is live — so
+            // the user can deliberately rejoin or scan a new QR. Both
+            // mobile and desktop hit this branch.
+            <JoinForm
+              activeRoom={activeRoom}
+              pointerLoaded={pointerLoaded}
+              onJoin={submitJoin}
+            />
           ) : isCoarsePointer ? (
+            // Mobile fresh-load (or post-End-Party return-to-/) auto-claim
+            // is in flight. Spinner is brief: claimOrGetActiveRoom resolves
+            // as soon as the Firebase transaction commits, then router
+            // redirects into the room.
             <div className="w-full flex flex-col items-center gap-4 rounded-3xl border border-border bg-surface/70 backdrop-blur-md p-8 shadow-glow">
               <div className="w-10 h-10 rounded-full border-4 border-border border-t-transparent animate-spin" />
               <p className="text-sm text-muted">{t('home.startingRoom')}</p>
             </div>
           ) : (
+            // Desktop home: OTP form.
             <JoinForm
               activeRoom={activeRoom}
               pointerLoaded={pointerLoaded}

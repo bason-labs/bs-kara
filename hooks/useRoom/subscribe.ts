@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
+import { getRoomDataPath } from '@/lib/roomPaths';
 import type {
   QueueItem,
   RandomFilters,
@@ -38,7 +39,7 @@ export function useRoomSubscribe(roomId: string | null) {
     setIsLoading(true);
     setRoomExists(null);
 
-    const roomRef = ref(db, `rooms/${roomId}`);
+    const roomRef = ref(db, getRoomDataPath(roomId));
     const unsub = onValue(roomRef, (snapshot) => {
       const data = snapshot.val() as {
         queue?: Record<string, Omit<QueueItem, 'queueId'>>;

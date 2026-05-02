@@ -3,6 +3,7 @@
 import { CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 import { ref, onChildAdded, query, orderByChild, startAfter } from 'firebase/database';
 import { db } from '@/lib/firebase';
+import { getRoomDataPath } from '@/lib/roomPaths';
 import { getGifUrl } from '@/lib/reactions';
 
 interface IncomingReaction {
@@ -53,7 +54,7 @@ export function EmojiLayer({ roomId }: EmojiLayerProps) {
   // Listener: enqueue only — never render directly
   useEffect(() => {
     const q = query(
-      ref(db, `rooms/${roomId}/emojis`),
+      ref(db, `${getRoomDataPath(roomId)}/emojis`),
       orderByChild('timestamp'),
       startAfter(Date.now()),
     );
