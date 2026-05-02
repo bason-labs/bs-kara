@@ -15,10 +15,24 @@ export function useSearchSuggestions(query: string) {
 
   useEffect(() => {
     if (!trimmed) return;
-    fetch(`/api/suggestions?q=${encodeURIComponent(trimmed)}`)
+    // AbortController per effect run: cleanup aborts the in-flight fetch
+    // when the debounced query changes again, or when the component
+    // unmounts. Without this, a slow first response can resolve after a
+    // later one and clobber the dropdown with stale suggestions.
+    const ac = new AbortController();
+    fetch(`/api/suggestions?q=${encodeURIComponent(trimmed)}`, {
+      signal: ac.signal,
+    })
       .then((r) => r.json())
-      .then((data) => setFetched(data.suggestions ?? []))
-      .catch(() => setFetched([]));
+      .then((data) => {
+        if (ac.signal.aborted) return;
+        setFetched(data.suggestions ?? []);
+      })
+      .catch(() => {
+        if (ac.signal.aborted) return;
+        setFetched([]);
+      });
+    return () => ac.abort();
   }, [trimmed]);
 
   // Render-time gate: blank query always shows []. Avoids setState in the
