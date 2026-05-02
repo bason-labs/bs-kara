@@ -85,9 +85,12 @@ function RemoteInner() {
   const headerShift =
     tab === 'search' ? Math.min(headerHeight, Math.max(0, chromeOffset)) : 0;
   const headerSnap = tab === 'search' && chromeSnap;
+  // Translate-only — no margin/padding/height animation. Resizing the
+  // scroll container's siblings during scroll trips iOS Safari into
+  // pinning the page at the bottom, which is what this whole branch is
+  // meant to avoid.
   const headerStyle: CSSProperties = {
     transform: `translateY(-${headerShift}px)`,
-    marginBottom: `-${headerShift}px`,
   };
   // Latches true on the first gear-icon click and stays true for the rest of
   // the session. Gates the dynamic-imported SettingsSheet so it doesn't
@@ -281,9 +284,9 @@ function RemoteInner() {
       <header
         ref={headerRef}
         style={headerStyle}
-        className={`flex items-center justify-between px-4 py-3 bg-surface/70 backdrop-blur-md border-b border-border shrink-0 will-change-transform lg:[transform:none]! lg:mb-0! ${
+        className={`flex items-center justify-between px-4 py-3 bg-surface/70 backdrop-blur-md border-b border-border shrink-0 will-change-transform lg:[transform:none]! ${
           headerSnap
-            ? 'transition-[transform,margin-bottom] duration-200 ease-out lg:transition-none!'
+            ? 'transition-transform duration-200 ease-out lg:transition-none!'
             : ''
         }`}
       >
@@ -356,68 +359,84 @@ function RemoteInner() {
             tab === 'queue' || tab === 'player' ? 'flex h-full' : 'hidden'
           }`}
         >
-          {/* When the TV is showing the song, hide the duplicate card on
-              mobile but keep transport controls so the phone is still a
-              remote. Desktop shows the compact strip atop the queue
-              column; mobile players see the hero variant on the player
-              tab so the screen is filled rather than empty. */}
-          {roomData.currentPlaying && !roomData.isTvActive && (
+          {/* The card always renders when a song is playing — even when the
+              TV is showing it — so the phone still feels like the remote.
+              When the TV is active we drop `onExpand`, which both disables
+              the tap-to-expand gesture and hides the Maximize button so
+              the user isn't offered a fullscreen mode that would compete
+              with the TV. */}
+          {roomData.currentPlaying && (
             <>
               <div className="px-3 pt-3 pb-1 hidden lg:block">
                 <NowPlayingCard
                   track={roomData.currentPlaying}
                   isPlaying={roomData.isPlaying}
-                  onExpand={() => {
-                    primeAudio();
-                    document.documentElement
-                      .requestFullscreen?.()
-                      .catch(() => {});
-                    setPlayerOpen(true);
-                  }}
+                  onExpand={
+                    roomData.isTvActive
+                      ? undefined
+                      : () => {
+                          primeAudio();
+                          document.documentElement
+                            .requestFullscreen?.()
+                            .catch(() => {});
+                          setPlayerOpen(true);
+                        }
+                  }
                   onRemove={removeCurrentPlaying}
                 />
               </div>
               <div
-                className={`flex-1 min-h-0 flex items-center justify-center py-6 ${
+                className={`flex-1 min-h-0 overflow-y-auto ${
                   tab === 'player' ? 'lg:hidden' : 'hidden'
                 }`}
               >
-                <NowPlayingCard
-                  variant="hero"
-                  track={roomData.currentPlaying}
-                  isPlaying={roomData.isPlaying}
-                  onExpand={() => {
-                    // requestFullscreen must run synchronously inside the user
-                    // gesture; deferring to the FullscreenPlayer's mount effect
-                    // loses the activation token in some browsers.
-                    // primeAudio() also runs inside the gesture so the MC
-                    // announcement (which fires from an async useEffect after
-                    // the player mounts) can actually produce audio on iOS
-                    // Safari and mobile Chrome.
-                    primeAudio();
-                    document.documentElement
-                      .requestFullscreen?.()
-                      .catch(() => {});
-                    setPlayerOpen(true);
-                  }}
-                  onRemove={removeCurrentPlaying}
-                />
+                {/* min-h-full + flex centers the card vertically on tall
+                    screens; when the card is taller than the viewport
+                    (small phones, in-app browsers, landscape), the inner
+                    block grows past the parent and the parent's
+                    `overflow-y-auto` lets the user scroll to see all of
+                    it. */}
+                <div className="min-h-full w-full flex items-center justify-center py-6">
+                  <NowPlayingCard
+                    variant="hero"
+                    track={roomData.currentPlaying}
+                    isPlaying={roomData.isPlaying}
+                    onExpand={
+                      roomData.isTvActive
+                        ? undefined
+                        : () => {
+                            // requestFullscreen must run synchronously inside
+                            // the user gesture; deferring to the
+                            // FullscreenPlayer's mount effect loses the
+                            // activation token in some browsers. primeAudio()
+                            // also runs inside the gesture so the MC
+                            // announcement (which fires from an async
+                            // useEffect after the player mounts) can actually
+                            // produce audio on iOS Safari and mobile Chrome.
+                            primeAudio();
+                            document.documentElement
+                              .requestFullscreen?.()
+                              .catch(() => {});
+                            setPlayerOpen(true);
+                          }
+                    }
+                    onRemove={removeCurrentPlaying}
+                  />
+                </div>
               </div>
             </>
           )}
-          {/* Empty-state for the player tab when nothing is playing or the
-              TV is driving the song — gives the controls something to sit
-              under so the area doesn't collapse into a thin strip. */}
-          {(!roomData.currentPlaying || roomData.isTvActive) && (
+          {/* Empty-state for the player tab when nothing is playing — gives
+              the controls something to sit under so the area doesn't
+              collapse into a thin strip. */}
+          {!roomData.currentPlaying && (
             <div
               className={`flex-1 min-h-0 flex items-center justify-center px-6 text-center ${
                 tab === 'player' ? 'lg:hidden' : 'hidden'
               }`}
             >
               <p className="text-sm text-muted max-w-[260px]">
-                {roomData.isTvActive
-                  ? t('player.tvActiveHint')
-                  : t('player.idleHint')}
+                {t('player.idleHint')}
               </p>
             </div>
           )}

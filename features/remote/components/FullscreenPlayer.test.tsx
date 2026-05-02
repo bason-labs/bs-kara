@@ -151,4 +151,157 @@ describe('FullscreenPlayer', () => {
       expect(() => render(<FullscreenPlayer {...baseProps} />)).not.toThrow();
     });
   });
+
+  // iOS Safari has no screen.orientation.lock() — instead the FullscreenPlayer
+  // applies a CSS rotation fallback (.ios-fullscreen-landscape) and listens
+  // to orientationchange to toggle it as the user rotates the device.
+  describe('iOS landscape CSS fallback', () => {
+    let originalUA: PropertyDescriptor | undefined;
+    let originalMatchMedia: typeof window.matchMedia;
+    let originalInnerWidth: number;
+    let originalInnerHeight: number;
+    let mediaQueryListeners: Array<(e: MediaQueryListEvent) => void>;
+    let landscapeMatches: boolean;
+
+    function setUserAgent(ua: string) {
+      Object.defineProperty(navigator, 'userAgent', {
+        configurable: true,
+        get: () => ua,
+      });
+    }
+
+    function setOrientation(landscape: boolean) {
+      landscapeMatches = landscape;
+      // Swap viewport dimensions to mirror the rotation.
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: landscape ? 800 : 400,
+      });
+      Object.defineProperty(window, 'innerHeight', {
+        configurable: true,
+        value: landscape ? 400 : 800,
+      });
+    }
+
+    beforeEach(() => {
+      mockGated = false;
+      mediaQueryListeners = [];
+      landscapeMatches = false;
+      originalUA = Object.getOwnPropertyDescriptor(navigator, 'userAgent');
+      originalMatchMedia = window.matchMedia;
+      originalInnerWidth = window.innerWidth;
+      originalInnerHeight = window.innerHeight;
+      window.matchMedia = ((query: string) => {
+        const mql = {
+          matches: query.includes('landscape') ? landscapeMatches : !landscapeMatches,
+          media: query,
+          onchange: null,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          addListener: () => {},
+          removeListener: () => {},
+          dispatchEvent: () => false,
+        } satisfies Partial<MediaQueryList> as unknown as MediaQueryList;
+        return mql;
+      }) as typeof window.matchMedia;
+      setOrientation(false);
+    });
+
+    afterEach(() => {
+      if (originalUA) Object.defineProperty(navigator, 'userAgent', originalUA);
+      window.matchMedia = originalMatchMedia;
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: originalInnerWidth,
+      });
+      Object.defineProperty(window, 'innerHeight', {
+        configurable: true,
+        value: originalInnerHeight,
+      });
+    });
+
+    function dispatchOrientationChange() {
+      window.dispatchEvent(new Event('orientationchange'));
+      // Some test paths also rely on listeners stored in mediaQueryListeners,
+      // but our component uses the window event directly.
+      void mediaQueryListeners;
+    }
+
+    it('applies the rotation class with swapped dimensions on iOS in portrait', () => {
+      setUserAgent(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+      );
+      setOrientation(false);
+      const { container } = render(<FullscreenPlayer {...baseProps} />);
+      const wrapper = container.querySelector('[role="dialog"]') as HTMLElement;
+      expect(wrapper.classList.contains('ios-fullscreen-landscape')).toBe(true);
+      // window.innerHeight (800) × window.innerWidth (400)
+      expect(wrapper.style.width).toBe('800px');
+      expect(wrapper.style.height).toBe('400px');
+    });
+
+    it('does NOT apply the rotation class when iOS is already in landscape', () => {
+      setUserAgent(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+      );
+      setOrientation(true);
+      const { container } = render(<FullscreenPlayer {...baseProps} />);
+      const wrapper = container.querySelector('[role="dialog"]') as HTMLElement;
+      expect(wrapper.classList.contains('ios-fullscreen-landscape')).toBe(false);
+      expect(wrapper.style.width).toBe('');
+      expect(wrapper.style.height).toBe('');
+    });
+
+    it('removes the rotation class on orientationchange to landscape', () => {
+      setUserAgent(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+      );
+      setOrientation(false);
+      const { container } = render(<FullscreenPlayer {...baseProps} />);
+      const wrapper = container.querySelector('[role="dialog"]') as HTMLElement;
+      expect(wrapper.classList.contains('ios-fullscreen-landscape')).toBe(true);
+
+      // User physically rotates to landscape — the listener should remove it.
+      setOrientation(true);
+      dispatchOrientationChange();
+      expect(wrapper.classList.contains('ios-fullscreen-landscape')).toBe(false);
+      expect(wrapper.style.width).toBe('');
+      expect(wrapper.style.height).toBe('');
+
+      // And rotating back to portrait re-applies it.
+      setOrientation(false);
+      dispatchOrientationChange();
+      expect(wrapper.classList.contains('ios-fullscreen-landscape')).toBe(true);
+      expect(wrapper.style.width).toBe('800px');
+      expect(wrapper.style.height).toBe('400px');
+    });
+
+    it('does not touch the class on non-iOS browsers (Android keeps its native lock path)', () => {
+      setUserAgent(
+        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120',
+      );
+      setOrientation(false);
+      const { container } = render(<FullscreenPlayer {...baseProps} />);
+      const wrapper = container.querySelector('[role="dialog"]') as HTMLElement;
+      expect(wrapper.classList.contains('ios-fullscreen-landscape')).toBe(false);
+      expect(wrapper.style.width).toBe('');
+      expect(wrapper.style.height).toBe('');
+    });
+
+    it('removes the class and inline dimensions on unmount', () => {
+      setUserAgent(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+      );
+      setOrientation(false);
+      const { container, unmount } = render(<FullscreenPlayer {...baseProps} />);
+      const wrapper = container.querySelector('[role="dialog"]') as HTMLElement;
+      expect(wrapper.classList.contains('ios-fullscreen-landscape')).toBe(true);
+      unmount();
+      // After unmount the wrapper is detached, but its className/style should
+      // have been cleared by the cleanup before React removed it from the DOM.
+      expect(wrapper.classList.contains('ios-fullscreen-landscape')).toBe(false);
+      expect(wrapper.style.width).toBe('');
+      expect(wrapper.style.height).toBe('');
+    });
+  });
 });

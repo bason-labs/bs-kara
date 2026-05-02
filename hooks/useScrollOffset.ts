@@ -6,6 +6,17 @@ import type { RefObject } from 'react';
 interface UseScrollOffsetOptions {
   snapMs?: number;
   endDelayMs?: number;
+  /* Pixels from the top of the scroll container, and from the bottom, in
+     which the chrome offset is held frozen. iOS rubber-band bounce fires
+     phantom scroll events with bogus deltas at both edges; freezing in
+     these zones avoids reading those values into the offset and toggling
+     the chrome erratically. */
+  edgePx?: number;
+  /* Minimum |scrollDelta| (px) the handler will react to. Sub-threshold
+     deltas are dropped *and* lastY is not advanced, so cumulative real
+     movement still trips the gate eventually but micro-jitter doesn't
+     thrash the offset. */
+  minDeltaPx?: number;
 }
 
 interface UseScrollOffsetResult {
@@ -25,11 +36,23 @@ interface UseScrollOffsetResult {
    `snapMs` so consumers can apply a brief CSS transition over just that
    resting tween. During active scrolling `snap` is always false, so the
    gesture-coupled motion has no easing lag. Resuming a scroll mid-snap
-   cancels it and re-couples to the gesture immediately. */
+   cancels it and re-couples to the gesture immediately.
+
+   Two guard rails (edgePx, minDeltaPx) keep iOS Safari's rubber-band
+   bounce from oscillating the chrome at scroll edges — the bounce can
+   fire micro-deltas with the scroll position pinned at the boundary, and
+   without these filters that thrash would freeze the page. Consumers
+   should also set `overscroll-behavior-y: contain` on the scroll
+   container so the bounce doesn't propagate up to the document. */
 export function useScrollOffset(
   scrollRef: RefObject<HTMLElement | null>,
   maxOffset: number,
-  { snapMs = 180, endDelayMs = 90 }: UseScrollOffsetOptions = {},
+  {
+    snapMs = 180,
+    endDelayMs = 90,
+    edgePx = 50,
+    minDeltaPx = 5,
+  }: UseScrollOffsetOptions = {},
 ): UseScrollOffsetResult {
   const [offset, setOffset] = useState(0);
   const [snap, setSnap] = useState(false);
@@ -60,15 +83,34 @@ export function useScrollOffset(
 
       const y = el.scrollTop;
       const delta = y - lastYRef.current;
+
+      // Drop sub-threshold deltas without advancing lastY. Cumulative real
+      // movement still trips the gate (delta is computed against the
+      // older lastY), but iOS rubber-band micro-jitter is filtered out.
+      // Skip this guard at exact top so we always pin to fully shown.
+      if (y > 0 && Math.abs(delta) < minDeltaPx) return;
+
       lastYRef.current = y;
 
-      // Pin the chrome fully extended whenever the scroll container is at
-      // the top — even if a momentum frame arrives with a tiny positive
-      // delta during overscroll bounce, we want offset back at 0.
-      const next =
-        y <= 0
-          ? 0
-          : Math.max(0, Math.min(maxOffset, offsetRef.current + delta));
+      const clientH = el.clientHeight;
+      const scrollH = el.scrollHeight;
+      const inTopEdge = y > 0 && y < edgePx;
+      // Bottom-edge guard only kicks in once we have real measurements;
+      // if the container hasn't laid out yet (clientHeight = 0), don't
+      // freeze.
+      const inBottomEdge =
+        clientH > 0 && scrollH > 0 && y + clientH > scrollH - edgePx;
+
+      let next: number;
+      if (y <= 0) {
+        // Pin to fully shown at the absolute top.
+        next = 0;
+      } else if (inTopEdge || inBottomEdge) {
+        // Freeze in edge zones to ride out iOS rubber-band bounce.
+        next = offsetRef.current;
+      } else {
+        next = Math.max(0, Math.min(maxOffset, offsetRef.current + delta));
+      }
 
       if (next !== offsetRef.current) {
         offsetRef.current = next;
@@ -96,7 +138,7 @@ export function useScrollOffset(
       if (endTimerRef.current) clearTimeout(endTimerRef.current);
       if (snapClearRef.current) clearTimeout(snapClearRef.current);
     };
-  }, [scrollRef, maxOffset, snapMs, endDelayMs]);
+  }, [scrollRef, maxOffset, snapMs, endDelayMs, edgePx, minDeltaPx]);
 
   return { offset, snap };
 }

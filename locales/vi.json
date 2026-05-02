@@ -101,8 +101,7 @@
     "pause": "Tạm dừng",
     "mute": "Tắt tiếng",
     "unmute": "Bật tiếng",
-    "idleHint": "Chưa có bài nào đang phát — vào Tìm bài để chọn.",
-    "tvActiveHint": "TV đang phát bài. Dùng nút bên dưới để điều khiển."
+    "idleHint": "Chưa có bài nào đang phát — vào Tìm bài để chọn."
   },
   "toast": {
     "addedToQueue": "Đã thêm vào hàng chờ",

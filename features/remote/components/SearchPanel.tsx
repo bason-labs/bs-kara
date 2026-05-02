@@ -158,14 +158,16 @@ export function SearchPanel({
     headerHeight + searchBarHeight,
   );
 
-  // Sequential retraction: header retracts first (offset 0..headerHeight),
-  // then the search bar (offset headerHeight..headerHeight+searchBarHeight).
-  // While the header is collapsing flow space, the search bar moves up
-  // passively because its containing section pulls up — only beyond the
-  // header's full height does the search bar start translating itself.
-  const searchBarShift = Math.max(
-    0,
-    Math.min(searchBarHeight, chromeOffset - headerHeight),
+  // Both the header and search bar translate by the same offset so they
+  // retract as a single visual unit. We deliberately do NOT collapse flow
+  // space (no margin/padding/height changes): on iOS Safari, animating
+  // any property that resizes the scroll container during an active
+  // scroll causes the listener to read invalid scrollTop values mid-
+  // bounce and pin the page at the bottom. Layout stays put; only
+  // transform moves.
+  const searchBarShift = Math.min(
+    headerHeight + searchBarHeight,
+    Math.max(0, chromeOffset),
   );
 
   useEffect(() => {
@@ -174,7 +176,6 @@ export function SearchPanel({
 
   const searchBarStyle: CSSProperties = {
     transform: `translateY(-${searchBarShift}px)`,
-    marginBottom: `-${searchBarShift}px`,
   };
 
   // Render-time choice between hot hits (initial) and user-search results.
@@ -419,9 +420,9 @@ export function SearchPanel({
       <div
         ref={searchBarRef}
         style={searchBarStyle}
-        className={`sticky top-0 z-10 p-4 bg-bg/85 backdrop-blur-md border-b border-border will-change-transform lg:overflow-visible lg:[transform:none]! lg:mb-0! ${
+        className={`sticky top-0 z-10 p-4 bg-bg/85 backdrop-blur-md border-b border-border will-change-transform lg:overflow-visible lg:[transform:none]! ${
           chromeSnap
-            ? 'transition-[transform,margin-bottom] duration-200 ease-out lg:transition-none!'
+            ? 'transition-transform duration-200 ease-out lg:transition-none!'
             : ''
         }`}
       >
@@ -547,7 +548,10 @@ export function SearchPanel({
         </form>
       </div>
 
-      <div ref={resultsScrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div
+        ref={resultsScrollRef}
+        className="flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] p-4 space-y-3"
+      >
         {(isInitialLoading || loading) &&
           SEARCH_SKELETONS.map((_, i) => <SongSkeleton key={i} />)}
 

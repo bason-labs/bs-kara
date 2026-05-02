@@ -3,9 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRef } from 'react';
 import { useScrollOffset } from './useScrollOffset';
 
-function makeScrollEl() {
+function makeScrollEl({
+  clientHeight = 600,
+  scrollHeight = 10000,
+}: { clientHeight?: number; scrollHeight?: number } = {}) {
   const el = document.createElement('div');
   Object.defineProperty(el, 'scrollTop', { writable: true, value: 0 });
+  Object.defineProperty(el, 'clientHeight', { writable: true, value: clientHeight });
+  Object.defineProperty(el, 'scrollHeight', { writable: true, value: scrollHeight });
   document.body.appendChild(el);
   return el;
 }
@@ -37,11 +42,11 @@ describe('useScrollOffset', () => {
     const el = makeScrollEl();
     const { result } = renderUseScrollOffset(el, 100);
 
-    act(() => fireScroll(el, 30));
-    expect(result.current.offset).toBe(30);
+    act(() => fireScroll(el, 60));
+    expect(result.current.offset).toBe(60);
 
-    act(() => fireScroll(el, 80));
-    expect(result.current.offset).toBe(80);
+    act(() => fireScroll(el, 120));
+    expect(result.current.offset).toBe(100);
 
     act(() => fireScroll(el, 250));
     expect(result.current.offset).toBe(100);
@@ -51,11 +56,11 @@ describe('useScrollOffset', () => {
     const el = makeScrollEl();
     const { result } = renderUseScrollOffset(el, 100);
 
-    act(() => fireScroll(el, 80));
-    expect(result.current.offset).toBe(80);
+    act(() => fireScroll(el, 100));
+    expect(result.current.offset).toBe(100);
 
-    act(() => fireScroll(el, 30));
-    expect(result.current.offset).toBe(30);
+    act(() => fireScroll(el, 70));
+    expect(result.current.offset).toBe(70);
 
     act(() => fireScroll(el, 0));
     expect(result.current.offset).toBe(0);
@@ -65,12 +70,12 @@ describe('useScrollOffset', () => {
     const el = makeScrollEl();
     const { result } = renderUseScrollOffset(el, 100);
 
-    act(() => fireScroll(el, 60));
-    expect(result.current.offset).toBe(60);
+    act(() => fireScroll(el, 80));
+    expect(result.current.offset).toBe(80);
     expect(result.current.snap).toBe(false);
 
     act(() => vi.advanceTimersByTime(89));
-    expect(result.current.offset).toBe(60);
+    expect(result.current.offset).toBe(80);
     expect(result.current.snap).toBe(false);
 
     act(() => vi.advanceTimersByTime(1));
@@ -85,9 +90,9 @@ describe('useScrollOffset', () => {
     const el = makeScrollEl();
     const { result } = renderUseScrollOffset(el, 100);
 
-    act(() => fireScroll(el, 60));
-    act(() => fireScroll(el, 40));
-    expect(result.current.offset).toBe(40);
+    act(() => fireScroll(el, 100));
+    act(() => fireScroll(el, 50));
+    expect(result.current.offset).toBe(50);
 
     act(() => vi.advanceTimersByTime(90));
     expect(result.current.offset).toBe(0);
@@ -102,7 +107,6 @@ describe('useScrollOffset', () => {
     expect(result.current.offset).toBe(100);
 
     act(() => vi.advanceTimersByTime(90));
-    // Already at maxOffset, so no transition is needed.
     expect(result.current.snap).toBe(false);
   });
 
@@ -110,30 +114,77 @@ describe('useScrollOffset', () => {
     const el = makeScrollEl();
     const { result } = renderUseScrollOffset(el, 100);
 
-    act(() => fireScroll(el, 60));
+    act(() => fireScroll(el, 80));
     act(() => vi.advanceTimersByTime(90));
     expect(result.current.offset).toBe(100);
     expect(result.current.snap).toBe(true);
 
-    // Mid-snap, the user grabs the scroller again — snap must turn off so
-    // the next frame's transform is gesture-coupled, not eased.
-    act(() => fireScroll(el, 70));
+    act(() => fireScroll(el, 90));
     expect(result.current.snap).toBe(false);
+  });
+
+  it('drops sub-threshold scroll deltas without advancing lastY', () => {
+    const el = makeScrollEl();
+    const { result } = renderUseScrollOffset(el, 100);
+
+    act(() => fireScroll(el, 80));
+    expect(result.current.offset).toBe(80);
+
+    // Two micro-jitter ticks — each delta is < 5 vs the un-advanced lastY,
+    // so both are dropped.
+    act(() => fireScroll(el, 82));
+    expect(result.current.offset).toBe(80);
+    act(() => fireScroll(el, 84));
+    expect(result.current.offset).toBe(80);
+
+    // Cumulative real movement of 6 px (vs lastY still pinned at 80)
+    // crosses the threshold and finally registers.
+    act(() => fireScroll(el, 86));
+    expect(result.current.offset).toBe(86);
+  });
+
+  it('freezes the offset while inside the top edge zone', () => {
+    const el = makeScrollEl();
+    const { result } = renderUseScrollOffset(el, 100);
+
+    act(() => fireScroll(el, 80));
+    expect(result.current.offset).toBe(80);
+
+    // y < edgePx (default 50) — the rubber-band guard freezes offset.
+    act(() => fireScroll(el, 30));
+    expect(result.current.offset).toBe(80);
+
+    // Reaching exact top still pins to 0.
+    act(() => fireScroll(el, 0));
+    expect(result.current.offset).toBe(0);
+  });
+
+  it('freezes the offset while inside the bottom edge zone', () => {
+    const el = makeScrollEl({ clientHeight: 500, scrollHeight: 2000 });
+    const { result } = renderUseScrollOffset(el, 100);
+
+    act(() => fireScroll(el, 100));
+    expect(result.current.offset).toBe(100);
+
+    // y + clientHeight > scrollHeight - edgePx → 1500 + 500 > 1950
+    // (true), so the guard freezes the offset despite the big delta.
+    act(() => fireScroll(el, 1500));
+    expect(result.current.offset).toBe(100);
   });
 
   it('cleans up listener and timers on unmount', () => {
     const el = makeScrollEl();
     const { result, unmount } = renderUseScrollOffset(el, 100);
 
-    act(() => fireScroll(el, 50));
-    expect(result.current.offset).toBe(50);
+    act(() => fireScroll(el, 80));
+    expect(result.current.offset).toBe(80);
 
     const clearSpy = vi.spyOn(globalThis, 'clearTimeout');
     unmount();
     expect(clearSpy).toHaveBeenCalled();
 
-    fireScroll(el, 80);
-    expect(result.current.offset).toBe(50);
+    fireScroll(el, 120);
+    expect(result.current.offset).toBe(80);
   });
 
   it('re-clamps a stale offset when maxOffset shrinks', () => {

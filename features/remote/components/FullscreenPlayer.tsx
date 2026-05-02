@@ -81,12 +81,15 @@ export function FullscreenPlayer({
     };
   }, []);
 
-  // Lock to landscape while the fullscreen player is open, mirroring the
-  // YouTube app behavior on phones. The Screen Orientation API requires the
-  // document to actually be in fullscreen, so we attempt the lock on mount
-  // (in case fullscreen was already active) AND on every fullscreenchange.
-  // Browsers without the API (desktop Safari, older WebViews) silently
-  // skip — both `lock` and `unlock` are guarded.
+  // Android path: lock to landscape while the fullscreen player is open via
+  // the Screen Orientation API. iOS Safari does not implement
+  // screen.orientation.lock(), so we handle iOS in a separate effect below
+  // (CSS rotation fallback) and leave this effect's call as a no-op there.
+  // The Screen Orientation API requires the document to actually be in
+  // fullscreen, so we attempt the lock on mount (in case fullscreen was
+  // already active) AND on every fullscreenchange. Browsers without the
+  // API (desktop Safari, older WebViews) silently skip — both `lock` and
+  // `unlock` are guarded.
   useEffect(() => {
     // The Screen Orientation API's `lock()` is in the spec but absent from
     // lib.dom, so we declare the shape locally with the spec's argument union.
@@ -121,6 +124,47 @@ export function FullscreenPlayer({
       } catch {
         // Older browsers throw synchronously when unlock is unsupported.
       }
+    };
+  }, []);
+
+  // iOS Safari path: no Screen Orientation API → fall back to CSS rotation.
+  // While in portrait, rotate the wrapper 90deg and swap its width/height to
+  // window.innerHeight × window.innerWidth so it visually fills the viewport
+  // in a forced-landscape layout. If the user physically rotates the device
+  // to landscape, the orientationchange listener removes the rotation so the
+  // native landscape layout takes over; if they rotate back, it re-applies.
+  // Android keeps the lock path above and never enters this branch.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isIOS =
+      /iPad|iPhone|iPod/.test(ua) &&
+      !(window as unknown as { MSStream?: unknown }).MSStream;
+    if (!isIOS) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    function syncIOSLandscape() {
+      if (!wrapper) return;
+      const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+      if (isLandscape) {
+        wrapper.classList.remove('ios-fullscreen-landscape');
+        wrapper.style.width = '';
+        wrapper.style.height = '';
+      } else {
+        wrapper.classList.add('ios-fullscreen-landscape');
+        wrapper.style.width = `${window.innerHeight}px`;
+        wrapper.style.height = `${window.innerWidth}px`;
+      }
+    }
+
+    syncIOSLandscape();
+    window.addEventListener('orientationchange', syncIOSLandscape);
+    return () => {
+      window.removeEventListener('orientationchange', syncIOSLandscape);
+      wrapper.classList.remove('ios-fullscreen-landscape');
+      wrapper.style.width = '';
+      wrapper.style.height = '';
     };
   }, []);
 

@@ -101,8 +101,7 @@
     "pause": "Pause",
     "mute": "Mute",
     "unmute": "Unmute",
-    "idleHint": "Nothing playing yet — pick a song from Search and tap add.",
-    "tvActiveHint": "The TV is showing the song. Use the controls below to drive it."
+    "idleHint": "Nothing playing yet — pick a song from Search and tap add."
   },
   "toast": {
     "addedToQueue": "Added to queue",
