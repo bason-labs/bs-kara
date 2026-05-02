@@ -158,16 +158,17 @@ export function SearchPanel({
     headerHeight + searchBarHeight,
   );
 
-  // Both the header and search bar translate by the same offset so they
-  // retract as a single visual unit. We deliberately do NOT collapse flow
-  // space (no margin/padding/height changes): on iOS Safari, animating
-  // any property that resizes the scroll container during an active
-  // scroll causes the listener to read invalid scrollTop values mid-
-  // bounce and pin the page at the bottom. Layout stays put; only
-  // transform moves.
-  const searchBarShift = Math.min(
-    headerHeight + searchBarHeight,
-    Math.max(0, chromeOffset),
+  // Sequential retraction with layout collapse so the bar doesn't leave
+  // a visible flow gap when it translates away. The iOS guards in
+  // useScrollOffset (edge-zone freeze + min-delta filter) plus
+  // overscroll-y-contain on the results scroll container neutralize the
+  // rubber-band scroll-stuck issue that originally motivated removing
+  // marginBottom — without those guards, animating margin-bottom mid-
+  // scroll caused iOS Safari to read invalid scrollTop values during
+  // bounce and pin the page at the bottom.
+  const searchBarShift = Math.max(
+    0,
+    Math.min(searchBarHeight, chromeOffset - headerHeight),
   );
 
   useEffect(() => {
@@ -176,6 +177,7 @@ export function SearchPanel({
 
   const searchBarStyle: CSSProperties = {
     transform: `translateY(-${searchBarShift}px)`,
+    marginBottom: `-${searchBarShift}px`,
   };
 
   // Render-time choice between hot hits (initial) and user-search results.
@@ -420,9 +422,9 @@ export function SearchPanel({
       <div
         ref={searchBarRef}
         style={searchBarStyle}
-        className={`sticky top-0 z-10 p-4 bg-bg/85 backdrop-blur-md border-b border-border will-change-transform lg:overflow-visible lg:[transform:none]! ${
+        className={`sticky top-0 z-10 p-4 bg-bg/85 backdrop-blur-md border-b border-border will-change-transform lg:overflow-visible lg:[transform:none]! lg:[margin-bottom:0]! ${
           chromeSnap
-            ? 'transition-transform duration-200 ease-out lg:transition-none!'
+            ? 'transition-[transform,margin-bottom] duration-200 ease-out lg:transition-none!'
             : ''
         }`}
       >

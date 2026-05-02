@@ -131,16 +131,19 @@ input:disabled {
 
 /* iOS Safari does not implement screen.orientation.lock(); when the
    FullscreenPlayer opens in portrait we rotate the container 90deg to
-   force a landscape layout. Width/height are set inline from
-   window.innerHeight / window.innerWidth so the rotated box covers the
-   viewport. `inset: auto !important` overrides the Tailwind `inset-0`
-   that already lives on the wrapper, then top/left + translate(-50%)
-   re-center the rotated element. Android keeps its native
-   screen.orientation.lock path and never receives this class. */
+   force a landscape layout. Width tracks 100dvh and height tracks
+   100dvw (dynamic viewport units) so the rotated box stays sized to
+   the live viewport — iOS Safari's URL-bar collapse/expand changes the
+   dvh value and the box re-fits without any JS. `inset: auto !important`
+   overrides Tailwind's `inset-0` on the wrapper, then top/left +
+   translate(-50%) re-center the rotated element. Android keeps its
+   native screen.orientation.lock path and never receives this class. */
 .ios-fullscreen-landscape {
   inset: auto !important;
   top: 50% !important;
   left: 50% !important;
+  width: 100dvh !important;
+  height: 100dvw !important;
   transform: translate(-50%, -50%) rotate(90deg);
   transform-origin: center center;
 }

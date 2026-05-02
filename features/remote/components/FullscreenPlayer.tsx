@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pause, Play, SkipBack, SkipForward, X } from 'lucide-react';
 import { YouTubeVideo } from '@/lib/youtube/types';
@@ -127,13 +127,30 @@ export function FullscreenPlayer({
     };
   }, []);
 
-  // iOS Safari path: no Screen Orientation API → fall back to CSS rotation.
-  // While in portrait, rotate the wrapper 90deg and swap its width/height to
-  // window.innerHeight × window.innerWidth so it visually fills the viewport
-  // in a forced-landscape layout. If the user physically rotates the device
-  // to landscape, the orientationchange listener removes the rotation so the
-  // native landscape layout takes over; if they rotate back, it re-applies.
-  // Android keeps the lock path above and never enters this branch.
+  // iOS Safari path: no Screen Orientation API → CSS-rotation fallback.
+  //
+  // Why this is React state, not classList.add:
+  //   The wrapper's className is recomputed every render
+  //   (`${chromeVisible ? '' : 'cursor-none'}`). When useAutoHide flips
+  //   chromeVisible, React replaces the entire className attribute,
+  //   wiping out any class added imperatively. That produced the
+  //   "wide container without rotation" bug: inline width/height stayed
+  //   (React doesn't manage them) but the rotation class was gone.
+  //   Owning the class in React state means it survives re-renders.
+  //
+  // Why CSS dvh/dvw, not inline pixels:
+  //   iOS Safari's URL bar collapses ~1s after fullscreen entry, growing
+  //   window.innerHeight. Inline `width: ${innerHeight}px` would lock to
+  //   the pre-collapse height. `100dvh` (dynamic viewport units) tracks
+  //   the live viewport without JS, so the rotated box stays right-sized.
+  //
+  // Why a flag for orientationchange (kept from previous fix):
+  //   matchMedia('(orientation: ...)') reflects the viewport, not the
+  //   device. iOS fires orientationchange / resize for URL-bar / keyboard /
+  //   fullscreen transitions. We read physical angle from
+  //   screen.orientation.angle (iOS 16.4+) / window.orientation (legacy)
+  //   and only react to a real delta — spurious events are no-ops.
+  const [isIosForcedLandscape, setIsIosForcedLandscape] = useState(false);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
@@ -141,30 +158,71 @@ export function FullscreenPlayer({
       /iPad|iPhone|iPod/.test(ua) &&
       !(window as unknown as { MSStream?: unknown }).MSStream;
     if (!isIOS) return;
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
 
-    function syncIOSLandscape() {
-      if (!wrapper) return;
-      const isLandscape = window.matchMedia('(orientation: landscape)').matches;
-      if (isLandscape) {
-        wrapper.classList.remove('ios-fullscreen-landscape');
-        wrapper.style.width = '';
-        wrapper.style.height = '';
-      } else {
-        wrapper.classList.add('ios-fullscreen-landscape');
-        wrapper.style.width = `${window.innerHeight}px`;
-        wrapper.style.height = `${window.innerWidth}px`;
-      }
+    function getPhysicalOrientation(): 'portrait' | 'landscape' {
+      const stdAngle = window.screen?.orientation?.angle;
+      const legacyAngle = (window as { orientation?: number }).orientation;
+      const angle =
+        typeof stdAngle === 'number'
+          ? stdAngle
+          : typeof legacyAngle === 'number'
+            ? legacyAngle
+            : 0;
+      return Math.abs(angle) === 90 ? 'landscape' : 'portrait';
     }
 
-    syncIOSLandscape();
-    window.addEventListener('orientationchange', syncIOSLandscape);
+    // ── DIAGNOSTIC LOGGING (REMOVE AFTER iOS BUG IS CONFIRMED FIXED) ──
+    // The build marker lets us verify on a real device that the new
+    // bundle is actually loaded (cached service workers / Vercel CDN
+    // can serve stale builds). Look for `[FS/iOS] build:dvh-state v1`
+    // in the Safari Web Inspector console.
+    const BUILD_TAG = '[FS/iOS] build:dvh-state v1';
+    function logViewport(label: string) {
+      const w = window as Window & { orientation?: number };
+      console.log(BUILD_TAG, label, {
+        angle: window.screen?.orientation?.angle ?? null,
+        legacyOrientation: typeof w.orientation === 'number' ? w.orientation : null,
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        vvWidth: window.visualViewport?.width ?? null,
+        vvHeight: window.visualViewport?.height ?? null,
+        fullscreenElement: document.fullscreenElement?.tagName ?? null,
+      });
+    }
+    logViewport('mount');
+    // ────────────────────────────────────────────────────────────────
+
+    // Initial sync: iOS detection requires window/navigator, so it can't
+    // happen in useState's lazy initializer during SSR. Synchronous
+    // setState here triggers one extra render on iOS only — acceptable
+    // for parity with the orientationchange code path below.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsIosForcedLandscape(getPhysicalOrientation() === 'portrait');
+
+    function handleOrientationChange() {
+      logViewport('orientationchange');
+      // Idempotent: setState with the same value is a no-op in React.
+      // This makes spurious orientationchange events (URL-bar collapse
+      // and friends) cost-free instead of toggling the rotation off.
+      setIsIosForcedLandscape(getPhysicalOrientation() === 'portrait');
+    }
+    function handleVisualViewportResize() {
+      // Pure observation — CSS dvh/dvw handles the dimension change.
+      // Do NOT touch isIosForcedLandscape here; viewport size changes
+      // are not orientation changes.
+      logViewport('visualViewport.resize');
+    }
+    function handleFullscreenChange() {
+      logViewport('fullscreenchange');
+    }
+
+    window.addEventListener('orientationchange', handleOrientationChange);
+    window.visualViewport?.addEventListener('resize', handleVisualViewportResize);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => {
-      window.removeEventListener('orientationchange', syncIOSLandscape);
-      wrapper.classList.remove('ios-fullscreen-landscape');
-      wrapper.style.width = '';
-      wrapper.style.height = '';
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      window.visualViewport?.removeEventListener('resize', handleVisualViewportResize);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
 
@@ -215,7 +273,7 @@ export function FullscreenPlayer({
   return (
     <div
       ref={wrapperRef}
-      className={`fixed inset-0 z-[60] bg-black ${chromeVisible ? '' : 'cursor-none'}`}
+      className={`fixed inset-0 z-[60] bg-black ${chromeVisible ? '' : 'cursor-none'} ${isIosForcedLandscape ? 'ios-fullscreen-landscape' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label={t('nowPlaying.label')}

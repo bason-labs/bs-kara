@@ -85,12 +85,15 @@ function RemoteInner() {
   const headerShift =
     tab === 'search' ? Math.min(headerHeight, Math.max(0, chromeOffset)) : 0;
   const headerSnap = tab === 'search' && chromeSnap;
-  // Translate-only — no margin/padding/height animation. Resizing the
-  // scroll container's siblings during scroll trips iOS Safari into
-  // pinning the page at the bottom, which is what this whole branch is
-  // meant to avoid.
+  // Both translate AND marginBottom collapse so the header retracts
+  // without leaving a visible gap below it. The iOS rubber-band guards
+  // in useScrollOffset (edge-zone freeze + min-delta filter) plus
+  // overscroll-y-contain on the search results' scroll container
+  // neutralize the scroll-stuck issue that originally pushed us to
+  // translate-only.
   const headerStyle: CSSProperties = {
     transform: `translateY(-${headerShift}px)`,
+    marginBottom: `-${headerShift}px`,
   };
   // Latches true on the first gear-icon click and stays true for the rest of
   // the session. Gates the dynamic-imported SettingsSheet so it doesn't
@@ -284,9 +287,9 @@ function RemoteInner() {
       <header
         ref={headerRef}
         style={headerStyle}
-        className={`flex items-center justify-between px-4 py-3 bg-surface/70 backdrop-blur-md border-b border-border shrink-0 will-change-transform lg:[transform:none]! ${
+        className={`flex items-center justify-between px-4 py-3 bg-surface/70 backdrop-blur-md border-b border-border shrink-0 will-change-transform lg:[transform:none]! lg:[margin-bottom:0]! ${
           headerSnap
-            ? 'transition-transform duration-200 ease-out lg:transition-none!'
+            ? 'transition-[transform,margin-bottom] duration-200 ease-out lg:transition-none!'
             : ''
         }`}
       >
