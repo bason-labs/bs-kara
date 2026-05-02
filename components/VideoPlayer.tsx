@@ -94,10 +94,15 @@ export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingCh
   }
 
   function handleStateChange(event: YouTubeEvent) {
-    // YT.PlayerState: 1 = PLAYING, 2 = PAUSED. We only care about those —
-    // BUFFERING/CUED transitions would cause noisy round-trips.
+    // YT.PlayerState: -1 UNSTARTED, 0 ENDED, 1 PLAYING, 2 PAUSED, 3 BUFFERING, 5 CUED.
+    // Ignore BUFFERING — it's a transient between play/pause that would
+    // cause flicker. Everything else maps to a binary playing flag.
+    // Treating CUED/UNSTARTED/ENDED as "not playing" is what lets the
+    // iOS tap-to-play overlay state propagate back to Firebase, so the
+    // remote's play/pause icon mirrors what the iframe is actually
+    // showing instead of stalling on a stale optimistic `true`.
     const state = event.data;
-    if (state !== 1 && state !== 2) return;
+    if (state === 3) return;
     const ytPlaying = state === 1;
     // If the iframe's state already matches what React thinks, the change
     // was driven by our own playVideo/pauseVideo call — nothing to sync.

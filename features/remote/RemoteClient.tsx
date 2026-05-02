@@ -20,6 +20,7 @@ import { SearchPanel } from '@/features/remote/components/SearchPanel';
 import { ClientQueue } from '@/features/remote/components/ClientQueue';
 import { RemoteControls } from '@/features/remote/components/RemoteControls';
 import { EmojiPad } from '@/features/remote/components/EmojiPad';
+import { EmojiLayer, type EmojiLayerHandle } from '@/components/EmojiLayer';
 import { NowPlayingCard } from '@/features/remote/components/NowPlayingCard';
 import { FullscreenPlayer } from '@/features/remote/components/FullscreenPlayer';
 import { NeonOrbs } from '@/features/remote/components/NeonOrbs';
@@ -63,6 +64,7 @@ function RemoteInner() {
   const [tab, setTab] = useState<Tab>('search');
   const [playerOpen, setPlayerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const emojiLayerRef = useRef<EmojiLayerHandle>(null);
   // Scroll-coupled chrome auto-hide. SearchPanel's results scroll drives a
   // px offset (0..headerHeight + searchBarHeight) that translates the
   // header and the search bar 1:1 with the gesture; `chromeSnap` is true
@@ -218,8 +220,45 @@ function RemoteInner() {
     requesterPromptEnabled: roomData.requesterPromptEnabled,
   });
 
+  // Optimistic emoji feedback: fire the local rise instantly so the tapper
+  // sees acknowledgement well under 100ms, regardless of network. EmojiLayer
+  // dedupes the Firebase echo so this never double-renders.
+  const handleSendEmoji = useCallback(
+    (emoji: string) => {
+      emojiLayerRef.current?.pushLocal(emoji);
+      sendEmoji(emoji);
+    },
+    [sendEmoji],
+  );
+
   const queuedMap = useQueuedMap(roomData.queue);
   const currentPlayingId = roomData.currentPlaying?.id ?? null;
+
+  // The phone is a remote — it doesn't host the iframe unless the user
+  // opens FullscreenPlayer. When neither the TV (`isTvActive`) nor the
+  // local fullscreen surface (`playerOpen`) is mounted, no one is
+  // *actually* playing, so the play/pause UI must show "paused" even if
+  // Firebase still says playing (e.g. stale state from a previous TV
+  // session, or the old optimistic kick before this fix).
+  const hasPlaybackSurface = roomData.isTvActive || playerOpen;
+  const displayedIsPlaying = hasPlaybackSurface ? roomData.isPlaying : false;
+
+  // When there's no playback surface, tapping the play button can't
+  // toggle Firebase usefully — nothing would receive the command. Open
+  // FullscreenPlayer instead. The user's tap doubles as the user gesture
+  // iOS Safari needs to autoplay the iframe once it mounts.
+  const handleTogglePlayPause = useCallback(
+    (current: boolean) => {
+      if (!hasPlaybackSurface) {
+        primeAudio();
+        document.documentElement.requestFullscreen?.().catch(() => {});
+        setPlayerOpen(true);
+        return;
+      }
+      togglePlayPause(current);
+    },
+    [hasPlaybackSurface, togglePlayPause],
+  );
 
   const noticeBanner = notice ? (
     <div className="fixed top-4 inset-x-0 z-[60] flex justify-center px-16 sm:px-4 pointer-events-none">
@@ -358,7 +397,7 @@ function RemoteInner() {
             so the queue tab stays uncluttered. */}
         <section
           aria-label="Queue and controls"
-          className={`min-h-0 flex-col overflow-hidden lg:flex lg:bg-surface/40 ${
+          className={`relative min-h-0 flex-col overflow-hidden lg:flex lg:bg-surface/40 ${
             tab === 'queue' || tab === 'player' ? 'flex h-full' : 'hidden'
           }`}
         >
@@ -373,7 +412,7 @@ function RemoteInner() {
               <div className="px-3 pt-3 pb-1 hidden lg:block">
                 <NowPlayingCard
                   track={roomData.currentPlaying}
-                  isPlaying={roomData.isPlaying}
+                  isPlaying={displayedIsPlaying}
                   onExpand={
                     roomData.isTvActive
                       ? undefined
@@ -403,7 +442,7 @@ function RemoteInner() {
                   <NowPlayingCard
                     variant="hero"
                     track={roomData.currentPlaying}
-                    isPlaying={roomData.isPlaying}
+                    isPlaying={displayedIsPlaying}
                     onExpand={
                       roomData.isTvActive
                         ? undefined
@@ -459,18 +498,30 @@ function RemoteInner() {
               dragDropEnabled={roomData.dragDropEnabled}
             />
           </div>
+          {/* Optimistic emoji overlay. Sits above the player content, below
+              the controls bar (bottom offset clears EmojiPad + RemoteControls
+              + safe-area on mobile, ~28 lg). Hidden on mobile when not on
+              the player tab so the queue tab doesn't render unrelated rises. */}
+          <div
+            aria-hidden
+            className={`pointer-events-none absolute inset-x-0 top-0 bottom-28 lg:bottom-32 z-40 overflow-hidden ${
+              tab === 'player' ? '' : 'hidden lg:block'
+            }`}
+          >
+            <EmojiLayer ref={emojiLayerRef} roomId={roomCode} />
+          </div>
           <div
             className={`shrink-0 bg-surface/85 backdrop-blur-md border-t border-border ${
               tab === 'player' ? '' : 'hidden lg:block'
             }`}
           >
-            <EmojiPad onSendEmoji={sendEmoji} />
+            <EmojiPad onSendEmoji={handleSendEmoji} />
             <RemoteControls
-              isPlaying={roomData.isPlaying}
+              isPlaying={displayedIsPlaying}
               hasHistory={roomData.history.length > 0}
               hasQueue={roomData.queue.length > 0}
               currentPlaying={roomData.currentPlaying}
-              onTogglePlayPause={togglePlayPause}
+              onTogglePlayPause={handleTogglePlayPause}
               onPrev={playPrevious}
               onNext={playNext}
             />

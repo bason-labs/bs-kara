@@ -163,4 +163,51 @@ describe('TVClient — MC gate / video autoplay', () => {
     });
     expect(typeof state.videoPlayerProps?.onPlayingChange).toBe('function');
   });
+
+  // Regression for the iOS pause/play-state-desync bug. Previously
+  // useMCKickPlay would optimistically `setIsPlaying(true)` on the
+  // gated→ungated edge. On iOS Safari `playVideo()` can be rejected
+  // (autoplay policy after the speechSynthesis gesture is consumed),
+  // which left Firebase saying playing=true while the iframe sat in
+  // CUED — RemoteClient's pause icon then lied about reality.
+  //
+  // The new contract is:
+  //   - `isPlaying` in Firebase represents user intent during the gate.
+  //   - We do NOT write to Firebase from the gate transition.
+  //   - VideoPlayer's `isPlaying` prop flips false→true on un-gate, and
+  //     its own prop-driven effect calls player.playVideo(). If iOS
+  //     refuses, the iframe lands in CUED and the broadened
+  //     handleStateChange echoes `false` back, self-correcting.
+  it('does not write isPlaying to Firebase on the MC gated→ungated edge (no optimistic kick)', async () => {
+    // Start gated: simulates the MC announcement actively running.
+    state.isMcGated = true;
+    state.mcText = 'Welcome the next singer!';
+
+    const { rerender } = render(<TVClient />);
+    const waiting = await screen.findByRole('button', { name: /waiting room/i });
+    await act(async () => {
+      waiting.click();
+    });
+
+    // Sanity: nothing has written `isPlaying` yet.
+    expect(state.setIsPlayingMock).not.toHaveBeenCalled();
+
+    // MC finishes → gate flips false. roomData.isPlaying stayed `true`
+    // throughout (the mock returns true). The contract requires zero
+    // Firebase writes from this transition.
+    state.isMcGated = false;
+    state.mcText = null;
+    await act(async () => {
+      rerender(<TVClient />);
+    });
+
+    expect(state.setIsPlayingMock).not.toHaveBeenCalled();
+    // VideoPlayer now sees `isPlaying=true` (un-gated, room intent
+    // preserved). Its own useEffect on the `isPlaying` prop is what
+    // calls playVideo() — no Firebase round-trip from the kick.
+    expect(state.videoPlayerProps).toMatchObject({
+      isPlaying: true,
+      volume: 80,
+    });
+  });
 });

@@ -1,12 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pause, Play, SkipBack, SkipForward, X } from 'lucide-react';
 import { YouTubeVideo } from '@/lib/youtube/types';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
-import { useMCKickPlay } from '@/hooks/useMCKickPlay';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { EmojiLayer } from '@/components/EmojiLayer';
 import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
@@ -56,6 +55,12 @@ export function FullscreenPlayer({
   // immediately on subsequent transitions. The hook also handles the
   // "don't announce the song that was already playing when we opened"
   // case via its initial-skip pattern.
+  //
+  // Resume after MC: `isPlaying` (room intent) stays true throughout the
+  // gate (no path writes false during gating — see the suppressed
+  // `onPlayingChange` on VideoPlayer below). When the gate releases, the
+  // VideoPlayer's `isPlaying` prop flips false→true and its prop effect
+  // calls `player.playVideo()`. No optimistic Firebase write here.
   const { isMcGated, mcText } = useMCPlayer({
     isMCEnabled,
     currentPlaying: track,
@@ -63,12 +68,6 @@ export function FullscreenPlayer({
     mcVoice,
     tryClaimAnnouncementLock,
   });
-
-  // Behavior parity with the TV: kick play after MC ungating.
-  // onPlayingChange is optional so we wrap into a stable no-op fallback.
-  useMCKickPlay(isMcGated, isPlaying, useCallback((next: boolean) => {
-    onPlayingChange?.(next);
-  }, [onPlayingChange]));
 
   // The browser Fullscreen API is entered by the caller (the user-gesture
   // handler that flips playerOpen). Here we just make sure to leave it on

@@ -7,7 +7,6 @@ import { useRoom } from '@/hooks/useRoom';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
-import { useMCKickPlay } from '@/hooks/useMCKickPlay';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { EmojiLayer } from '@/components/EmojiLayer';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -85,6 +84,14 @@ export default function TVClient() {
   // then). The hook itself decides when to fetch / speak. The lock
   // ensures only one device speaks when both TV and a phone player are
   // open at the same time.
+  // `roomData.isPlaying` represents user intent and stays true throughout
+  // the MC gate (no path writes false during gating: VideoPlayer's
+  // iframe→Firebase echo is suppressed via `onPlayingChange={isMcGated ?
+  // undefined : setIsPlaying}` below). When the gate releases, the
+  // `isPlaying` prop on VideoPlayer flips false→true, which kicks
+  // `player.playVideo()` from the prop-driven effect inside VideoPlayer.
+  // No optimistic Firebase write is needed here — and adding one would
+  // race the iframe on iOS where autoplay can fail.
   const { isMcGated, mcText } = useMCPlayer({
     isMCEnabled: roomData.isMCEnabled,
     currentPlaying: roomData.currentPlaying,
@@ -92,8 +99,6 @@ export default function TVClient() {
     mcVoice: roomData.mcVoice,
     tryClaimAnnouncementLock,
   });
-
-  useMCKickPlay(isMcGated, roomData.isPlaying, setIsPlaying);
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const [isFs, setIsFs] = useState(false);

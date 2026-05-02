@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 // can assert on the props it receives without booting the YT widgetapi.
 let capturedProps: Record<string, unknown> | null = null;
 let capturedReady: ((event: { target: PlayerStub }) => void) | null = null;
+let capturedStateChange: ((event: { data: number }) => void) | null = null;
 
 class PlayerStub {
   playVideo = vi.fn();
@@ -20,6 +21,7 @@ vi.mock('react-youtube', () => ({
   default: (props: Record<string, unknown>) => {
     capturedProps = props;
     capturedReady = props.onReady as typeof capturedReady;
+    capturedStateChange = props.onStateChange as typeof capturedStateChange;
     return null;
   },
 }));
@@ -87,5 +89,85 @@ describe('VideoPlayer', () => {
     render(<VideoPlayer videoId="x" onSongEnd={onSongEnd} isPlaying volume={50} />);
     (capturedProps?.onEnd as () => void)();
     expect(onSongEnd).toHaveBeenCalled();
+  });
+
+  // YT.PlayerState mapping. The behavior these tests pin matters because
+  // iOS Safari can land in CUED (5) or PAUSED (2) when autoplay is blocked
+  // after the MC announcement; if the iframe state never echoes back,
+  // Firebase's `isPlaying` stays optimistically true and the RemoteClient's
+  // pause icon lies about the player's real state.
+  describe('handleStateChange (YT.PlayerState mapping)', () => {
+    function readyWith(isPlaying: boolean) {
+      const onPlayingChange = vi.fn();
+      render(
+        <VideoPlayer
+          videoId="x"
+          onSongEnd={() => {}}
+          isPlaying={isPlaying}
+          volume={50}
+          onPlayingChange={onPlayingChange}
+        />,
+      );
+      const player = new PlayerStub();
+      capturedReady!({ target: player });
+      // Reset *after* onReady's playVideo/pauseVideo so the assertions
+      // below only see what handleStateChange triggered.
+      onPlayingChange.mockClear();
+      return { onPlayingChange, player };
+    }
+
+    it('PLAYING (1) calls onPlayingChange(true)', () => {
+      // Iframe must currently think it's paused for the new value to
+      // differ — handleStateChange short-circuits when ref already matches.
+      const { onPlayingChange } = readyWith(false);
+      capturedStateChange!({ data: 1 });
+      expect(onPlayingChange).toHaveBeenCalledTimes(1);
+      expect(onPlayingChange).toHaveBeenCalledWith(true);
+    });
+
+    it('PAUSED (2) calls onPlayingChange(false)', () => {
+      const { onPlayingChange } = readyWith(true);
+      capturedStateChange!({ data: 2 });
+      expect(onPlayingChange).toHaveBeenCalledTimes(1);
+      expect(onPlayingChange).toHaveBeenCalledWith(false);
+    });
+
+    // The iOS tap-to-play case: blocked autoplay leaves the iframe in
+    // CUED. Without this branch the remote button would stay stuck on
+    // "playing" until something else echoed PAUSED.
+    it('CUED (5) calls onPlayingChange(false)', () => {
+      const { onPlayingChange } = readyWith(true);
+      capturedStateChange!({ data: 5 });
+      expect(onPlayingChange).toHaveBeenCalledTimes(1);
+      expect(onPlayingChange).toHaveBeenCalledWith(false);
+    });
+
+    it('UNSTARTED (-1) calls onPlayingChange(false)', () => {
+      const { onPlayingChange } = readyWith(true);
+      capturedStateChange!({ data: -1 });
+      expect(onPlayingChange).toHaveBeenCalledTimes(1);
+      expect(onPlayingChange).toHaveBeenCalledWith(false);
+    });
+
+    it('ENDED (0) calls onPlayingChange(false)', () => {
+      const { onPlayingChange } = readyWith(true);
+      capturedStateChange!({ data: 0 });
+      expect(onPlayingChange).toHaveBeenCalledTimes(1);
+      expect(onPlayingChange).toHaveBeenCalledWith(false);
+    });
+
+    it('BUFFERING (3) is ignored (no onPlayingChange call) to avoid flicker', () => {
+      const { onPlayingChange } = readyWith(true);
+      capturedStateChange!({ data: 3 });
+      expect(onPlayingChange).not.toHaveBeenCalled();
+    });
+
+    it('does not echo back when the iframe state already matches React state', () => {
+      // onReady called playVideo() so isPlayingRef === true; a PLAYING ping
+      // would otherwise round-trip uselessly.
+      const { onPlayingChange } = readyWith(true);
+      capturedStateChange!({ data: 1 });
+      expect(onPlayingChange).not.toHaveBeenCalled();
+    });
   });
 });
