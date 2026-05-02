@@ -1,5 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+
+// In-memory unstable_cache stand-in: dedups by (keyParts, args) so the
+// route's caching path is exercised in tests, but cleared in beforeEach so
+// no test leaks state to its neighbors.
+const { cacheStore } = vi.hoisted(() => ({
+  cacheStore: new Map<string, unknown>(),
+}));
+vi.mock('next/cache', () => ({
+  unstable_cache: <Args extends unknown[], R>(
+    fn: (...args: Args) => Promise<R>,
+    keyParts?: string[],
+  ) => async (...args: Args): Promise<R> => {
+    const key = JSON.stringify([keyParts ?? [], args]);
+    if (cacheStore.has(key)) return cacheStore.get(key) as R;
+    const result = await fn(...args);
+    cacheStore.set(key, result);
+    return result;
+  },
+}));
+
 import { GET } from './route';
 
 function makeReq(q?: string) {
@@ -14,6 +34,7 @@ const fetchMock = vi.fn();
 beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
+  cacheStore.clear();
 });
 
 afterEach(() => {
@@ -81,5 +102,59 @@ describe('GET /api/suggestions', () => {
     const res = await GET(makeReq('q'));
     const data = (await res.json()) as { suggestions: string[] };
     expect(data.suggestions[0]).toBe('nhóm karaoke');
+  });
+
+  it('caches identical queries across requests', async () => {
+    const payload = JSON.stringify(['hi', ['hi karaoke', 'hi beat']]);
+    fetchMock.mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => utf8ToLatin1Buffer(payload),
+    });
+    const r1 = await GET(makeReq('hi'));
+    expect(await r1.json()).toEqual({
+      suggestions: ['hi karaoke', 'hi beat'],
+    });
+    const r2 = await GET(makeReq('hi'));
+    expect(await r2.json()).toEqual({
+      suggestions: ['hi karaoke', 'hi beat'],
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not share cache entries across distinct queries', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () =>
+          utf8ToLatin1Buffer(JSON.stringify(['a', ['alpha']])),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () =>
+          utf8ToLatin1Buffer(JSON.stringify(['b', ['beta']])),
+      });
+    const r1 = await GET(makeReq('a'));
+    const r2 = await GET(makeReq('b'));
+    expect(await r1.json()).toEqual({ suggestions: ['alpha'] });
+    expect(await r2.json()).toEqual({ suggestions: ['beta'] });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not cache upstream errors so retries can succeed', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: false,
+        arrayBuffer: async () => utf8ToLatin1Buffer('[]'),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () =>
+          utf8ToLatin1Buffer(JSON.stringify(['retry', ['retry karaoke']])),
+      });
+    const r1 = await GET(makeReq('retry'));
+    expect(await r1.json()).toEqual({ suggestions: [] });
+    const r2 = await GET(makeReq('retry'));
+    expect(await r2.json()).toEqual({ suggestions: ['retry karaoke'] });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
