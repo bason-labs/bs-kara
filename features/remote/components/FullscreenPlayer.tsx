@@ -81,6 +81,49 @@ export function FullscreenPlayer({
     };
   }, []);
 
+  // Lock to landscape while the fullscreen player is open, mirroring the
+  // YouTube app behavior on phones. The Screen Orientation API requires the
+  // document to actually be in fullscreen, so we attempt the lock on mount
+  // (in case fullscreen was already active) AND on every fullscreenchange.
+  // Browsers without the API (desktop Safari, older WebViews) silently
+  // skip — both `lock` and `unlock` are guarded.
+  useEffect(() => {
+    // The Screen Orientation API's `lock()` is in the spec but absent from
+    // lib.dom, so we declare the shape locally with the spec's argument union.
+    type LockableOrientation = ScreenOrientation & {
+      lock?: (
+        orientation:
+          | 'any'
+          | 'natural'
+          | 'landscape'
+          | 'portrait'
+          | 'portrait-primary'
+          | 'portrait-secondary'
+          | 'landscape-primary'
+          | 'landscape-secondary',
+      ) => Promise<void>;
+    };
+    function tryLockLandscape() {
+      if (!document.fullscreenElement) return;
+      const orientation = window.screen?.orientation as LockableOrientation | undefined;
+      try {
+        orientation?.lock?.('landscape').catch(() => {});
+      } catch {
+        // Older browsers throw synchronously instead of rejecting.
+      }
+    }
+    tryLockLandscape();
+    document.addEventListener('fullscreenchange', tryLockLandscape);
+    return () => {
+      document.removeEventListener('fullscreenchange', tryLockLandscape);
+      try {
+        window.screen?.orientation?.unlock?.();
+      } catch {
+        // Older browsers throw synchronously when unlock is unsupported.
+      }
+    };
+  }, []);
+
   // ESC at the document level closes the overlay.
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {

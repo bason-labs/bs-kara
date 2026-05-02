@@ -5,25 +5,32 @@ import { primeAudio, useAIVoice } from './useAIVoice';
 // Track every Audio instance so tests can fire `onended` / `onerror`.
 const audioInstances: MockAudio[] = [];
 
+// Lets a single test override how the next created Audio's play() resolves
+// (e.g. reject with AbortError to simulate an interrupted play()).
+let nextPlayBehavior: 'resolve' | { reject: Error } = 'resolve';
+
 class MockAudio {
   src = '';
   volume = 1;
   onended: (() => void) | null = null;
   onerror: (() => void) | null = null;
   paused = false;
-  private playResolver: ((v: void) => void) | null = null;
   playPromise: Promise<void>;
   played = false;
 
   constructor(src?: string) {
     if (src) this.src = src;
-    this.playPromise = new Promise((r) => (this.playResolver = r));
+    if (nextPlayBehavior === 'resolve') {
+      this.playPromise = Promise.resolve();
+    } else {
+      this.playPromise = Promise.reject(nextPlayBehavior.reject);
+    }
+    nextPlayBehavior = 'resolve';
     audioInstances.push(this);
   }
 
   play() {
     this.played = true;
-    this.playResolver?.();
     return this.playPromise;
   }
   pause() {
@@ -109,6 +116,37 @@ describe('useAIVoice.speak', () => {
     const { result } = renderHook(() => useAIVoice());
     await act(() => result.current.speak('   '));
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // Regression: when audio.play() rejects with AbortError (pause() interrupted
+  // play — happens during effect cleanup, song change, or when a newer
+  // announcement replaces the prior audio), speak() must NOT fall back to
+  // browser TTS. Doing so causes a double-speak (new Google audio + old
+  // Web-Speech) and emits a noisy warning for what is an intentional cancel.
+  it('does not fall back to browser TTS when play() is interrupted by pause()', async () => {
+    const synthSpeak = window.speechSynthesis.speak as ReturnType<typeof vi.fn>;
+    // The setup file installs window.speechSynthesis.speak as a permanent
+    // vi.fn(); call history persists across tests. Clear before asserting.
+    synthSpeak.mockClear();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ audioContent: 'BASE64' }),
+    });
+    const abortErr = Object.assign(
+      new Error('The play() request was interrupted by a call to pause().'),
+      { name: 'AbortError' },
+    );
+    nextPlayBehavior = { reject: abortErr };
+
+    const { result } = renderHook(() => useAIVoice());
+    await act(async () => {
+      await result.current.speak('hello');
+    });
+
+    expect(synthSpeak).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 

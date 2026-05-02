@@ -81,7 +81,8 @@
   },
   "tabs": {
     "search": "Search",
-    "queue": "Queue"
+    "queue": "Queue",
+    "player": "Player"
   },
   "nowPlaying": {
     "label": "Now playing",
@@ -99,7 +100,9 @@
     "play": "Play",
     "pause": "Pause",
     "mute": "Mute",
-    "unmute": "Unmute"
+    "unmute": "Unmute",
+    "idleHint": "Nothing playing yet — pick a song from Search and tap add.",
+    "tvActiveHint": "The TV is showing the song. Use the controls below to drive it."
   },
   "toast": {
     "addedToQueue": "Added to queue",

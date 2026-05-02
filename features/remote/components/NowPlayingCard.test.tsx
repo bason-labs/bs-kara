@@ -79,4 +79,49 @@ describe('NowPlayingCard', () => {
     );
     expect(onRemove).not.toHaveBeenCalled();
   });
+
+  describe('hero variant', () => {
+    it('renders the title, channel, and requester pill', () => {
+      render(
+        <NowPlayingCard
+          variant="hero"
+          track={{ ...track, requesterName: 'Alice' }}
+        />,
+      );
+      expect(screen.getByText('Track Title')).toBeInTheDocument();
+      expect(screen.getByText('Channel')).toBeInTheDocument();
+      expect(screen.getByText('Alice')).toBeInTheDocument();
+    });
+
+    it('expand button calls onExpand', async () => {
+      const onExpand = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <NowPlayingCard variant="hero" track={track} onExpand={onExpand} />,
+      );
+      await user.click(
+        screen.getByRole('button', { name: 'player.openFullscreen' }),
+      );
+      expect(onExpand).toHaveBeenCalledTimes(1);
+    });
+
+    it('remove button opens the confirm dialog and only fires onRemove on confirm', async () => {
+      const onRemove = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <NowPlayingCard variant="hero" track={track} onRemove={onRemove} />,
+      );
+      await user.click(
+        screen.getByRole('button', { name: 'nowPlaying.removeAriaLabel' }),
+      );
+      expect(
+        screen.getByText('nowPlaying.removeConfirm.title'),
+      ).toBeInTheDocument();
+      expect(onRemove).not.toHaveBeenCalled();
+      await user.click(
+        screen.getByRole('button', { name: 'nowPlaying.removeConfirm.confirm' }),
+      );
+      expect(onRemove).toHaveBeenCalledTimes(1);
+    });
+  });
 });

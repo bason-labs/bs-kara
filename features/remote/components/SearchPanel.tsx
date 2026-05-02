@@ -1,6 +1,15 @@
 'use client';
 
-import { memo, useCallback, useEffect, useRef, useState, FormEvent } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  FormEvent,
+  type CSSProperties,
+} from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowUpLeft, History, Mic, Search, SearchX, X } from 'lucide-react';
@@ -10,6 +19,7 @@ import { useSearchHistory } from '@/features/remote/hooks/useSearchHistory';
 import { useSearchSuggestions } from '@/features/remote/hooks/useSearchSuggestions';
 import { useVoiceSearch } from '@/features/remote/hooks/useVoiceSearch';
 import { useHotHits } from '@/features/remote/hooks/useHotHits';
+import { useScrollOffset } from '@/hooks/useScrollOffset';
 import { SongSkeleton } from './SongSkeleton';
 import { AddToQueueButton } from './AddToQueueButton';
 
@@ -87,6 +97,17 @@ interface SearchPanelProps {
   queuedMap?: Map<string, string>;
   currentPlayingId?: string | null;
   isQueueLoading?: boolean;
+  /* Height of the (separately rendered) header above the SearchPanel. The
+     scroll-coupled retraction first eats this many pixels of offset hiding
+     the header before it begins translating the local search bar — keeping
+     a 1:1 px-of-scroll-to-px-of-chrome ratio for the whole stack. */
+  headerHeight?: number;
+  /* Fires on every offset update. `offset` is the accumulated px the
+     chrome should retract by (0..headerHeight + searchBarHeight); `snap`
+     is true only during the brief snap-to-rest tween at the end of a
+     gesture, so the parent can mirror the same transition behavior on
+     the header. */
+  onChromeChange?: (offset: number, snap: boolean) => void;
 }
 
 export function SearchPanel({
@@ -95,6 +116,8 @@ export function SearchPanel({
   queuedMap,
   currentPlayingId,
   isQueueLoading = false,
+  headerHeight = 0,
+  onChromeChange,
 }: SearchPanelProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -113,6 +136,46 @@ export function SearchPanel({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelInputRef = useRef<HTMLInputElement>(null);
+  const resultsScrollRef = useRef<HTMLDivElement>(null);
+  const searchBarRef = useRef<HTMLDivElement>(null);
+  const [searchBarHeight, setSearchBarHeight] = useState(0);
+
+  // Measure the search-bar wrapper once it mounts so the offset can clamp
+  // exactly to its height. useLayoutEffect (not useEffect) avoids a
+  // first-frame flash where the bar is laid out at full height before the
+  // scroll-coupled transform kicks in.
+  useLayoutEffect(() => {
+    if (searchBarRef.current) setSearchBarHeight(searchBarRef.current.offsetHeight);
+  }, []);
+
+  // Scroll-coupled chrome offset. `maxOffset` is the total chrome stack
+  // height (header + search bar) so scroll delta retracts everything 1:1.
+  // The `lg:…!` Tailwind overrides on the search-bar wrapper (and on the
+  // header in RemoteClient) cancel both the inline transform and the snap
+  // transition on desktop, so we don't need a media query to gate the hook.
+  const { offset: chromeOffset, snap: chromeSnap } = useScrollOffset(
+    resultsScrollRef,
+    headerHeight + searchBarHeight,
+  );
+
+  // Sequential retraction: header retracts first (offset 0..headerHeight),
+  // then the search bar (offset headerHeight..headerHeight+searchBarHeight).
+  // While the header is collapsing flow space, the search bar moves up
+  // passively because its containing section pulls up — only beyond the
+  // header's full height does the search bar start translating itself.
+  const searchBarShift = Math.max(
+    0,
+    Math.min(searchBarHeight, chromeOffset - headerHeight),
+  );
+
+  useEffect(() => {
+    onChromeChange?.(chromeOffset, chromeSnap);
+  }, [chromeOffset, chromeSnap, onChromeChange]);
+
+  const searchBarStyle: CSSProperties = {
+    transform: `translateY(-${searchBarShift}px)`,
+    marginBottom: `-${searchBarShift}px`,
+  };
 
   // Render-time choice between hot hits (initial) and user-search results.
   // Avoids a useEffect that would copy hotHits into local state — that
@@ -353,7 +416,15 @@ export function SearchPanel({
           </ul>
         </div>
       )}
-      <div className="sticky top-0 z-10 p-4 bg-bg/85 backdrop-blur-md border-b border-border">
+      <div
+        ref={searchBarRef}
+        style={searchBarStyle}
+        className={`sticky top-0 z-10 p-4 bg-bg/85 backdrop-blur-md border-b border-border will-change-transform lg:overflow-visible lg:[transform:none]! lg:mb-0! ${
+          chromeSnap
+            ? 'transition-[transform,margin-bottom] duration-200 ease-out lg:transition-none!'
+            : ''
+        }`}
+      >
         <form onSubmit={handleSubmit} className="flex items-center">
           <div ref={wrapperRef} className="relative flex items-center flex-1">
             {isFocused && (
@@ -476,7 +547,7 @@ export function SearchPanel({
         </form>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div ref={resultsScrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
         {(isInitialLoading || loading) &&
           SEARCH_SKELETONS.map((_, i) => <SongSkeleton key={i} />)}
 

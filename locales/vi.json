@@ -81,7 +81,8 @@
   },
   "tabs": {
     "search": "Tìm bài",
-    "queue": "Hàng chờ"
+    "queue": "Hàng chờ",
+    "player": "Đang phát"
   },
   "nowPlaying": {
     "label": "Đang phát",
@@ -99,7 +100,9 @@
     "play": "Phát",
     "pause": "Tạm dừng",
     "mute": "Tắt tiếng",
-    "unmute": "Bật tiếng"
+    "unmute": "Bật tiếng",
+    "idleHint": "Chưa có bài nào đang phát — vào Tìm bài để chọn.",
+    "tvActiveHint": "TV đang phát bài. Dùng nút bên dưới để điều khiển."
   },
   "toast": {
     "addedToQueue": "Đã thêm vào hàng chờ",

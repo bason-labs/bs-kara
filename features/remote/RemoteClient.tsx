@@ -1,9 +1,17 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import {
+  Suspense,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+  type CSSProperties,
+} from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
-import { LogOut, Search, ListMusic, Settings } from 'lucide-react';
+import { LogOut, Search, ListMusic, Disc3, Settings } from 'lucide-react';
 import { useRoom } from '@/hooks/useRoom';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { useTransientNotice } from '@/hooks/useTransientNotice';
@@ -37,7 +45,7 @@ const SettingsSheet = dynamic(
   { ssr: false },
 );
 
-type Tab = 'search' | 'queue';
+type Tab = 'search' | 'queue' | 'player';
 
 function RemoteInner() {
   const { t } = useTranslation();
@@ -55,6 +63,32 @@ function RemoteInner() {
   const [tab, setTab] = useState<Tab>('search');
   const [playerOpen, setPlayerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Scroll-coupled chrome auto-hide. SearchPanel's results scroll drives a
+  // px offset (0..headerHeight + searchBarHeight) that translates the
+  // header and the search bar 1:1 with the gesture; `chromeSnap` is true
+  // only during the brief snap-to-rest transition at the end of a scroll.
+  // Gated on the search tab so we don't apply the inline transform when
+  // the user is on the queue tab and SearchPanel is hidden.
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  useLayoutEffect(() => {
+    if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
+  }, []);
+
+  const [chromeOffset, setChromeOffset] = useState(0);
+  const [chromeSnap, setChromeSnap] = useState(false);
+  const handleChromeChange = useCallback((offset: number, snap: boolean) => {
+    setChromeOffset(offset);
+    setChromeSnap(snap);
+  }, []);
+
+  const headerShift =
+    tab === 'search' ? Math.min(headerHeight, Math.max(0, chromeOffset)) : 0;
+  const headerSnap = tab === 'search' && chromeSnap;
+  const headerStyle: CSSProperties = {
+    transform: `translateY(-${headerShift}px)`,
+    marginBottom: `-${headerShift}px`,
+  };
   // Latches true on the first gear-icon click and stays true for the rest of
   // the session. Gates the dynamic-imported SettingsSheet so it doesn't
   // mount (and doesn't fetch its chunk) until the user actually opens it.
@@ -236,6 +270,7 @@ function RemoteInner() {
   const tabs: { id: Tab; labelKey: string; Icon: typeof Search }[] = [
     { id: 'search', labelKey: 'tabs.search', Icon: Search },
     { id: 'queue', labelKey: 'tabs.queue', Icon: ListMusic },
+    { id: 'player', labelKey: 'tabs.player', Icon: Disc3 },
   ];
 
   return (
@@ -243,7 +278,15 @@ function RemoteInner() {
       {noticeBanner}
       <h1 className="sr-only">{t('home.appHeading')}</h1>
 
-      <header className="flex items-center justify-between px-4 py-3 bg-surface/70 backdrop-blur-md border-b border-border shrink-0">
+      <header
+        ref={headerRef}
+        style={headerStyle}
+        className={`flex items-center justify-between px-4 py-3 bg-surface/70 backdrop-blur-md border-b border-border shrink-0 will-change-transform lg:[transform:none]! lg:mb-0! ${
+          headerSnap
+            ? 'transition-[transform,margin-bottom] duration-200 ease-out lg:transition-none!'
+            : ''
+        }`}
+      >
         <button
           onClick={handleLeave}
           className="flex items-center gap-1.5 text-sm text-muted hover:text-danger transition-colors"
@@ -298,41 +341,91 @@ function RemoteInner() {
             queuedMap={queuedMap}
             currentPlayingId={currentPlayingId}
             isQueueLoading={isLoading}
+            headerHeight={headerHeight}
+            onChromeChange={handleChromeChange}
           />
         </section>
 
-        {/* Queue column — queue + reactions + transport controls stacked */}
+        {/* Queue / player column — on desktop everything stacks together;
+            on mobile the queue stays on its own tab and the now-playing
+            card + emoji pad + transport controls move to the "player" tab
+            so the queue tab stays uncluttered. */}
         <section
           aria-label="Queue and controls"
-          className={`min-h-0 flex flex-col overflow-hidden lg:flex lg:bg-surface/40 ${
-            tab === 'queue' ? 'flex h-full' : 'hidden'
+          className={`min-h-0 flex-col overflow-hidden lg:flex lg:bg-surface/40 ${
+            tab === 'queue' || tab === 'player' ? 'flex h-full' : 'hidden'
           }`}
         >
           {/* When the TV is showing the song, hide the duplicate card on
               mobile but keep transport controls so the phone is still a
-              remote. */}
+              remote. Desktop shows the compact strip atop the queue
+              column; mobile players see the hero variant on the player
+              tab so the screen is filled rather than empty. */}
           {roomData.currentPlaying && !roomData.isTvActive && (
-            <div className="px-3 pt-3 pb-1">
-              <NowPlayingCard
-                track={roomData.currentPlaying}
-                isPlaying={roomData.isPlaying}
-                onExpand={() => {
-                  // requestFullscreen must run synchronously inside the user
-                  // gesture; deferring to the FullscreenPlayer's mount effect
-                  // loses the activation token in some browsers.
-                  // primeAudio() also runs inside the gesture so the MC
-                  // announcement (which fires from an async useEffect after
-                  // the player mounts) can actually produce audio on iOS
-                  // Safari and mobile Chrome.
-                  primeAudio();
-                  document.documentElement.requestFullscreen?.().catch(() => {});
-                  setPlayerOpen(true);
-                }}
-                onRemove={removeCurrentPlaying}
-              />
+            <>
+              <div className="px-3 pt-3 pb-1 hidden lg:block">
+                <NowPlayingCard
+                  track={roomData.currentPlaying}
+                  isPlaying={roomData.isPlaying}
+                  onExpand={() => {
+                    primeAudio();
+                    document.documentElement
+                      .requestFullscreen?.()
+                      .catch(() => {});
+                    setPlayerOpen(true);
+                  }}
+                  onRemove={removeCurrentPlaying}
+                />
+              </div>
+              <div
+                className={`flex-1 min-h-0 flex items-center justify-center py-6 ${
+                  tab === 'player' ? 'lg:hidden' : 'hidden'
+                }`}
+              >
+                <NowPlayingCard
+                  variant="hero"
+                  track={roomData.currentPlaying}
+                  isPlaying={roomData.isPlaying}
+                  onExpand={() => {
+                    // requestFullscreen must run synchronously inside the user
+                    // gesture; deferring to the FullscreenPlayer's mount effect
+                    // loses the activation token in some browsers.
+                    // primeAudio() also runs inside the gesture so the MC
+                    // announcement (which fires from an async useEffect after
+                    // the player mounts) can actually produce audio on iOS
+                    // Safari and mobile Chrome.
+                    primeAudio();
+                    document.documentElement
+                      .requestFullscreen?.()
+                      .catch(() => {});
+                    setPlayerOpen(true);
+                  }}
+                  onRemove={removeCurrentPlaying}
+                />
+              </div>
+            </>
+          )}
+          {/* Empty-state for the player tab when nothing is playing or the
+              TV is driving the song — gives the controls something to sit
+              under so the area doesn't collapse into a thin strip. */}
+          {(!roomData.currentPlaying || roomData.isTvActive) && (
+            <div
+              className={`flex-1 min-h-0 flex items-center justify-center px-6 text-center ${
+                tab === 'player' ? 'lg:hidden' : 'hidden'
+              }`}
+            >
+              <p className="text-sm text-muted max-w-[260px]">
+                {roomData.isTvActive
+                  ? t('player.tvActiveHint')
+                  : t('player.idleHint')}
+              </p>
             </div>
           )}
-          <div className="flex-1 min-h-0 overflow-hidden">
+          <div
+            className={`flex-1 min-h-0 overflow-hidden ${
+              tab === 'queue' ? '' : 'hidden lg:block'
+            }`}
+          >
             <ClientQueue
               items={roomData.queue}
               isLoading={isLoading}
@@ -344,7 +437,11 @@ function RemoteInner() {
               dragDropEnabled={roomData.dragDropEnabled}
             />
           </div>
-          <div className="shrink-0 bg-surface/85 backdrop-blur-md border-t border-border">
+          <div
+            className={`shrink-0 bg-surface/85 backdrop-blur-md border-t border-border ${
+              tab === 'player' ? '' : 'hidden lg:block'
+            }`}
+          >
             <EmojiPad onSendEmoji={sendEmoji} />
             <RemoteControls
               isPlaying={roomData.isPlaying}
@@ -388,7 +485,7 @@ function RemoteInner() {
       <nav
         role="tablist"
         aria-label="Sections"
-        className="lg:hidden shrink-0 grid grid-cols-2 bg-surface/85 backdrop-blur-md border-t border-border"
+        className="lg:hidden shrink-0 grid grid-cols-3 bg-surface/85 backdrop-blur-md border-t border-border"
       >
         {tabs.map(({ id, labelKey, Icon }) => {
           const active = tab === id;

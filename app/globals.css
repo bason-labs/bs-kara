@@ -118,6 +118,17 @@ input:disabled {
   cursor: not-allowed;
 }
 
+/* iOS Safari auto-zooms a focused form field whenever its computed
+   font-size is below 16px. Force ≥16px on touch devices so the page
+   does not zoom on focus. Desktop keeps the smaller `text-sm` scale. */
+@media (hover: none) and (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 /* Tabular numerics where we render codes / counters. */
 .tabular {
   font-variant-numeric: tabular-nums;

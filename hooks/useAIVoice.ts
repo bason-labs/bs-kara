@@ -191,6 +191,13 @@ export function useAIVoice() {
         }
         await playGoogleAudio(data.audioContent, trimmed);
       } catch (error) {
+        // `audio.play()` rejecting with AbortError means pause() interrupted
+        // it — that is always intentional in our code (effect cleanup, song
+        // change, or a newer announcement replacing the prior audio inside
+        // playGoogleAudio). Falling back to browser TTS in that case
+        // double-speaks (Google audio of the new announcement + Web-Speech of
+        // the old one). Treat it as a silent cancel instead.
+        if (error instanceof Error && error.name === 'AbortError') return;
         console.warn(
           '[useAIVoice] Auto-falling back to browser TTS due to error:',
           error,
