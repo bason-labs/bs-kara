@@ -9,7 +9,12 @@ interface RemoteControlsProps {
   hasHistory: boolean;
   hasQueue: boolean;
   currentPlaying: YouTubeVideo | null;
-  onTogglePlayPause: () => void;
+  // Receives the current isPlaying so callers can pass the underlying
+  // mutator directly (stable reference) instead of wrapping it in an
+  // inline arrow that closes over isPlaying — the wrapper would change
+  // identity each parent render and defeat any React.memo on this
+  // component.
+  onTogglePlayPause: (current: boolean) => void;
   onPrev: () => void;
   onNext: () => void;
 }
@@ -37,7 +42,7 @@ export function RemoteControls({
         </button>
 
         <button
-          onClick={onTogglePlayPause}
+          onClick={() => onTogglePlayPause(isPlaying)}
           className="w-16 h-16 flex items-center justify-center rounded-full bg-gradient-brand text-white shadow-glow active:scale-95 transition-transform"
           aria-label={isPlaying ? t('controls.pauseLabel') : t('controls.playLabel')}
         >

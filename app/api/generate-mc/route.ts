@@ -142,7 +142,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ text: null }, { status: 400 });
   }
 
-  const provider = (process.env.AI_MC_PROVIDER ?? '').toLowerCase().trim();
+  // Empty / unset / whitespace → default to OpenAI (the documented default
+  // in CLAUDE.md). Any non-empty unrecognized value still falls through to
+  // the explicit `Unsupported AI_MC_PROVIDER` throw below so a typo can't
+  // silently switch providers.
+  const provider =
+    (process.env.AI_MC_PROVIDER ?? '').toLowerCase().trim() || 'openai';
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 

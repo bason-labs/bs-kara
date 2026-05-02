@@ -63,6 +63,35 @@ describe('POST /api/generate-mc', () => {
     expect(res.status).toBe(502);
   });
 
+  // Documentation states OpenAI is the default. The route must honor that
+  // when AI_MC_PROVIDER is unset, an empty string, or whitespace — without
+  // requiring the env var to be set in every deployment.
+  it('defaults to OpenAI when AI_MC_PROVIDER is unset', async () => {
+    delete process.env.AI_MC_PROVIDER;
+    fetchMock.mockResolvedValue(openaiResponse('Hi from default'));
+    const res = await POST(makeReq({ songTitle: 'X' }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ text: 'Hi from default' });
+    expect(String(fetchMock.mock.calls[0][0])).toContain('api.openai.com');
+  });
+
+  it('defaults to OpenAI when AI_MC_PROVIDER is the empty string', async () => {
+    process.env.AI_MC_PROVIDER = '';
+    fetchMock.mockResolvedValue(openaiResponse('Hi from empty'));
+    const res = await POST(makeReq({ songTitle: 'X' }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ text: 'Hi from empty' });
+    expect(String(fetchMock.mock.calls[0][0])).toContain('api.openai.com');
+  });
+
+  it('defaults to OpenAI when AI_MC_PROVIDER is only whitespace', async () => {
+    process.env.AI_MC_PROVIDER = '   ';
+    fetchMock.mockResolvedValue(openaiResponse('Hi from spaces'));
+    const res = await POST(makeReq({ songTitle: 'X' }));
+    expect(res.status).toBe(200);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('api.openai.com');
+  });
+
   it('returns OpenAI text on success', async () => {
     process.env.AI_MC_PROVIDER = 'openai';
     fetchMock.mockResolvedValue(openaiResponse('Welcome to the show!'));

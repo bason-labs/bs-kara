@@ -2,6 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Commit conventions
+
+Commit messages must contain ONLY a Conventional Commits subject and an
+optional body that describes the change. The sole author must be the user.
+
+DO NOT add any of the following to commit messages:
+- `Co-Authored-By: Claude` (or any other Claude / Anthropic identity)
+- `🤖 Generated with Claude Code` (or any variant)
+- Any trailer, signature, or footer attributing the commit to Claude or
+  Anthropic
+
+This applies to every `git commit` (and amend / rebase) made in this
+repository — no exceptions, even when the user explicitly approves a
+change. If unsure, omit attribution.
+
 ## Commands
 
 ```bash

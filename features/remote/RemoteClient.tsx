@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import { LogOut, Search, ListMusic, Settings } from 'lucide-react';
 import { useRoom } from '@/hooks/useRoom';
@@ -11,7 +12,6 @@ import { SearchPanel } from '@/features/remote/components/SearchPanel';
 import { ClientQueue } from '@/features/remote/components/ClientQueue';
 import { RemoteControls } from '@/features/remote/components/RemoteControls';
 import { EmojiPad } from '@/features/remote/components/EmojiPad';
-import { SettingsSheet } from '@/features/remote/components/SettingsSheet';
 import { NowPlayingCard } from '@/features/remote/components/NowPlayingCard';
 import { FullscreenPlayer } from '@/features/remote/components/FullscreenPlayer';
 import { NeonOrbs } from '@/features/remote/components/NeonOrbs';
@@ -22,6 +22,20 @@ import { JoinForm } from '@/features/remote/components/JoinForm';
 import { useRoomGate } from '@/features/remote/hooks/useRoomGate';
 import { useRequesterDialog } from '@/features/remote/hooks/useRequesterDialog';
 import { useQueuedMap } from '@/features/remote/hooks/useQueuedMap';
+
+// SettingsSheet pulls in VoicePicker + AutoRandomSection + the rest of the
+// settings tree (~28 KB minified). Lazy-load it on first gear-icon click so
+// the queue/search-tab cold path doesn't pay for it. After first mount the
+// component stays in the tree (gated by hasOpenedSettings below) so
+// subsequent opens are byte-identical to before — same inert={!open} +
+// slide-up transition path.
+const SettingsSheet = dynamic(
+  () =>
+    import('@/features/remote/components/SettingsSheet').then((m) => ({
+      default: m.SettingsSheet,
+    })),
+  { ssr: false },
+);
 
 type Tab = 'search' | 'queue';
 
@@ -41,6 +55,10 @@ function RemoteInner() {
   const [tab, setTab] = useState<Tab>('search');
   const [playerOpen, setPlayerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Latches true on the first gear-icon click and stays true for the rest of
+  // the session. Gates the dynamic-imported SettingsSheet so it doesn't
+  // mount (and doesn't fetch its chunk) until the user actually opens it.
+  const [hasOpenedSettings, setHasOpenedSettings] = useState(false);
   const {
     roomData,
     isLoading,
@@ -249,7 +267,10 @@ function RemoteInner() {
 
         <button
           type="button"
-          onClick={() => setSettingsOpen(true)}
+          onClick={() => {
+            setHasOpenedSettings(true);
+            setSettingsOpen(true);
+          }}
           aria-label={t('settings.openLabel')}
           className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted hover:text-fg hover:bg-surface-2 active:scale-95 transition"
         >
@@ -331,7 +352,7 @@ function RemoteInner() {
               hasHistory={roomData.history.length > 0}
               hasQueue={roomData.queue.length > 0}
               currentPlaying={roomData.currentPlaying}
-              onTogglePlayPause={() => togglePlayPause(roomData.isPlaying)}
+              onTogglePlayPause={togglePlayPause}
               onPrev={playPrevious}
               onNext={playNext}
             />
@@ -395,23 +416,25 @@ function RemoteInner() {
         })}
       </nav>
 
-      <SettingsSheet
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        roomCode={roomCode}
-        autoRandomEnabled={roomData.isAutoRandomMode}
-        filters={roomData.randomFilters}
-        onAutoRandomToggle={setAutoRandomMode}
-        onFiltersChange={setRandomFilters}
-        dragDropEnabled={roomData.dragDropEnabled}
-        onDragDropToggle={setDragDropEnabled}
-        requesterPromptEnabled={roomData.requesterPromptEnabled}
-        onRequesterPromptToggle={setRequesterPromptEnabled}
-        mcEnabled={roomData.isMCEnabled}
-        onMCToggle={setMCEnabled}
-        mcVoice={roomData.mcVoice}
-        onMcVoiceChange={setMcVoice}
-      />
+      {hasOpenedSettings && (
+        <SettingsSheet
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          roomCode={roomCode}
+          autoRandomEnabled={roomData.isAutoRandomMode}
+          filters={roomData.randomFilters}
+          onAutoRandomToggle={setAutoRandomMode}
+          onFiltersChange={setRandomFilters}
+          dragDropEnabled={roomData.dragDropEnabled}
+          onDragDropToggle={setDragDropEnabled}
+          requesterPromptEnabled={roomData.requesterPromptEnabled}
+          onRequesterPromptToggle={setRequesterPromptEnabled}
+          mcEnabled={roomData.isMCEnabled}
+          onMCToggle={setMCEnabled}
+          mcVoice={roomData.mcVoice}
+          onMcVoiceChange={setMcVoice}
+        />
+      )}
 
       <RequesterDialog
         key={dialogKey}

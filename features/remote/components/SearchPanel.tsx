@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, FormEvent } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, FormEvent } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowUpLeft, History, Mic, Search, SearchX, X } from 'lucide-react';
@@ -12,6 +12,74 @@ import { useVoiceSearch } from '@/features/remote/hooks/useVoiceSearch';
 import { useHotHits } from '@/features/remote/hooks/useHotHits';
 import { SongSkeleton } from './SongSkeleton';
 import { AddToQueueButton } from './AddToQueueButton';
+
+// Hoisted out of the render function so the array isn't recreated on every
+// keystroke. The contents (8 nulls) are never read — only the length is
+// used to spread into 8 SongSkeleton elements.
+const SEARCH_SKELETONS = Array.from({ length: 8 });
+
+interface SearchResultsProps {
+  results: YouTubeVideo[];
+  isQueueLoading: boolean;
+  queuedMap?: Map<string, string>;
+  currentPlayingId?: string | null;
+  onAdd: (video: YouTubeVideo) => void;
+  onRemove?: (queueId: string) => void;
+}
+
+// React.memo so the up-to-15 result cards (each with an <Image>) don't
+// re-render on unrelated SearchPanel state changes (typing, focus, etc.).
+// Memo's shallow check covers all six props; the parent already passes
+// reference-stable values: results is local state, queuedMap is useMemo,
+// the rest are primitives or useCallback'd functions.
+const SearchResults = memo(function SearchResults({
+  results,
+  isQueueLoading,
+  queuedMap,
+  currentPlayingId,
+  onAdd,
+  onRemove,
+}: SearchResultsProps) {
+  return (
+    <>
+      {results.map((video) => (
+        <div
+          key={video.id}
+          className="flex gap-3 p-3 bg-surface rounded-lg border border-border hover:border-glow/40 transition-colors"
+        >
+          <div className="relative w-28 h-16 flex-shrink-0 rounded overflow-hidden bg-surface-2">
+            <Image
+              src={video.thumbnail}
+              alt={video.title}
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          </div>
+
+          <div className="flex flex-col justify-between flex-1 min-w-0">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-fg line-clamp-2 leading-tight">
+                {video.title}
+              </p>
+              <p className="text-xs text-muted mt-0.5 truncate">{video.channel}</p>
+            </div>
+            <div className="flex items-center justify-end mt-2">
+              <AddToQueueButton
+                video={video}
+                isQueueLoading={isQueueLoading}
+                queuedMap={queuedMap}
+                currentPlayingId={currentPlayingId}
+                onAdd={onAdd}
+                onRemove={onRemove}
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+});
 
 interface SearchPanelProps {
   onAdd: (video: YouTubeVideo) => void;
@@ -410,7 +478,7 @@ export function SearchPanel({
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {(isInitialLoading || loading) &&
-          Array.from({ length: 8 }).map((_, i) => <SongSkeleton key={i} />)}
+          SEARCH_SKELETONS.map((_, i) => <SongSkeleton key={i} />)}
 
         {!isInitialLoading && !loading && showingHotHits && displayedResults.length > 0 && (
           <div className="flex items-center gap-2 px-1 pb-1">
@@ -432,41 +500,16 @@ export function SearchPanel({
           </div>
         )}
 
-        {!isInitialLoading && !loading && displayedResults.map((video) => (
-          <div
-            key={video.id}
-            className="flex gap-3 p-3 bg-surface rounded-lg border border-border hover:border-glow/40 transition-colors"
-          >
-            <div className="relative w-28 h-16 flex-shrink-0 rounded overflow-hidden bg-surface-2">
-              <Image
-                src={video.thumbnail}
-                alt={video.title}
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
-
-            <div className="flex flex-col justify-between flex-1 min-w-0">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-fg line-clamp-2 leading-tight">
-                  {video.title}
-                </p>
-                <p className="text-xs text-muted mt-0.5 truncate">{video.channel}</p>
-              </div>
-              <div className="flex items-center justify-end mt-2">
-                <AddToQueueButton
-                  video={video}
-                  isQueueLoading={isQueueLoading}
-                  queuedMap={queuedMap}
-                  currentPlayingId={currentPlayingId}
-                  onAdd={onAdd}
-                  onRemove={onRemove}
-                />
-              </div>
-            </div>
-          </div>
-        ))}
+        {!isInitialLoading && !loading && (
+          <SearchResults
+            results={displayedResults}
+            isQueueLoading={isQueueLoading}
+            queuedMap={queuedMap}
+            currentPlayingId={currentPlayingId}
+            onAdd={onAdd}
+            onRemove={onRemove}
+          />
+        )}
       </div>
     </div>
   );

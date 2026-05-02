@@ -6,7 +6,7 @@ vi.mock('next/cache', () => ({
   unstable_cache: <T extends (...args: unknown[]) => unknown>(fn: T) => fn,
 }));
 
-import { GET } from './route';
+import { GET, __resetKeyCursorForTests } from './route';
 
 function makeReq(q: string) {
   return new NextRequest(`http://localhost/api/youtube/search?q=${encodeURIComponent(q)}`);
@@ -18,6 +18,7 @@ beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
   process.env.YOUTUBE_API_KEYS = 'key-1,key-2,key-3';
+  __resetKeyCursorForTests();
 });
 
 afterEach(() => {
@@ -76,6 +77,41 @@ describe('GET /api/youtube/search', () => {
     const calls = fetchMock.mock.calls.map(([u]) => String(u));
     expect(calls[0]).toContain('key=key-1');
     expect(calls[1]).toContain('key=key-2');
+  });
+
+  // Regression: once key-1 returns 403, subsequent cache-cold requests should
+  // skip it instead of burning a wasted call on it every time. The route
+  // remembers the last-good index across requests within a warm function
+  // instance.
+  it('does not re-burn a 403\'d key on subsequent requests', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // First request: key-1 exhausted (403), key-2 succeeds. 2 fetches.
+    fetchMock
+      .mockResolvedValueOnce({ ok: false, status: 403, json: async () => ({}) })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ items: [ytItem('aaa')] }),
+      });
+    const first = await GET(makeReq('first-query'));
+    expect(first.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    // Second request (different query so unstable_cache is irrelevant): the
+    // route should start at key-2 directly. With the bug it starts at key-1
+    // and the third upstream call URL would contain `key=key-1`. Fixed: the
+    // third upstream call goes straight to `key=key-2`.
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ items: [ytItem('bbb')] }),
+    });
+    const second = await GET(makeReq('second-query'));
+    expect(second.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const calls = fetchMock.mock.calls.map(([u]) => String(u));
+    expect(calls[2]).toContain('key=key-2');
+    expect(calls[2]).not.toContain('key=key-1');
   });
 
   it('returns 429 quota_exhausted when every key returns 403', async () => {

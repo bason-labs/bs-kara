@@ -47,6 +47,16 @@ type YouTubeApiItem = {
   };
 };
 
+// Module-scope cursor remembers which key last succeeded so subsequent
+// cache-cold requests in the same warm function instance skip keys that
+// are already known to be 403'd. Resets back to 0 once the cursor advances
+// past the configured key list (e.g. env rotation, new key appended).
+let nextKeyIndex = 0;
+
+export function __resetKeyCursorForTests() {
+  nextKeyIndex = 0;
+}
+
 async function tryAllKeys(query: string): Promise<YouTubeVideo[]> {
   const keys = loadKeys();
   if (keys.length === 0) {
@@ -61,7 +71,10 @@ async function tryAllKeys(query: string): Promise<YouTubeVideo[]> {
     q: `${query} karaoke beat`,
   };
 
-  for (let i = 0; i < keys.length; i++) {
+  // Start at the last-known-good cursor; clamp if the env shrunk under us.
+  const start = nextKeyIndex < keys.length ? nextKeyIndex : 0;
+  for (let n = 0; n < keys.length; n++) {
+    const i = (start + n) % keys.length;
     const params = new URLSearchParams({ ...baseParams, key: keys[i] });
     const res = await fetch(`${YOUTUBE_ENDPOINT}?${params}`, { cache: 'no-store' });
 
@@ -73,6 +86,7 @@ async function tryAllKeys(query: string): Promise<YouTubeVideo[]> {
       throw new Error(`YouTube API returned ${res.status}`);
     }
 
+    nextKeyIndex = i;
     const data: { items?: YouTubeApiItem[] } = await res.json();
     return (data.items ?? []).map((item) => ({
       id: item.id.videoId,
