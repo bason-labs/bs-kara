@@ -156,6 +156,47 @@ describe('useMCPlayer', () => {
     await waitFor(() => expect(result.current.isMcGated).toBe(false));
   });
 
+  // Regression: a fast skip-skip-skip used to leave the prior song's
+  // /api/generate-mc fetch in flight (the existing cancelled-flag prevented
+  // setState clobbering, but the network call still ran to completion).
+  // After the fix, the effect cleanup aborts the in-flight fetch's signal so
+  // the upstream call is actually cancelled.
+  it('aborts the in-flight live MC fetch when the song changes', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    fetchMock.mockImplementation((_url, init) => {
+      capturedSignal = (init as { signal?: AbortSignal } | undefined)?.signal;
+      // Never-resolving promise so the fetch stays in flight until aborted.
+      return new Promise(() => {});
+    });
+
+    const { rerender } = renderHook(
+      (props: Parameters<typeof useMCPlayer>[0]) => useMCPlayer(props),
+      {
+        initialProps: {
+          isMCEnabled: true,
+          // No mcText → the hook falls through to /api/generate-mc after the
+          // 4s poll budget expires.
+          currentPlaying: song({ id: 'first' }),
+          ready: true,
+        } as Parameters<typeof useMCPlayer>[0],
+      },
+    );
+
+    // Wait for the live fetch to be issued (after the 4s poll budget).
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled(), { timeout: 6000 });
+    expect(capturedSignal).toBeDefined();
+    expect(capturedSignal!.aborted).toBe(false);
+
+    // Song change → effect cleanup must abort the in-flight fetch's signal.
+    rerender({
+      isMCEnabled: true,
+      currentPlaying: song({ id: 'second', mcText: 'next' }),
+      ready: true,
+    });
+
+    await waitFor(() => expect(capturedSignal!.aborted).toBe(true));
+  }, 10000);
+
   it('clears state when currentPlaying becomes null', async () => {
     const { result, rerender } = renderHook(
       (props: Parameters<typeof useMCPlayer>[0]) => useMCPlayer(props),

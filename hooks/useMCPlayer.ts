@@ -136,6 +136,12 @@ export function useMCPlayer({
     }
 
     let cancelled = false;
+    // Per-effect controller bound to the live MC fetch signal. Cleanup
+    // aborts it so a fast song change cancels the in-flight upstream call
+    // instead of letting it run to completion (or wait out the 6s timeout).
+    // Combined with the timeout via AbortSignal.any so whichever fires first
+    // wins.
+    const liveFetchController = new AbortController();
     setMcGateForId(songId);
     setMcText(null);
 
@@ -194,7 +200,7 @@ export function useMCPlayer({
         const live = await fetchLiveMcText(
           cp.title,
           cp.requesterName?.trim() || null,
-          AbortSignal.timeout(6000),
+          AbortSignal.any([liveFetchController.signal, AbortSignal.timeout(6000)]),
         );
         if (cancelled) return;
         text = live;
@@ -218,6 +224,7 @@ export function useMCPlayer({
 
     return () => {
       cancelled = true;
+      liveFetchController.abort();
       cancelSpeech();
       // If the effect was cancelled before it could clear the gate (e.g.
       // a song change interrupting an in-flight announcement), reset both
