@@ -142,4 +142,104 @@ describe('POST /api/generate-mc', () => {
     const res = await POST(makeReq({ songTitle: 'X' }));
     expect(res.status).toBe(502);
   });
+
+  // Regression: when the user enters more than one singer (e.g. "Nguyễn Văn A,
+  // Nguyễn Văn B"), the model used to receive a single `Tên ca sĩ: "..."`
+  // slot framed by a singular persona and would often introduce only the first
+  // name. The user prompt must now enumerate every singer and explicitly
+  // instruct the model to introduce all of them.
+  function getOpenAIUserMessage(): string {
+    const init = fetchMock.mock.calls[0][1] as { body: string };
+    const parsed = JSON.parse(init.body) as {
+      messages: { role: string; content: string }[];
+    };
+    const userMsg = parsed.messages.find((m) => m.role === 'user');
+    return userMsg?.content ?? '';
+  }
+
+  it('introduces every singer when multiple comma-separated names are provided', async () => {
+    process.env.AI_MC_PROVIDER = 'openai';
+    fetchMock.mockResolvedValue(openaiResponse('intro for both'));
+    await POST(
+      makeReq({ songTitle: 'X', singerName: 'Nguyễn Văn A, Nguyễn Văn B' }),
+    );
+    const userMsg = getOpenAIUserMessage();
+    expect(userMsg).toContain('Nguyễn Văn A');
+    expect(userMsg).toContain('Nguyễn Văn B');
+    expect(userMsg).toMatch(/2/);
+    expect(userMsg.toLowerCase()).toMatch(/tất cả|all/);
+  });
+
+  it('introduces every singer when names are joined by "&" or "và"', async () => {
+    process.env.AI_MC_PROVIDER = 'openai';
+    fetchMock.mockResolvedValue(openaiResponse('ok'));
+    await POST(
+      makeReq({ songTitle: 'X', singerName: 'An & Bình và Cường' }),
+    );
+    const userMsg = getOpenAIUserMessage();
+    expect(userMsg).toContain('An');
+    expect(userMsg).toContain('Bình');
+    expect(userMsg).toContain('Cường');
+    expect(userMsg).toMatch(/3/);
+    expect(userMsg.toLowerCase()).toMatch(/tất cả|all/);
+  });
+
+  it('keeps the single-singer prompt shape when only one name is provided', async () => {
+    process.env.AI_MC_PROVIDER = 'openai';
+    fetchMock.mockResolvedValue(openaiResponse('ok'));
+    await POST(makeReq({ songTitle: 'X', singerName: 'Nguyễn Văn A' }));
+    const userMsg = getOpenAIUserMessage();
+    expect(userMsg).toContain('Tên ca sĩ: "Nguyễn Văn A"');
+  });
+
+  function getOpenAISystemMessage(): string {
+    const init = fetchMock.mock.calls[0][1] as { body: string };
+    const parsed = JSON.parse(init.body) as {
+      messages: { role: string; content: string }[];
+    };
+    return parsed.messages.find((m) => m.role === 'system')?.content ?? '';
+  }
+
+  // Locks in the style-rotation persona so a future "tighten the prompt"
+  // pass can't silently flatten the MC back to a generic single-style voice.
+  // Without this, users complained the MC never produced poetry or other
+  // creative styles even though the persona claimed it could.
+  it('mandates style rotation with a concrete style menu in the system prompt', async () => {
+    process.env.AI_MC_PROVIDER = 'openai';
+    fetchMock.mockResolvedValue(openaiResponse('ok'));
+    await POST(makeReq({ songTitle: 'X' }));
+    const sys = getOpenAISystemMessage();
+    expect(sys).toMatch(/lục bát/i);
+    // At least two additional distinct creative styles must remain in the
+    // menu, otherwise variety collapses.
+    const otherStyles = ['rap', 'gen z', 'bóng đá', 'tin nóng', 'đám cưới', 'kiếm hiệp'];
+    const matched = otherStyles.filter((s) => sys.toLowerCase().includes(s));
+    expect(matched.length).toBeGreaterThanOrEqual(2);
+  });
+
+  // Users complained the MC announcements ended without inviting the singer
+  // to the stage ("just floats off without a 'your turn' cue"). The persona
+  // must require a closing invitation phrase and supply a varied sample bank
+  // so the model rotates phrases instead of always saying "Xin mời".
+  it('requires a closing invitation phrase with a varied sample bank', async () => {
+    process.env.AI_MC_PROVIDER = 'openai';
+    fetchMock.mockResolvedValue(openaiResponse('ok'));
+    await POST(makeReq({ songTitle: 'X' }));
+    const sys = getOpenAISystemMessage();
+    // The rule itself
+    expect(sys.toLowerCase()).toMatch(/mời.*lên sân khấu|câu mời/);
+    // A handful of distinct invitation samples — at least three so the model
+    // has variety to rotate through.
+    const invitationSamples = [
+      'Xin mời',
+      'cất tiếng hót',
+      'Mic là của bạn',
+      'chiến binh ra trận',
+      'toả sáng',
+      'quẩy lên',
+      'vỗ tay đón',
+    ];
+    const matched = invitationSamples.filter((s) => sys.includes(s));
+    expect(matched.length).toBeGreaterThanOrEqual(3);
+  });
 });
