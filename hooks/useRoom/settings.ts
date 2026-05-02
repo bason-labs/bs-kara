@@ -3,6 +3,7 @@
 import { useCallback, type RefObject } from 'react';
 import { ref, push, remove, set, update } from 'firebase/database';
 import { db } from '@/lib/firebase';
+import { getRoomDataPath } from '@/lib/roomPaths';
 import type { RandomFilters } from '@/lib/youtube/types';
 import type { RoomState } from './types';
 
@@ -18,21 +19,21 @@ export function useRoomSettings(
   const resetRoom = useCallback(async () => {
     if (!roomId) return;
     await Promise.all([
-      remove(ref(db, `rooms/${roomId}/queue`)),
-      remove(ref(db, `rooms/${roomId}/currentPlaying`)),
-      remove(ref(db, `rooms/${roomId}/history`)),
-      remove(ref(db, `rooms/${roomId}/playedHistory`)),
-      remove(ref(db, `rooms/${roomId}/isPlaying`)),
+      remove(ref(db, `${getRoomDataPath(roomId)}/queue`)),
+      remove(ref(db, `${getRoomDataPath(roomId)}/currentPlaying`)),
+      remove(ref(db, `${getRoomDataPath(roomId)}/history`)),
+      remove(ref(db, `${getRoomDataPath(roomId)}/playedHistory`)),
+      remove(ref(db, `${getRoomDataPath(roomId)}/isPlaying`)),
       // Marker for connected phones — they compare against the last seen
       // value and pop a "party ended" toast when this jumps forward.
-      set(ref(db, `rooms/${roomId}/lastEndedAt`), Date.now()),
+      set(ref(db, `${getRoomDataPath(roomId)}/lastEndedAt`), Date.now()),
     ]);
   }, [roomId]);
 
   const setAutoRandomMode = useCallback(
     (enabled: boolean) => {
       if (!roomId) return;
-      set(ref(db, `rooms/${roomId}/isAutoRandomMode`), enabled);
+      set(ref(db, `${getRoomDataPath(roomId)}/isAutoRandomMode`), enabled);
     },
     [roomId],
   );
@@ -41,7 +42,7 @@ export function useRoomSettings(
     (filters: Partial<RandomFilters>) => {
       if (!roomId) return;
       const current = roomDataRef.current.randomFilters;
-      update(ref(db, `rooms/${roomId}/randomFilters`), {
+      update(ref(db, `${getRoomDataPath(roomId)}/randomFilters`), {
         type: filters.type ?? current.type,
         tone: filters.tone ?? current.tone,
         genre: filters.genre ?? current.genre,
@@ -53,7 +54,7 @@ export function useRoomSettings(
   const setDragDropEnabled = useCallback(
     (enabled: boolean) => {
       if (!roomId) return;
-      set(ref(db, `rooms/${roomId}/dragDropEnabled`), enabled);
+      set(ref(db, `${getRoomDataPath(roomId)}/dragDropEnabled`), enabled);
     },
     [roomId],
   );
@@ -61,7 +62,7 @@ export function useRoomSettings(
   const setRequesterPromptEnabled = useCallback(
     (enabled: boolean) => {
       if (!roomId) return;
-      set(ref(db, `rooms/${roomId}/requesterPromptEnabled`), enabled);
+      set(ref(db, `${getRoomDataPath(roomId)}/requesterPromptEnabled`), enabled);
     },
     [roomId],
   );
@@ -69,7 +70,7 @@ export function useRoomSettings(
   const setMCEnabled = useCallback(
     (enabled: boolean) => {
       if (!roomId) return;
-      set(ref(db, `rooms/${roomId}/isMCEnabled`), enabled);
+      set(ref(db, `${getRoomDataPath(roomId)}/isMCEnabled`), enabled);
     },
     [roomId],
   );
@@ -78,7 +79,7 @@ export function useRoomSettings(
     (voice: string) => {
       if (!roomId) return;
       if (!voice) return;
-      set(ref(db, `rooms/${roomId}/mcVoice`), voice);
+      set(ref(db, `${getRoomDataPath(roomId)}/mcVoice`), voice);
     },
     [roomId],
   );
@@ -86,7 +87,7 @@ export function useRoomSettings(
   const sendEmoji = useCallback(
     (emoji: string) => {
       if (!roomId) return;
-      push(ref(db, `rooms/${roomId}/emojis`), { emoji, timestamp: Date.now() });
+      push(ref(db, `${getRoomDataPath(roomId)}/emojis`), { emoji, timestamp: Date.now() });
     },
     [roomId],
   );

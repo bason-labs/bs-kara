@@ -3,6 +3,7 @@
 import { useCallback } from 'react';
 import { ref, runTransaction } from 'firebase/database';
 import { db } from '@/lib/firebase';
+import { getRoomDataPath } from '@/lib/roomPaths';
 import type { GenerateMCForQueueItem } from './types';
 
 // Returns the internal generator (consumed by queue mutations) plus the
@@ -35,7 +36,7 @@ export function useRoomMC(roomId: string | null) {
         // resurrected with only { mcText } — that would leave a zombie
         // entry with no id/title/thumbnail.
         const queueResult = await runTransaction(
-          ref(db, `rooms/${currentRoomId}/queue/${queueId}`),
+          ref(db, `${getRoomDataPath(currentRoomId)}/queue/${queueId}`),
           (current) => {
             if (current === null) return undefined; // node deleted — abort
             return { ...current, mcText: text };
@@ -47,7 +48,7 @@ export function useRoomMC(roomId: string | null) {
         // currentPlaying iff its id still matches (avoids clobbering the
         // line with a stale write after the next song has started).
         await runTransaction(
-          ref(db, `rooms/${currentRoomId}/currentPlaying`),
+          ref(db, `${getRoomDataPath(currentRoomId)}/currentPlaying`),
           (current) => {
             if (!current || current.id !== videoId) return undefined;
             return { ...current, mcText: text };
@@ -68,7 +69,7 @@ export function useRoomMC(roomId: string | null) {
     async (songId: string): Promise<boolean> => {
       if (!roomId) return false;
       const result = await runTransaction(
-        ref(db, `rooms/${roomId}/lastAnnouncedSongId`),
+        ref(db, `${getRoomDataPath(roomId)}/lastAnnouncedSongId`),
         (current) => {
           if (current === songId) return undefined; // already claimed → abort
           return songId;

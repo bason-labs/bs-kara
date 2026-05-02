@@ -3,6 +3,7 @@
 import { useCallback, type RefObject } from 'react';
 import { ref, set } from 'firebase/database';
 import { db } from '@/lib/firebase';
+import { getRoomDataPath } from '@/lib/roomPaths';
 import { arrayToRecord, type RoomState } from './types';
 
 export function useRoomHistory(
@@ -17,7 +18,10 @@ export function useRoomHistory(
       const existing = roomDataRef.current.playedHistory;
       if (existing.includes(videoId)) return;
       const next = [...existing, videoId];
-      await set(ref(db, `rooms/${roomId}/playedHistory`), arrayToRecord(next));
+      await set(
+        ref(db, `${getRoomDataPath(roomId)}/playedHistory`),
+        arrayToRecord(next),
+      );
     },
     [roomId, roomDataRef],
   );
