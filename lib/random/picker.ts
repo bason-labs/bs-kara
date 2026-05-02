@@ -1,4 +1,5 @@
 import type { Genre, RandomFilters, YouTubeVideo } from '../youtube/types';
+import { normalizeDiacritics } from '../text/normalize';
 import { getSongPool } from './songPools';
 
 // Translates filter selections into Vietnamese search keywords. The BFF
@@ -34,17 +35,6 @@ export function pickRandomTitle(
   return final[Math.floor(Math.random() * final.length)];
 }
 
-// Strips Vietnamese diacritics so "Tone Nữ" matches "tone nu". Used by both
-// the filter matcher and any caller that needs a loose, case-insensitive
-// comparison against YouTube titles (which may or may not include marks).
-function normalizeText(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim();
-}
-
 // Common Vietnamese title keywords that signal each filter condition. Many
 // karaoke uploaders use varied phrasing — we accept any of these as a match.
 const TYPE_KEYWORDS: Record<RandomFilters['type'], string[]> = {
@@ -78,7 +68,7 @@ export function scoreVideoAgainstFilters(
   video: YouTubeVideo,
   filters: RandomFilters,
 ): number {
-  const haystack = normalizeText(`${video.title} ${video.channel}`);
+  const haystack = normalizeDiacritics(`${video.title} ${video.channel}`);
   let score = 0;
 
   if (filters.type !== 'all') {

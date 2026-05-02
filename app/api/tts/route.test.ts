@@ -3,7 +3,9 @@ import { NextRequest } from 'next/server';
 import { POST } from './route';
 
 function makeReq(body?: unknown) {
-  const init: RequestInit = body !== undefined
+  // Inferred init type avoids DOM RequestInit's `signal: ... | null` shape
+  // which NextRequest's stricter type rejects.
+  const init = body !== undefined
     ? { method: 'POST', body: typeof body === 'string' ? body : JSON.stringify(body) }
     : { method: 'POST' };
   return new NextRequest('http://localhost/api/tts', init);

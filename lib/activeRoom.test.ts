@@ -8,21 +8,18 @@ vi.mock('firebase/database', () => ({
   onValue: vi.fn(),
 }));
 
-import { get, onValue, runTransaction } from 'firebase/database';
+import { onValue, runTransaction } from 'firebase/database';
 import {
   claimOrGetActiveRoom,
   clearActiveRoomIfMatches,
-  getActiveRoom,
   subscribeActiveRoom,
 } from './activeRoom';
 
 const runTx = runTransaction as unknown as ReturnType<typeof vi.fn>;
-const getMock = get as unknown as ReturnType<typeof vi.fn>;
 const onValueMock = onValue as unknown as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   runTx.mockReset();
-  getMock.mockReset();
   onValueMock.mockReset();
 });
 
@@ -55,18 +52,6 @@ describe('claimOrGetActiveRoom', () => {
     });
     const code = await claimOrGetActiveRoom();
     expect(code).toBe('9999');
-  });
-});
-
-describe('getActiveRoom', () => {
-  it('returns the value when the snapshot exists', async () => {
-    getMock.mockResolvedValue({ exists: () => true, val: () => '1234' });
-    expect(await getActiveRoom()).toBe('1234');
-  });
-
-  it('returns null when the snapshot is missing', async () => {
-    getMock.mockResolvedValue({ exists: () => false, val: () => null });
-    expect(await getActiveRoom()).toBeNull();
   });
 });
 

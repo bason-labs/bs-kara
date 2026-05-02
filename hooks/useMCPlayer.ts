@@ -76,6 +76,7 @@ export function useMCPlayer({
   // to depend on it — switching voices mid-announcement would otherwise
   // cancel the in-flight speech and re-fetch the line.
   const mcVoiceRef = useRef(mcVoice);
+  // eslint-disable-next-line react-hooks/refs -- intentional prop mirror; effect reads latest synchronously
   mcVoiceRef.current = mcVoice;
   // Lazy init: if MC is set up to fire on this mount, gate the iframe
   // synchronously from render 1. Without this, the YT embed has time to
@@ -98,11 +99,13 @@ export function useMCPlayer({
   // can read fresh title / requesterName / mcText without tripping a
   // re-run every time another field of the room state updates.
   const currentPlayingRef = useRef(currentPlaying);
+  // eslint-disable-next-line react-hooks/refs -- intentional prop mirror; effect reads latest synchronously
   currentPlayingRef.current = currentPlaying;
   // The lock function changes identity on every roomId change. Keeping it
   // in a ref means we don't have to depend on it (which would cancel
   // in-flight announcements every time roomData re-renders).
   const tryClaimRef = useRef(tryClaimAnnouncementLock);
+  // eslint-disable-next-line react-hooks/refs -- intentional prop mirror; effect reads latest synchronously
   tryClaimRef.current = tryClaimAnnouncementLock;
 
   const songId = currentPlaying?.id ?? null;
@@ -116,6 +119,7 @@ export function useMCPlayer({
 
     if (!songId) {
       lastHandledIdRef.current = null;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- transition reset, not a synchronization
       setMcGateForId(null);
       setMcText(null);
       cancelSpeech();

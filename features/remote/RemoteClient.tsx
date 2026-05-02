@@ -1,14 +1,12 @@
 'use client';
 
-import { Suspense, FormEvent, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LogOut, QrCode, Search, ListMusic, Settings } from 'lucide-react';
-import { YouTubeVideo } from '@/lib/youtube/types';
+import { LogOut, Search, ListMusic, Settings } from 'lucide-react';
 import { useRoom } from '@/hooks/useRoom';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
+import { useTransientNotice } from '@/hooks/useTransientNotice';
 import { primeAudio } from '@/hooks/useAIVoice';
-import { claimOrGetActiveRoom, subscribeActiveRoom } from '@/lib/activeRoom';
 import { SearchPanel } from '@/features/remote/components/SearchPanel';
 import { ClientQueue } from '@/features/remote/components/ClientQueue';
 import { RemoteControls } from '@/features/remote/components/RemoteControls';
@@ -17,105 +15,29 @@ import { SettingsSheet } from '@/features/remote/components/SettingsSheet';
 import { NowPlayingCard } from '@/features/remote/components/NowPlayingCard';
 import { FullscreenPlayer } from '@/features/remote/components/FullscreenPlayer';
 import { NeonOrbs } from '@/features/remote/components/NeonOrbs';
-import { OTPInput } from '@/features/remote/components/OTPInput';
 import { ThemeToggle } from '@/features/remote/components/ThemeToggle';
 import { AddedToast } from '@/features/remote/components/AddedToast';
 import { RequesterDialog } from '@/features/remote/components/RequesterDialog';
-
-const LAST_SINGER_KEY = 'lastSingerName';
+import { JoinForm } from '@/features/remote/components/JoinForm';
+import { useRoomGate } from '@/features/remote/hooks/useRoomGate';
+import { useRequesterDialog } from '@/features/remote/hooks/useRequesterDialog';
+import { useQueuedMap } from '@/features/remote/hooks/useQueuedMap';
 
 type Tab = 'search' | 'queue';
 
-const ROOM_CODE_PATTERN = /^\d{4}$/;
-
 function RemoteInner() {
   const { t } = useTranslation();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const rawRoomCode = searchParams.get('room');
-  // The OTP form gates manual entry, but the `?room=` query param bypasses
-  // it. Anything that isn't a 4-digit code is treated as no room (and the
-  // URL is cleaned up in the effect below) so we don't subscribe to a
-  // garbage Firebase path or render the shell with bogus data.
-  const roomCode = rawRoomCode && ROOM_CODE_PATTERN.test(rawRoomCode)
-    ? rawRoomCode
-    : null;
+  const {
+    rawRoomCode,
+    roomCode,
+    activeRoom,
+    pointerLoaded,
+    isCoarsePointer,
+    submitJoin,
+    handleLeave,
+    forgetSavedRoom,
+  } = useRoomGate();
 
-  // Persist the current room code so a fresh tab can restore it on first
-  // load. Runs whenever the URL settles on a valid room.
-  useEffect(() => {
-    if (roomCode) {
-      localStorage.setItem('karaoke_client_room', roomCode);
-    }
-  }, [roomCode]);
-
-  // Restore the last valid saved code only on the initial mount with a bare
-  // `/` URL. Doing this on every navigation to `/` would trap the user: once
-  // they Back out of a room, the effect would immediately redirect them
-  // straight back into it.
-  const restoreCheckedRef = useRef(false);
-  useEffect(() => {
-    if (restoreCheckedRef.current) return;
-    restoreCheckedRef.current = true;
-    if (rawRoomCode) return;
-    const saved = localStorage.getItem('karaoke_client_room');
-    if (saved && ROOM_CODE_PATTERN.test(saved)) {
-      router.replace(`/?room=${saved}`);
-    } else if (saved) {
-      // Clear garbage that may have been persisted before validation existed.
-      localStorage.removeItem('karaoke_client_room');
-    }
-  }, [rawRoomCode, router]);
-
-  // Mobile devices skip the OTP form entirely: they auto-join whichever room
-  // the TV (or a previous phone) has already claimed, or claim a new one if
-  // nobody has yet. Desktops keep the OTP form but get a shortcut button when
-  // a pointer is live. Resolved post-mount so SSR and the first client render
-  // agree (avoids a hydration mismatch when the server returns false but the
-  // device is actually a phone).
-  const [isCoarsePointer, setIsCoarsePointer] = useState<boolean | null>(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsCoarsePointer(window.matchMedia('(pointer: coarse)').matches);
-  }, []);
-
-  const [activeRoom, setActiveRoom] = useState<string | null>(null);
-  const [pointerLoaded, setPointerLoaded] = useState(false);
-  const autoJoinStartedRef = useRef(false);
-
-  // Always subscribe — the not-found panel also needs to know whether
-  // there's an active room so it can offer a "join the open party" shortcut.
-  useEffect(() => {
-    return subscribeActiveRoom((code) => {
-      setActiveRoom(code);
-      setPointerLoaded(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    // Gate on rawRoomCode so a malformed `?room=` value still keeps us on
-    // the not-found panel instead of silently auto-joining the active room.
-    // When we *do* have a room (or aren't on a coarse pointer), reset the
-    // ref so a later "end party" → bounce back to `/` triggers a fresh
-    // claim instead of stranding mobile on the spinner forever.
-    if (rawRoomCode || !isCoarsePointer) {
-      autoJoinStartedRef.current = false;
-      return;
-    }
-    if (autoJoinStartedRef.current) return;
-    autoJoinStartedRef.current = true;
-    let cancelled = false;
-    (async () => {
-      const code = await claimOrGetActiveRoom();
-      if (cancelled) return;
-      router.replace(`/?room=${code}`);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [rawRoomCode, isCoarsePointer, router]);
-
-  const [inputCode, setInputCode] = useState('');
   const [tab, setTab] = useState<Tab>('search');
   const [playerOpen, setPlayerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -181,38 +103,21 @@ function RemoteInner() {
   // via "Về trang chủ" actually lands on home (and doesn't immediately
   // restore the bad code from localStorage).
   useEffect(() => {
-    if (roomMissing) {
-      localStorage.removeItem('karaoke_client_room');
-    }
-  }, [roomMissing]);
+    if (roomMissing) forgetSavedRoom();
+  }, [roomMissing, forgetSavedRoom]);
 
   // Inline toast for transient notices (e.g. "the room you were in has
   // ended"). Lives next to the rest of the home/main UI rather than the
   // not-found panel that used to occupy this space.
-  const [notice, setNotice] = useState<string | null>(null);
-  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showNotice = useCallback((message: string) => {
-    setNotice(message);
-    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
-    noticeTimerRef.current = setTimeout(() => setNotice(null), 4000);
-  }, []);
-  useEffect(() => {
-    return () => {
-      if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
-    };
-  }, []);
+  const { notice, show: showNotice } = useTransientNotice(4000);
 
   // When the TV ends the party (or the URL points at a stale/bad code), drop
-  // back to home and surface a toast so the user understands why. The home
-  // screen already surfaces whatever room is currently active, so they can
-  // rejoin from there if they want to. Translating a Firebase state
-  // transition into UI legitimately requires setState here.
+  // back to home and surface a toast so the user understands why.
   useEffect(() => {
     if (!roomMissing) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     showNotice(t('errors.roomNotFound.message'));
-    router.replace('/');
-  }, [roomMissing, router, showNotice, t]);
+    handleLeave();
+  }, [roomMissing, handleLeave, showNotice, t]);
 
   // End-Party toast: the TV writes `lastEndedAt` when it resets the room.
   // We seed the ref with whatever value Firebase reports on the first
@@ -228,7 +133,6 @@ function RemoteInner() {
     }
     if (value && value !== lastEndedSeenRef.current) {
       lastEndedSeenRef.current = value;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       showNotice(t('tv.endPartyNotice'));
     }
   }, [roomData.lastEndedAt, showNotice, t]);
@@ -239,127 +143,25 @@ function RemoteInner() {
     lastEndedSeenRef.current = undefined;
   }, [roomCode]);
 
-  // Joining is gated by the active-room pointer: a code is only accepted if
-  // it matches the room currently in `meta/activeRoom`. This prevents users
-  // from typing a random 4-digit code and silently landing in an empty,
-  // never-created room.
-  const submitJoin = useCallback(
-    (code: string) => {
-      const trimmed = code.trim();
-      if (trimmed.length !== 4) return;
-      if (!activeRoom || trimmed !== activeRoom) return;
-      router.push(`/?room=${trimmed}`);
-    },
-    [router, activeRoom],
-  );
+  const {
+    handleAddToQueue,
+    handleEditRequester,
+    handleRequesterConfirm,
+    closeRequesterDialog,
+    dialogOpen,
+    dialogMode,
+    dialogKey,
+    dialogInitialName,
+    toastSong,
+    dismissToast,
+  } = useRequesterDialog({
+    addSongToQueue,
+    updateRequesterName,
+    requesterPromptEnabled: roomData.requesterPromptEnabled,
+  });
 
-  function handleJoin(e: FormEvent) {
-    e.preventDefault();
-    submitJoin(inputCode);
-  }
-
-  const codeMismatch =
-    pointerLoaded && inputCode.length === 4 && inputCode !== activeRoom;
-  const canSubmitCode =
-    !!activeRoom && inputCode.length === 4 && inputCode === activeRoom;
-
-  const [toastSong, setToastSong] = useState<YouTubeVideo | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    };
-  }, []);
-
-  // Pending video while the requester dialog is open. Capturing the target
-  // here means the dialog stays decoupled from the search panel — the panel
-  // just fires `onAdd(video)` like before.
-  const [pendingAdd, setPendingAdd] = useState<YouTubeVideo | null>(null);
-  // Edit mode keys off a queue item; null when we're in add mode.
-  const [editingQueueId, setEditingQueueId] = useState<string | null>(null);
-  const [dialogInitialName, setDialogInitialName] = useState('');
-
-  function rememberSinger(name: string) {
-    try {
-      localStorage.setItem(LAST_SINGER_KEY, name);
-    } catch {}
-  }
-
-  function handleAddToQueue(video: YouTubeVideo) {
-    // Honor the room-wide setting: when the prompt is off, skip the dialog
-    // and add the song straight to the queue (no requester attached). The
-    // toast still fires so the user gets feedback.
-    if (!roomData.requesterPromptEnabled) {
-      addSongToQueue(video);
-      setToastSong(video);
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = setTimeout(() => setToastSong(null), 2500);
-      return;
-    }
-    setPendingAdd(video);
-    setEditingQueueId(null);
-    // Each "Add" opens with an empty input — multiple users share one device,
-    // so prefilling with the previous singer would make them backspace every
-    // time. Edit mode still shows the song's current requester (below).
-    setDialogInitialName('');
-  }
-
-  function handleEditRequester(item: { queueId: string; requesterName?: string }) {
-    setPendingAdd(null);
-    setEditingQueueId(item.queueId);
-    setDialogInitialName(item.requesterName ?? '');
-  }
-
-  function closeRequesterDialog() {
-    setPendingAdd(null);
-    setEditingQueueId(null);
-  }
-
-  function handleRequesterConfirm(name: string | null) {
-    if (pendingAdd) {
-      const video = pendingAdd;
-      addSongToQueue(video, name);
-      if (name) rememberSinger(name);
-      setToastSong(video);
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = setTimeout(() => setToastSong(null), 2500);
-    } else if (editingQueueId) {
-      updateRequesterName(editingQueueId, name);
-      if (name) rememberSinger(name);
-    }
-    closeRequesterDialog();
-  }
-
-  const requesterDialogOpen = pendingAdd !== null || editingQueueId !== null;
-  const requesterDialogMode: 'add' | 'edit' = pendingAdd ? 'add' : 'edit';
-  // Tying the key to the current target remounts the dialog each time we open
-  // it for a different song. Guarantees stale local state (a half-typed name
-  // from a previous open) can't survive into the next session.
-  const requesterDialogKey = pendingAdd
-    ? `add-${pendingAdd.id}`
-    : editingQueueId
-      ? `edit-${editingQueueId}`
-      : 'closed';
-
-  // videoId → queueId for songs currently waiting in the queue. Used by
-  // SearchPanel to toggle the "+ Add" / "Added" button into a remove action.
-  // currentPlaying is tracked separately because you can't "un-add" the
-  // song that's playing.
-  const queuedMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const q of roomData.queue) {
-      if (!map.has(q.id)) map.set(q.id, q.queueId);
-    }
-    return map;
-  }, [roomData.queue]);
-
+  const queuedMap = useQueuedMap(roomData.queue);
   const currentPlayingId = roomData.currentPlaying?.id ?? null;
-
-  function handleLeave() {
-    localStorage.removeItem('karaoke_client_room');
-    router.push('/');
-  }
 
   const noticeBanner = notice ? (
     <div className="fixed top-4 inset-x-0 z-[60] flex justify-center px-16 sm:px-4 pointer-events-none">
@@ -403,55 +205,11 @@ function RemoteInner() {
               <p className="text-sm text-muted">{t('home.startingRoom')}</p>
             </div>
           ) : (
-            <form
-              onSubmit={handleJoin}
-              className="w-full flex flex-col items-center gap-6 rounded-3xl border border-border bg-surface/70 backdrop-blur-md p-6 sm:p-8 shadow-glow"
-            >
-              {activeRoom && (
-                <button
-                  type="button"
-                  onClick={() => submitJoin(activeRoom)}
-                  className="w-full py-3 rounded-full border border-border bg-bg/40 text-sm font-medium tracking-wide text-fg hover:bg-bg/60 transition-colors"
-                >
-                  {t('home.joinActiveRoom', { code: activeRoom })}
-                </button>
-              )}
-
-              <label className="w-full text-left text-xs uppercase tracking-[0.25em] text-muted">
-                {t('home.roomCodeLabel')}
-              </label>
-
-              <OTPInput
-                value={inputCode}
-                onChange={setInputCode}
-                onComplete={submitJoin}
-                ariaLabel={t('home.roomCodeLabel')}
-                disabled={pointerLoaded && !activeRoom}
-              />
-
-              {pointerLoaded && !activeRoom ? (
-                <p className="text-xs text-muted text-center leading-relaxed">
-                  {t('home.noActiveRoom')}
-                </p>
-              ) : codeMismatch ? (
-                <p className="text-xs text-danger text-center">
-                  {t('home.invalidCode')}
-                </p>
-              ) : null}
-
-              <button
-                type="submit"
-                disabled={!canSubmitCode}
-                className="w-full py-3.5 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
-              >
-                {t('home.joinButton')}
-              </button>
-
-              <p className="flex items-center gap-2 text-xs text-muted">
-                <QrCode size={14} />
-                {t('home.qrTip')}
-              </p>
-            </form>
+            <JoinForm
+              activeRoom={activeRoom}
+              pointerLoaded={pointerLoaded}
+              onJoin={submitJoin}
+            />
           )}
         </div>
       </main>
@@ -656,10 +414,10 @@ function RemoteInner() {
       />
 
       <RequesterDialog
-        key={requesterDialogKey}
-        open={requesterDialogOpen}
+        key={dialogKey}
+        open={dialogOpen}
         initialName={dialogInitialName}
-        mode={requesterDialogMode}
+        mode={dialogMode}
         onConfirm={handleRequesterConfirm}
         onCancel={closeRequesterDialog}
       />
@@ -668,13 +426,9 @@ function RemoteInner() {
         song={toastSong}
         onViewQueue={() => {
           setTab('queue');
-          setToastSong(null);
-          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+          dismissToast();
         }}
-        onDismiss={() => {
-          setToastSong(null);
-          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-        }}
+        onDismiss={dismissToast}
       />
     </main>
   );

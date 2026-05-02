@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pause, Play, SkipBack, SkipForward, Sparkles, X } from 'lucide-react';
+import { Pause, Play, SkipBack, SkipForward, X } from 'lucide-react';
 import { YouTubeVideo } from '@/lib/youtube/types';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
+import { useMCKickPlay } from '@/hooks/useMCKickPlay';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { EmojiLayer } from '@/components/EmojiLayer';
+import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
 
 interface FullscreenPlayerProps {
   track: YouTubeVideo;
@@ -62,17 +64,11 @@ export function FullscreenPlayer({
     tryClaimAnnouncementLock,
   });
 
-  // When the MC announcement finishes, kick the video back into play.
-  // The iframe was paused throughout the MC, and root isPlaying may have
-  // been false (paused before expand) or echoed false during the MC's
-  // mute/pause dance — either way the user expects the song to start.
-  const wasMcGatedRef = useRef(isMcGated);
-  useEffect(() => {
-    if (wasMcGatedRef.current && !isMcGated) {
-      if (!isPlaying) onPlayingChange?.(true);
-    }
-    wasMcGatedRef.current = isMcGated;
-  }, [isMcGated, isPlaying, onPlayingChange]);
+  // Behavior parity with the TV: kick play after MC ungating.
+  // onPlayingChange is optional so we wrap into a stable no-op fallback.
+  useMCKickPlay(isMcGated, isPlaying, useCallback((next: boolean) => {
+    onPlayingChange?.(next);
+  }, [onPlayingChange]));
 
   // The browser Fullscreen API is entered by the caller (the user-gesture
   // handler that flips playerOpen). Here we just make sure to leave it on
@@ -156,28 +152,12 @@ export function FullscreenPlayer({
           onPlayingChange={isMcGated ? undefined : onPlayingChange}
         />
         {isMcGated && (
-          <div className="absolute inset-0 z-[8] flex flex-col items-center justify-center gap-4 px-6 text-center bg-black">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-pink-500/20 border border-pink-400/40 text-pink-200 text-[10px] uppercase tracking-[0.3em]">
-              <Sparkles size={12} />
-              {t('aiMc.announcing')}
-            </div>
-            <p className="text-xl sm:text-2xl font-bold text-white max-w-2xl line-clamp-3">
-              {track.title}
-            </p>
-            {track.requesterName && (
-              <p className="text-sm text-pink-200">
-                {t('requester.tvLabel')}{' '}
-                <span className="text-white font-semibold">
-                  {track.requesterName}
-                </span>
-              </p>
-            )}
-            {mcText && (
-              <p className="text-xs sm:text-sm text-gray-300 max-w-xl italic">
-                “{mcText}”
-              </p>
-            )}
-          </div>
+          <MCAnnouncementOverlay
+            variant="phone"
+            title={track.title}
+            requesterName={track.requesterName}
+            mcText={mcText ?? undefined}
+          />
         )}
       </div>
 
