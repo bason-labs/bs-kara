@@ -3,11 +3,11 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pause, Play, SkipBack, SkipForward, Sparkles, X } from 'lucide-react';
-import { YouTubeVideo } from '@/lib/youtube';
+import { YouTubeVideo } from '@/lib/youtube/types';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
-import { VideoPlayer } from './host/VideoPlayer';
-import { EmojiLayer } from './host/EmojiLayer';
+import { VideoPlayer } from '@/components/VideoPlayer';
+import { EmojiLayer } from '@/components/EmojiLayer';
 
 interface FullscreenPlayerProps {
   track: YouTubeVideo;

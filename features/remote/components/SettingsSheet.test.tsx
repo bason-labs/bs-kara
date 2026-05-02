@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { RandomFilters } from '@/lib/youtube';
+import type { RandomFilters } from '@/lib/youtube/types';
 
 const previewVoiceMock = vi.fn();
 const cancelMock = vi.fn();
@@ -17,7 +17,7 @@ vi.mock('@/hooks/useAIVoice', () => ({
   DEFAULT_MC_VOICE: 'vi-VN-Neural2-A',
 }));
 
-import { ThemeProvider } from '../ThemeProvider';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import { SettingsSheet } from './SettingsSheet';
 
 const baseFilters: RandomFilters = { type: 'all', tone: 'all', genre: 'all' };

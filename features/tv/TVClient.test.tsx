@@ -81,18 +81,18 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock('../components/host/VideoPlayer', () => ({
+vi.mock('@/components/VideoPlayer', () => ({
   VideoPlayer: (props: Record<string, unknown>) => {
     state.videoPlayerProps = props;
     return <div data-testid="video-player" />;
   },
 }));
 
-vi.mock('../components/host/EmojiLayer', () => ({
+vi.mock('@/components/EmojiLayer', () => ({
   EmojiLayer: () => null,
 }));
 
-vi.mock('../components/ConfirmDialog', () => ({
+vi.mock('@/components/ConfirmDialog', () => ({
   ConfirmDialog: () => null,
 }));
 

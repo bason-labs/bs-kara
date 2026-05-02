@@ -4,23 +4,23 @@ import { Suspense, FormEvent, useState, useEffect, useCallback, useMemo, useRef 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { LogOut, QrCode, Search, ListMusic, Settings } from 'lucide-react';
-import { YouTubeVideo } from '@/lib/youtube';
+import { YouTubeVideo } from '@/lib/youtube/types';
 import { useRoom } from '@/hooks/useRoom';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { primeAudio } from '@/hooks/useAIVoice';
 import { claimOrGetActiveRoom, subscribeActiveRoom } from '@/lib/activeRoom';
-import { SearchPanel } from './components/SearchPanel';
-import { ClientQueue } from './components/ClientQueue';
-import { RemoteControls } from './components/client/RemoteControls';
-import { EmojiPad } from './components/client/EmojiPad';
-import { SettingsSheet } from './components/client/SettingsSheet';
-import { NowPlayingCard } from './components/NowPlayingCard';
-import { FullscreenPlayer } from './components/FullscreenPlayer';
-import { NeonOrbs } from './components/NeonOrbs';
-import { OTPInput } from './components/OTPInput';
-import { ThemeToggle } from './components/ThemeToggle';
-import { AddedToast } from './components/AddedToast';
-import { RequesterDialog } from './components/RequesterDialog';
+import { SearchPanel } from '@/features/remote/components/SearchPanel';
+import { ClientQueue } from '@/features/remote/components/ClientQueue';
+import { RemoteControls } from '@/features/remote/components/RemoteControls';
+import { EmojiPad } from '@/features/remote/components/EmojiPad';
+import { SettingsSheet } from '@/features/remote/components/SettingsSheet';
+import { NowPlayingCard } from '@/features/remote/components/NowPlayingCard';
+import { FullscreenPlayer } from '@/features/remote/components/FullscreenPlayer';
+import { NeonOrbs } from '@/features/remote/components/NeonOrbs';
+import { OTPInput } from '@/features/remote/components/OTPInput';
+import { ThemeToggle } from '@/features/remote/components/ThemeToggle';
+import { AddedToast } from '@/features/remote/components/AddedToast';
+import { RequesterDialog } from '@/features/remote/components/RequesterDialog';
 
 const LAST_SINGER_KEY = 'lastSingerName';
 

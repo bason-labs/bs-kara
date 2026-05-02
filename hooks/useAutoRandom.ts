@@ -1,13 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
-import { searchYouTube } from '@/lib/youtube';
-import type { RandomFilters, YouTubeVideo } from '@/lib/youtube';
+import { searchYouTube } from '@/lib/youtube/client';
+import type { RandomFilters, YouTubeVideo } from '@/lib/youtube/types';
 import {
   buildRandomSearchQuery,
   pickBestVideo,
   pickRandomTitle,
-} from '@/lib/constants';
+} from '@/lib/random/picker';
 
 interface UseAutoRandomParams {
   // Auto-mode is on for the room.

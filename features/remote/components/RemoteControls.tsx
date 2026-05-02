@@ -2,7 +2,7 @@
 
 import { Play, Pause, SkipForward, SkipBack } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { YouTubeVideo } from '@/lib/youtube';
+import { YouTubeVideo } from '@/lib/youtube/types';
 
 interface RemoteControlsProps {
   isPlaying: boolean;

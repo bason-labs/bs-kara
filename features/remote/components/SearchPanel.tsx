@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowUpLeft, Check, History, Mic, Search, SearchX, X } from 'lucide-react';
 import { useDebounce } from 'use-debounce';
-import { searchYouTube, SearchError, YouTubeVideo } from '@/lib/youtube';
+import type { SearchError, YouTubeVideo } from '@/lib/youtube/types';
+import { searchYouTube } from '@/lib/youtube/client';
 import { DEFAULT_HOT_HITS_QUERY } from '@/lib/config';
 import { SongSkeleton } from './SongSkeleton';
 

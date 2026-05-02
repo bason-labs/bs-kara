@@ -1,15 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  BOLERO_SONGS,
-  CA_CO_SONGS,
-  POPULAR_KARAOKE_SONGS,
   buildRandomSearchQuery,
-  getSongPool,
   pickBestVideo,
   pickRandomTitle,
   scoreVideoAgainstFilters,
-} from './constants';
-import type { RandomFilters, YouTubeVideo } from './youtube';
+} from './picker';
+import {
+  BOLERO_SONGS,
+  CA_CO_SONGS,
+  POPULAR_KARAOKE_SONGS,
+  getSongPool,
+} from './songPools';
+import type { RandomFilters, YouTubeVideo } from '../youtube/types';
 
 const baseFilters: RandomFilters = { type: 'all', tone: 'all', genre: 'all' };
 

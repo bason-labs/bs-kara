@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import RemoteClient from './RemoteClient';
+import RemoteClient from '@/features/remote/RemoteClient';
 
 export const metadata: Metadata = {
   title: 'Điều khiển & Chọn bài | BS Kara',

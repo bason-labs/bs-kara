@@ -2,7 +2,7 @@
 
 import { Laptop, Moon, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ThemePreference, useTheme } from './ThemeProvider';
+import { ThemePreference, useTheme } from '@/components/ThemeProvider';
 
 const OPTIONS: { value: ThemePreference; Icon: typeof Sun; labelKey: string }[] = [
   { value: 'light', Icon: Sun, labelKey: 'theme.light' },

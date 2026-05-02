@@ -1,45 +1,4 @@
-export interface YouTubeVideo {
-  id: string;
-  title: string;
-  channel: string;
-  thumbnail: string;
-  duration: string;
-  // Singer's name attached when the song was added to the queue. Optional
-  // because search results don't have one and auto-random picks bypass the
-  // requester prompt entirely.
-  requesterName?: string;
-  // Pre-generated AI MC line. We fire the API call at add-time so the line
-  // is ready by the time the song reaches the top, removing the awkward
-  // gap between the previous song ending and the MC starting to talk.
-  mcText?: string;
-}
-
-export interface QueueItem extends YouTubeVideo {
-  queueId: string;
-}
-
-export type SingerType = 'all' | 'solo' | 'duet';
-export type Tone = 'all' | 'male' | 'female';
-export type Genre = 'all' | 'bolero' | 'caco' | 'tre';
-
-export interface RandomFilters {
-  type: SingerType;
-  tone: Tone;
-  genre: Genre;
-}
-
-export const DEFAULT_RANDOM_FILTERS: RandomFilters = {
-  type: 'all',
-  tone: 'all',
-  genre: 'all',
-};
-
-export type SearchError = 'quota' | 'generic';
-
-export interface SearchResult {
-  videos: YouTubeVideo[];
-  error?: SearchError;
-}
+import type { SearchResult, YouTubeVideo } from './types';
 
 async function searchViaScraper(query: string): Promise<YouTubeVideo[]> {
   try {

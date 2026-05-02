@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/tests/msw/server';
-import { searchYouTube } from './youtube';
+import { searchYouTube } from './client';
 
 describe('searchYouTube', () => {
   it('returns an empty videos array for blank queries', async () => {

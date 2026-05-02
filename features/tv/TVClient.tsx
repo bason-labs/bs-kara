@@ -12,9 +12,9 @@ import { useAutoHide } from '@/hooks/useAutoHide';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
 import { claimOrGetActiveRoom } from '@/lib/activeRoom';
-import { VideoPlayer } from '../components/host/VideoPlayer';
-import { EmojiLayer } from '../components/host/EmojiLayer';
-import { ConfirmDialog } from '../components/ConfirmDialog';
+import { VideoPlayer } from '@/components/VideoPlayer';
+import { EmojiLayer } from '@/components/EmojiLayer';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 export default function TVClient() {
   const { t } = useTranslation();

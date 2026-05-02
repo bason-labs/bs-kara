@@ -2,11 +2,11 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('./host/VideoPlayer', () => ({
+vi.mock('@/components/VideoPlayer', () => ({
   VideoPlayer: () => <div data-testid="yt-stub" />,
 }));
 
-vi.mock('./host/EmojiLayer', () => ({
+vi.mock('@/components/EmojiLayer', () => ({
   EmojiLayer: () => <div data-testid="emoji-layer" />,
 }));
 

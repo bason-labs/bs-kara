@@ -3,9 +3,9 @@
 import { useEffect } from 'react';
 import { Shuffle, Palette, X, Hash, GripVertical, Mic, Sparkles, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { Genre, RandomFilters, SingerType, Tone } from '@/lib/youtube';
+import type { Genre, RandomFilters, SingerType, Tone } from '@/lib/youtube/types';
 import { useAIVoice } from '@/hooks/useAIVoice';
-import { ThemeToggle } from '../ThemeToggle';
+import { ThemeToggle } from './ThemeToggle';
 
 // Spoken inside the settings voice picker so the user hears each candidate
 // in context. Hardcoded in Vietnamese on purpose: every voice in the

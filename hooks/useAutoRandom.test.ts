@@ -1,14 +1,14 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RandomFilters, YouTubeVideo } from '@/lib/youtube';
+import type { RandomFilters, YouTubeVideo } from '@/lib/youtube/types';
 import { useAutoRandom } from './useAutoRandom';
 
-vi.mock('@/lib/youtube', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/youtube')>('@/lib/youtube');
+vi.mock('@/lib/youtube/client', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/youtube/client')>('@/lib/youtube/client');
   return { ...actual, searchYouTube: vi.fn() };
 });
 
-import { searchYouTube } from '@/lib/youtube';
+import { searchYouTube } from '@/lib/youtube/client';
 const search = searchYouTube as unknown as ReturnType<typeof vi.fn>;
 
 const baseFilters: RandomFilters = { type: 'all', tone: 'all', genre: 'all' };

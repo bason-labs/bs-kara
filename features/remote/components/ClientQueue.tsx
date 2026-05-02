@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { GripVertical, ListMusic, Mic, Pencil, Plus, Trash2 } from 'lucide-react';
-import { QueueItem } from '@/lib/youtube';
+import { QueueItem } from '@/lib/youtube/types';
 
 // Flips to true on the first client render (post-hydration), so we don't
 // SSR @hello-pangea/dnd which hates it.

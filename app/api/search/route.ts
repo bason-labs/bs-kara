@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ytSearch from 'yt-search';
-import type { YouTubeVideo } from '@/lib/youtube';
+import type { YouTubeVideo } from '@/lib/youtube/types';
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q') ?? '';

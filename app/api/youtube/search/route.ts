@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
-import type { YouTubeVideo } from '@/lib/youtube';
+import type { YouTubeVideo } from '@/lib/youtube/types';
 
 const YOUTUBE_ENDPOINT = 'https://www.googleapis.com/youtube/v3/search';
 const CACHE_REVALIDATE_SECONDS = 3600;

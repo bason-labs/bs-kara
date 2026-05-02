@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { ThemeProvider } from './ThemeProvider';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import { ThemeToggle } from './ThemeToggle';
 
 function withProvider(ui: React.ReactNode) {

@@ -14,12 +14,18 @@ export default defineConfig({
     setupFiles: ['./tests/setup.tsx'],
     globals: false,
     css: false,
-    include: ['{app,lib,hooks,tests}/**/*.{test,spec}.{ts,tsx}'],
+    include: ['{app,components,features,lib,hooks,tests}/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['e2e/**', 'node_modules/**', '.next/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['app/**/*.{ts,tsx}', 'lib/**/*.ts', 'hooks/**/*.ts'],
+      include: [
+        'app/**/*.{ts,tsx}',
+        'components/**/*.{ts,tsx}',
+        'features/**/*.{ts,tsx}',
+        'lib/**/*.ts',
+        'hooks/**/*.ts',
+      ],
       exclude: [
         'app/**/layout.tsx',
         'app/**/page.tsx',

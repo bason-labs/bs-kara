@@ -16,7 +16,7 @@ import {
   QueueItem,
   RandomFilters,
   YouTubeVideo,
-} from '@/lib/youtube';
+} from '@/lib/youtube/types';
 
 export interface RoomState {
   queue: QueueItem[];
