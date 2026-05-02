@@ -7,7 +7,8 @@
 // route every RTDB path through these helpers so that migration is a
 // mechanical edit instead of a codebase-wide search.
 
-// TODO(multi-room): the singleton active-room pointer disappears once we
+// TODO(multi-room): see docs/architecture-decisions.md ADR-001 for migration plan
+// the singleton active-room pointer disappears once we
 // support concurrent rooms. The remaining caller (`claimOrGetActiveRoom`)
 // will be replaced with per-code attach/create primitives at that point;
 // this helper can be deleted then.

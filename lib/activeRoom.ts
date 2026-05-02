@@ -6,7 +6,8 @@ function generateRoomCode(): string {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
-// TODO(multi-room): atomically returns the active room code, claiming a
+// TODO(multi-room): see docs/architecture-decisions.md ADR-001 for migration plan
+// atomically returns the active room code, claiming a
 // new one if none is set. Once we support concurrent rooms, the singleton
 // pointer goes away — callers should resolve a room directly by code (or
 // create-by-code) instead of relying on a single global slot. Replace
