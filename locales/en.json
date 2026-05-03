@@ -101,7 +101,8 @@
     "pause": "Pause",
     "mute": "Mute",
     "unmute": "Unmute",
-    "idleHint": "Nothing playing yet — pick a song from Search and tap add."
+    "idleHint": "Nothing playing yet — pick a song from Search and tap add.",
+    "idleFullscreenHint": "Waiting for next song — pick one to play"
   },
   "toast": {
     "addedToQueue": "Added to queue",

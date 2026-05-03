@@ -529,9 +529,15 @@ function RemoteInner() {
         </section>
       </div>
 
-      {playerOpen && roomData.currentPlaying && (
+      {/* FullscreenPlayer stays mounted as long as the user has opened it.
+          When `currentPlaying` flips null (song ended, queue empty) the
+          player renders an idle state instead of unmounting, so the user
+          keeps their fullscreen surface and the iframe resumes seamlessly
+          when the next song lands. Only the explicit close button
+          (`onClose`) tears it down. */}
+      {playerOpen && (
         <FullscreenPlayer
-          track={roomData.currentPlaying}
+          track={roomData.currentPlaying ?? null}
           roomId={roomCode}
           isPlaying={roomData.isPlaying}
           volume={roomData.volume}

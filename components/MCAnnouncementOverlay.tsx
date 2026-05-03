@@ -1,6 +1,6 @@
 'use client';
 
-import { Sparkles } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface MCAnnouncementOverlayProps {
@@ -11,6 +11,11 @@ interface MCAnnouncementOverlayProps {
   title: string;
   requesterName?: string;
   mcText?: string;
+  // When provided, render a close button anchored top-right inside the
+  // overlay. The FullscreenPlayer's own top bar is hidden while the MC
+  // gate is active, so the close affordance has to live here for the
+  // user to be able to leave fullscreen mid-announcement.
+  onClose?: () => void;
 }
 
 const VARIANTS = {
@@ -37,11 +42,22 @@ export function MCAnnouncementOverlay({
   title,
   requesterName,
   mcText,
+  onClose,
 }: MCAnnouncementOverlayProps) {
   const { t } = useTranslation();
   const v = VARIANTS[variant];
   return (
     <div className={v.container}>
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={t('player.closeFullscreen')}
+          className="absolute top-[max(0.5rem,env(safe-area-inset-top))] right-3 z-10 shrink-0 w-10 h-10 rounded-full bg-gradient-brand text-white shadow-glow flex items-center justify-center active:scale-95"
+        >
+          <X size={20} strokeWidth={2.4} />
+        </button>
+      )}
       <div className={v.pill}>
         <Sparkles size={v.sparkleSize} />
         {t('aiMc.announcing')}

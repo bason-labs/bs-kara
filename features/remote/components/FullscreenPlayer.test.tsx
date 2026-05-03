@@ -65,6 +65,26 @@ describe('FullscreenPlayer', () => {
     expect(screen.getByText(/Hi!/)).toBeInTheDocument();
   });
 
+  // Regression: the FullscreenPlayer's own top-bar close button is hidden
+  // while the MC is speaking (opacity-0 + pointer-events-none). Without a
+  // close button inside the overlay, the user would be locked into
+  // fullscreen for the duration of the announcement. The overlay receives
+  // `onClose` and renders its own close affordance.
+  it('keeps a close button reachable while the MC is gated', async () => {
+    mockGated = true;
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(<FullscreenPlayer {...baseProps} onClose={onClose} />);
+    const closeButtons = screen.getAllByRole('button', {
+      name: 'player.closeFullscreen',
+    });
+    // The overlay's button is the one that's visually + functionally
+    // reachable while gated (the top-bar button is opacity-0 / pointer-
+    // events-none). Tap it and confirm onClose fires.
+    await user.click(closeButtons[closeButtons.length - 1]);
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('clicking the close button fires onClose', async () => {
     mockGated = false;
     const user = userEvent.setup();
@@ -72,6 +92,47 @@ describe('FullscreenPlayer', () => {
     render(<FullscreenPlayer {...baseProps} onClose={onClose} />);
     await user.click(screen.getByRole('button', { name: 'player.closeFullscreen' }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  // Regression: when a song ends on mobile and the queue is empty, the
+  // FullscreenPlayer must NOT unmount (which would drop the user back to
+  // the RemoteClient). It must stay mounted with an idle placeholder so
+  // the next song added to the queue resumes inside the same surface.
+  describe('idle state (track === null)', () => {
+    it('stays mounted when track transitions from a song to null', () => {
+      mockGated = false;
+      const { container, rerender } = render(<FullscreenPlayer {...baseProps} />);
+      expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+      rerender(<FullscreenPlayer {...baseProps} track={null} />);
+      expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+    });
+
+    it('renders the idle hint and no YouTube iframe when track is null', () => {
+      mockGated = false;
+      render(<FullscreenPlayer {...baseProps} track={null} />);
+      expect(screen.getByText('player.idleFullscreenHint')).toBeInTheDocument();
+      expect(screen.queryByTestId('yt-stub')).not.toBeInTheDocument();
+    });
+
+    it('auto-loads the new video when track transitions from null to a song', () => {
+      mockGated = false;
+      const { rerender } = render(<FullscreenPlayer {...baseProps} track={null} />);
+      expect(screen.queryByTestId('yt-stub')).not.toBeInTheDocument();
+
+      rerender(<FullscreenPlayer {...baseProps} track={baseTrack} />);
+      // The iframe is back (same surface, no unmount of the dialog wrapper).
+      expect(screen.getByTestId('yt-stub')).toBeInTheDocument();
+    });
+
+    it('does not call onClose when track flips to null (only the explicit close button does)', () => {
+      mockGated = false;
+      const onClose = vi.fn();
+      const { rerender } = render(
+        <FullscreenPlayer {...baseProps} onClose={onClose} />,
+      );
+      rerender(<FullscreenPlayer {...baseProps} track={null} onClose={onClose} />);
+      expect(onClose).not.toHaveBeenCalled();
+    });
   });
 
   // Regression: tapping the fullscreen button on mobile should rotate the screen

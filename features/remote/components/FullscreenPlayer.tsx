@@ -11,7 +11,11 @@ import { EmojiLayer } from '@/components/EmojiLayer';
 import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
 
 interface FullscreenPlayerProps {
-  track: YouTubeVideo;
+  // Nullable: the player stays mounted even when no song is loaded so the
+  // user keeps their fullscreen state across song-end / queue-empty
+  // transitions. When a new song lands in currentPlaying the same surface
+  // resumes playback without unmount/remount.
+  track: YouTubeVideo | null;
   roomId: string;
   isPlaying: boolean;
   volume: number;
@@ -267,7 +271,7 @@ export function FullscreenPlayer({
     bump();
   }
 
-  const showCenterControls = !isMcGated && (!isPlaying || chromeVisible);
+  const showCenterControls = !!track && !isMcGated && (!isPlaying || chromeVisible);
 
   return (
     <div
@@ -281,27 +285,39 @@ export function FullscreenPlayer({
           user gesture from the expand tap, so mobile won't block the
           play() that runs after the MC finishes. While the MC speaks we
           pause + mute the iframe and cover it with the announcement
-          overlay. */}
+          overlay.
+
+          When `track` is null the player is idle (song just ended, queue
+          empty) — render a neutral placeholder instead of an iframe.
+          Mounting an iframe with no videoId would either error or load
+          a YouTube error screen. */}
       <div className="absolute inset-0">
-        <VideoPlayer
-          key={track.id}
-          videoId={track.id}
-          onSongEnd={onSongEnd}
-          isPlaying={!isMcGated && isPlaying}
-          volume={isMcGated ? 0 : volume}
-          // Suppress the iframe → React sync while MC is speaking.
-          // The brief PLAYING/PAUSED state ping when autoplay starts and
-          // we immediately pause would otherwise echo back into Firebase
-          // and flip isPlaying to false.
-          onPlayingChange={isMcGated ? undefined : onPlayingChange}
-        />
-        {isMcGated && (
-          <MCAnnouncementOverlay
-            variant="phone"
-            title={track.title}
-            requesterName={track.requesterName}
-            mcText={mcText ?? undefined}
-          />
+        {track ? (
+          <>
+            <VideoPlayer
+              key={track.id}
+              videoId={track.id}
+              onSongEnd={onSongEnd}
+              isPlaying={!isMcGated && isPlaying}
+              volume={isMcGated ? 0 : volume}
+              onPlayingChange={isMcGated ? undefined : onPlayingChange}
+            />
+            {isMcGated && (
+              <MCAnnouncementOverlay
+                variant="phone"
+                title={track.title}
+                requesterName={track.requesterName}
+                mcText={mcText ?? undefined}
+                onClose={onClose}
+              />
+            )}
+          </>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center px-8 text-center">
+            <p className="text-sm sm:text-base text-muted max-w-[320px]">
+              {t('player.idleFullscreenHint')}
+            </p>
+          </div>
         )}
       </div>
 
@@ -328,14 +344,16 @@ export function FullscreenPlayer({
         }`}
       >
         <div className="min-w-0 flex-1 flex">
-          <div className="min-w-0 max-w-full bg-surface/80 backdrop-blur-md border border-border rounded-full px-3 py-1.5 inline-flex items-center gap-2">
-            <span className="shrink-0 text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-glow font-semibold">
-              {t('nowPlaying.label')}
-            </span>
-            <span className="min-w-0 text-xs sm:text-sm text-fg truncate">
-              {track.title}
-            </span>
-          </div>
+          {track && (
+            <div className="min-w-0 max-w-full bg-surface/80 backdrop-blur-md border border-border rounded-full px-3 py-1.5 inline-flex items-center gap-2">
+              <span className="shrink-0 text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-glow font-semibold">
+                {t('nowPlaying.label')}
+              </span>
+              <span className="min-w-0 text-xs sm:text-sm text-fg truncate">
+                {track.title}
+              </span>
+            </div>
+          )}
         </div>
         <button
           type="button"
