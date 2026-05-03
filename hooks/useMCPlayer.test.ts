@@ -18,8 +18,11 @@ vi.mock('./useAIVoice', () => ({
 const fetchMock = vi.fn();
 
 beforeEach(() => {
-  speakMock.mockClear();
-  cancelMock.mockClear();
+  // mockReset clears implementations too; restore the default speak resolver
+  // so tests that don't set their own mock get a no-op success.
+  speakMock.mockReset();
+  speakMock.mockResolvedValue(undefined);
+  cancelMock.mockReset();
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -114,7 +117,14 @@ describe('useMCPlayer', () => {
     await waitFor(() => expect(result.current.isMcGated).toBe(false));
   }, 10000);
 
-  it('skips speech when the lock claim returns false', async () => {
+  // Step 1 of the multi-room coordination migration changed the loser path:
+  // the loser used to release the gate immediately so the iframe could play
+  // (correct for TV+mobile, broken for TV+TV — both TVs would race the lock,
+  // the loser would unmute and start the video while the winner was still
+  // speaking → only one TV showed the overlay).
+  // New behavior: loser keeps the gate up so all clients in the room stay
+  // visually synchronized; only the winner calls speak().
+  it('keeps the overlay gate up when the lock claim returns false', async () => {
     const claim = vi.fn().mockResolvedValue(false);
     const { result } = renderHook(() =>
       useMCPlayer({
@@ -125,8 +135,125 @@ describe('useMCPlayer', () => {
       }),
     );
     await waitFor(() => expect(claim).toHaveBeenCalledWith('s1'));
+    // Gate stays up — this is the new behavior for multi-TV synchronization.
+    await waitFor(() => expect(result.current.isMcGated).toBe(true));
+    expect(speakMock).not.toHaveBeenCalled();
+  });
+
+  it('loser releases the gate via the 12s safety-net timeout', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const claim = vi.fn().mockResolvedValue(false);
+    const { result } = renderHook(() =>
+      useMCPlayer({
+        isMCEnabled: true,
+        currentPlaying: song({ mcText: 'pre' }),
+        ready: true,
+        tryClaimAnnouncementLock: claim,
+      }),
+    );
+    await vi.waitFor(() => expect(claim).toHaveBeenCalled());
+    await vi.waitFor(() => expect(result.current.isMcGated).toBe(true));
+
+    // Advance just under the timeout — gate must still be up.
+    await vi.advanceTimersByTimeAsync(11_999);
+    expect(result.current.isMcGated).toBe(true);
+
+    // Cross the threshold — gate releases.
+    await vi.advanceTimersByTimeAsync(2);
+    await vi.waitFor(() => expect(result.current.isMcGated).toBe(false));
+
+    expect(speakMock).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it('loser releases the gate immediately when currentPlaying becomes null', async () => {
+    const claim = vi.fn().mockResolvedValue(false);
+    const { result, rerender } = renderHook(
+      (props: Parameters<typeof useMCPlayer>[0]) => useMCPlayer(props),
+      {
+        initialProps: {
+          isMCEnabled: true,
+          currentPlaying: song({ mcText: 'pre' }),
+          ready: true,
+          tryClaimAnnouncementLock: claim,
+        } as Parameters<typeof useMCPlayer>[0],
+      },
+    );
+    await waitFor(() => expect(claim).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isMcGated).toBe(true));
+
+    // Song ends + queue empty — currentPlaying flips null.
+    rerender({
+      isMCEnabled: true,
+      currentPlaying: null,
+      ready: true,
+      tryClaimAnnouncementLock: claim,
+    });
     await waitFor(() => expect(result.current.isMcGated).toBe(false));
     expect(speakMock).not.toHaveBeenCalled();
+  });
+
+  // Multi-TV scenario: two useMCPlayer instances mount with the same song.
+  // Both gate (overlay shown on both TVs); the lock fn is shared so only
+  // the first caller wins, second loses. Only the winner calls speak().
+  it('two instances racing the same song: both gate, only winner speaks', async () => {
+    let callsResolved = 0;
+    const claim = vi.fn().mockImplementation(async () => {
+      callsResolved++;
+      return callsResolved === 1; // first caller wins
+    });
+
+    // Hold speak() open so the winner's gate doesn't release before we
+    // get to assert. Real TTS takes 3-6s; the test resolves it manually
+    // after the cross-TV state assertion.
+    let resolveSpeech: () => void = () => {};
+    speakMock.mockImplementation(
+      () =>
+        new Promise<void>((res) => {
+          resolveSpeech = res;
+        }),
+    );
+
+    const tv1 = renderHook(() =>
+      useMCPlayer({
+        isMCEnabled: true,
+        currentPlaying: song({ mcText: 'pre' }),
+        ready: true,
+        tryClaimAnnouncementLock: claim,
+      }),
+    );
+    const tv2 = renderHook(() =>
+      useMCPlayer({
+        isMCEnabled: true,
+        currentPlaying: song({ mcText: 'pre' }),
+        ready: true,
+        tryClaimAnnouncementLock: claim,
+      }),
+    );
+
+    await waitFor(() => expect(claim).toHaveBeenCalledTimes(2));
+    // Exactly one speak() call total — only the winner.
+    await waitFor(() => expect(speakMock).toHaveBeenCalledTimes(1));
+    expect(speakMock).toHaveBeenCalledWith('pre', undefined);
+
+    // While the winner is speaking, BOTH TVs hold the overlay up — this
+    // is the Step 1 fix: the loser used to release here so its iframe
+    // would start playing, leaving only the winner showing the overlay.
+    expect(tv1.result.current.isMcGated).toBe(true);
+    expect(tv2.result.current.isMcGated).toBe(true);
+
+    // Winner's speak() resolves → its gate releases. Loser stays gated
+    // until either the 12s safety net fires or the song changes.
+    resolveSpeech();
+    // Exactly one of the two will release here (the winner). We don't
+    // know which renderHook ran first, so just assert that the winner's
+    // released and the other (loser) is still up.
+    await waitFor(() => {
+      const released =
+        Number(!tv1.result.current.isMcGated) +
+        Number(!tv2.result.current.isMcGated);
+      expect(released).toBe(1);
+    });
   });
 
   it('releases the gate without speaking when both pre and live text are missing', async () => {

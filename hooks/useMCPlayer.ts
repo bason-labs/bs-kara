@@ -142,6 +142,14 @@ export function useMCPlayer({
     // Combined with the timeout via AbortSignal.any so whichever fires first
     // wins.
     const liveFetchController = new AbortController();
+    // Safety-net release for the lock-loser path. When this client loses
+    // the announcement claim we keep the overlay up (so multi-TV rooms
+    // stay visually synchronized — Step 1 of the migration plan) but
+    // cannot directly observe when the winner's speak() finishes. The
+    // timer below releases the gate at the longest plausible
+    // announcement duration. Step 3 will replace this with an explicit
+    // Firebase signal node so the release is precise.
+    let loserReleaseTimer: ReturnType<typeof setTimeout> | null = null;
     setMcGateForId(songId);
     setMcText(null);
 
@@ -162,9 +170,19 @@ export function useMCPlayer({
         won = true;
       }
       if (!won) {
-        // Another device beat us — stay silent and let the video play.
-        setMcGateForId((prev) => (prev === songId ? null : prev));
-        setMcText(null);
+        // Another client (e.g. another TV in the same room) is announcing
+        // this song. Step 1 of the migration plan: keep the overlay up so
+        // all clients in the room stay visually synchronized, but do NOT
+        // call speak() — only the winner speaks. The gate releases via
+        // either the cleanup below (next currentPlaying.id change /
+        // unmount) or the safety-net timer that fires at the longest
+        // plausible announcement length.
+        const LOSER_GATE_TIMEOUT_MS = 12_000;
+        loserReleaseTimer = setTimeout(() => {
+          if (cancelled) return;
+          setMcGateForId((prev) => (prev === songId ? null : prev));
+          setMcText(null);
+        }, LOSER_GATE_TIMEOUT_MS);
         return;
       }
 
@@ -214,7 +232,27 @@ export function useMCPlayer({
         return;
       }
       setMcText(text);
-      await speak(text, mcVoiceRef.current);
+      // Observability for Step 3 timeout tuning. Logs start/end timestamps
+      // and total duration so we can sample the 95th-percentile speech
+      // length from real production usage and replace the 12s loser-gate
+      // safety net with a tighter explicit signal.
+      const speakStart = Date.now();
+      console.log('[mc-tts-duration]', {
+        event: 'start',
+        songId,
+        ts: speakStart,
+      });
+      try {
+        await speak(text, mcVoiceRef.current);
+      } finally {
+        const speakEnd = Date.now();
+        console.log('[mc-tts-duration]', {
+          event: 'end',
+          songId,
+          ts: speakEnd,
+          durationMs: speakEnd - speakStart,
+        });
+      }
       if (cancelled) return;
       // Only release the gate if it's still the song we were announcing —
       // a fast skip could have moved on already.
@@ -224,6 +262,7 @@ export function useMCPlayer({
 
     return () => {
       cancelled = true;
+      if (loserReleaseTimer) clearTimeout(loserReleaseTimer);
       liveFetchController.abort();
       cancelSpeech();
       // If the effect was cancelled before it could clear the gate (e.g.
