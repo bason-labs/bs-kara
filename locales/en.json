@@ -178,7 +178,8 @@
     "addAriaLabel": "Add singer name",
     "addLabel": "Add singer",
     "noneLabel": "No singer assigned",
-    "tvLabel": "Performed by:"
+    "tvLabel": "Performed by:",
+    "saveNameLabel": "Save name for next time"
   },
   "errors": {
     "notFound": {

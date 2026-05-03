@@ -4,10 +4,34 @@ import { useEffect, useRef, useState, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mic } from 'lucide-react';
 
+const SAVED_NAME_KEY = 'savedSingerName';
+const SAVE_ENABLED_KEY = 'saveSingerNameEnabled';
+
+function readSavedName(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    return localStorage.getItem(SAVED_NAME_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function readSaveEnabled(): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    const v = localStorage.getItem(SAVE_ENABLED_KEY);
+    // No prior value → first open ever; default to checked.
+    return v === null ? true : v === 'true';
+  } catch {
+    return true;
+  }
+}
+
 interface RequesterDialogProps {
   open: boolean;
-  // Pre-fills the input. For the add flow this is the last-used name from
-  // localStorage; for the edit flow it's the song's existing requester.
+  // Pre-fills the input. For the add flow this is empty (dialog falls back to
+  // the saved singer name when the user has opted in); for the edit flow it's
+  // the song's existing requester.
   initialName: string;
   // The dialog is reused for both adding a new song and editing an existing
   // requester — `mode` only affects the secondary button's wording (Skip vs
@@ -26,7 +50,11 @@ export function RequesterDialog({
   onCancel,
 }: RequesterDialogProps) {
   const { t } = useTranslation();
-  const [name, setName] = useState(initialName);
+  // Edit mode prefills with the song's current requester; add mode falls back
+  // to the saved name from a previous opt-in. The parent remounts via key, so
+  // the lazy initializer is the only initial-value source we need.
+  const [name, setName] = useState(() => initialName || readSavedName());
+  const [saveEnabled, setSaveEnabled] = useState(readSaveEnabled);
   const inputRef = useRef<HTMLInputElement>(null);
   // The parent remounts this dialog with a fresh `key` whenever the target
   // changes, so by the time we render `open` is already true. Without a
@@ -65,13 +93,30 @@ export function RequesterDialog({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onCancel]);
 
+  function persistSaveSettings(trimmed: string) {
+    try {
+      localStorage.setItem(SAVE_ENABLED_KEY, String(saveEnabled));
+      if (saveEnabled) {
+        // Edge case: don't overwrite an existing saved name with an empty
+        // submit — the user kept the toggle on but didn't type anything, so
+        // they're not asking us to forget the prior name.
+        if (trimmed) localStorage.setItem(SAVED_NAME_KEY, trimmed);
+      } else {
+        localStorage.removeItem(SAVED_NAME_KEY);
+      }
+    } catch {}
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = name.trim();
+    persistSaveSettings(trimmed);
     onConfirm(trimmed || null);
   }
 
   function handleSkip() {
+    // Skip / Clear is "no requester for this song" — keep the save preference
+    // and any previously saved name untouched.
     onConfirm(null);
   }
 
@@ -143,6 +188,16 @@ export function RequesterDialog({
               placeholder={t('requester.placeholder')}
               className="w-full h-11 px-4 text-sm bg-bg text-fg placeholder:text-muted border border-border rounded-full focus:outline-none focus:border-glow focus:ring-1 focus:ring-glow"
             />
+
+            <label className="mt-3 flex items-center gap-2 text-xs text-muted select-none cursor-pointer">
+              <input
+                type="checkbox"
+                checked={saveEnabled}
+                onChange={(e) => setSaveEnabled(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-glow"
+              />
+              <span>{t('requester.saveNameLabel')}</span>
+            </label>
 
             {/* Stacked + full-width on mobile so each button is an easy
                 thumb target; row + auto-width on lg+ keeps the desktop

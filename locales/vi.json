@@ -178,7 +178,8 @@
     "addAriaLabel": "Thêm tên ca sĩ",
     "addLabel": "Tên ca sĩ",
     "noneLabel": "Chưa có tên ca sĩ",
-    "tvLabel": "Trình bày:"
+    "tvLabel": "Trình bày:",
+    "saveNameLabel": "Lưu tên cho lần sau"
   },
   "errors": {
     "notFound": {

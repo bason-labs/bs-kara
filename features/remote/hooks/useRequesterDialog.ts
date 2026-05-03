@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { YouTubeVideo } from '@/lib/youtube/types';
 
-const LAST_SINGER_KEY = 'lastSingerName';
 const TOAST_TIMEOUT_MS = 2500;
 
 interface UseRequesterDialogOptions {
@@ -50,12 +49,6 @@ export function useRequesterDialog({
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
   }, []);
 
-  const rememberSinger = useCallback((name: string) => {
-    try {
-      localStorage.setItem(LAST_SINGER_KEY, name);
-    } catch {}
-  }, []);
-
   const handleAddToQueue = useCallback(
     (video: YouTubeVideo) => {
       // Honor the room-wide setting: when the prompt is off, skip the dialog
@@ -68,9 +61,9 @@ export function useRequesterDialog({
       }
       setPendingAdd(video);
       setEditingQueueId(null);
-      // Each "Add" opens with an empty input — multiple users share one device,
-      // so prefilling with the previous singer would make them backspace every
-      // time. Edit mode still shows the song's current requester (below).
+      // The dialog falls back to the saved singer name itself (gated on the
+      // user's "save for next time" opt-in), so we just hand it an empty
+      // string here. Edit mode still passes the song's current requester.
       setDialogInitialName('');
     },
     [requesterPromptEnabled, addSongToQueue, fireToast],
@@ -95,11 +88,9 @@ export function useRequesterDialog({
       if (pendingAdd) {
         const video = pendingAdd;
         addSongToQueue(video, name);
-        if (name) rememberSinger(name);
         fireToast(video);
       } else if (editingQueueId) {
         updateRequesterName(editingQueueId, name);
-        if (name) rememberSinger(name);
       }
       closeRequesterDialog();
     },
@@ -108,7 +99,6 @@ export function useRequesterDialog({
       editingQueueId,
       addSongToQueue,
       updateRequesterName,
-      rememberSinger,
       fireToast,
       closeRequesterDialog,
     ],

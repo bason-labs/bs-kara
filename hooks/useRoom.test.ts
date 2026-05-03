@@ -102,7 +102,9 @@ describe('useRoom mutations', () => {
   it('addSongToQueue strips undefined requesterName from the payload', () => {
     pushMock.mockReturnValue({ key: 'newKey' });
     const { result } = renderHook(() => useRoom('1234'));
-    emit({});
+    emit({
+      currentPlaying: { id: 'cur', title: 'Cur', channel: '', thumbnail: '', duration: '' },
+    });
     act(() => {
       result.current.addSongToQueue({
         id: 'v',
@@ -120,7 +122,9 @@ describe('useRoom mutations', () => {
   it('addSongToQueue includes requesterName when it is non-empty', () => {
     pushMock.mockReturnValue({ key: 'k1' });
     const { result } = renderHook(() => useRoom('1234'));
-    emit({});
+    emit({
+      currentPlaying: { id: 'cur', title: 'Cur', channel: '', thumbnail: '', duration: '' },
+    });
     act(() => {
       result.current.addSongToQueue(
         { id: 'v', title: 't', channel: '', thumbnail: '', duration: '' },
@@ -128,6 +132,69 @@ describe('useRoom mutations', () => {
       );
     });
     expect(pushMock.mock.calls[0][1]).toMatchObject({ requesterName: 'Alice' });
+  });
+
+  // Regression: previously addSongToQueue always push()-ed to /queue, then a
+  // separate auto-promote effect moved the row to /currentPlaying. Users saw
+  // the song flash in the queue list before reappearing as now-playing. The
+  // fix is a transactional claim of /currentPlaying when it's empty.
+  it('addSongToQueue writes directly to currentPlaying when nothing is playing', async () => {
+    runTransactionMock.mockResolvedValue({ committed: true });
+    const { result } = renderHook(() => useRoom('1234'));
+    emit({}); // no currentPlaying
+    await act(async () => {
+      await result.current.addSongToQueue({
+        id: 'v',
+        title: 't',
+        channel: 'c',
+        thumbnail: 'thumb',
+        duration: '3:00',
+      });
+    });
+    const txCall = runTransactionMock.mock.calls.find(
+      ([r]) => (r as { path: string }).path === 'rooms/1234/currentPlaying',
+    );
+    expect(txCall).toBeDefined();
+    // Update fn: returns the song when current is null, undefined otherwise.
+    const updateFn = txCall![1] as (cur: unknown) => unknown;
+    expect(updateFn(null)).toMatchObject({ id: 'v', title: 't', thumbnail: 'thumb' });
+    expect(updateFn({ id: 'other' })).toBeUndefined();
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('addSongToQueue forwards requesterName when claiming currentPlaying directly', async () => {
+    runTransactionMock.mockResolvedValue({ committed: true });
+    const { result } = renderHook(() => useRoom('1234'));
+    emit({});
+    await act(async () => {
+      await result.current.addSongToQueue(
+        { id: 'v', title: 't', channel: '', thumbnail: '', duration: '' },
+        '  Bob  ',
+      );
+    });
+    const txCall = runTransactionMock.mock.calls.find(
+      ([r]) => (r as { path: string }).path === 'rooms/1234/currentPlaying',
+    );
+    const payload = (txCall![1] as (cur: unknown) => Record<string, unknown>)(null);
+    expect(payload).toMatchObject({ requesterName: 'Bob' });
+  });
+
+  it('addSongToQueue falls back to push when the currentPlaying claim loses the race', async () => {
+    runTransactionMock.mockResolvedValue({ committed: false });
+    pushMock.mockReturnValue({ key: 'fallback' });
+    const { result } = renderHook(() => useRoom('1234'));
+    emit({});
+    await act(async () => {
+      await result.current.addSongToQueue({
+        id: 'loser',
+        title: 'Loser',
+        channel: '',
+        thumbnail: '',
+        duration: '',
+      });
+    });
+    expect(pushMock).toHaveBeenCalledTimes(1);
+    expect(pushMock.mock.calls[0][1]).toMatchObject({ id: 'loser' });
   });
 
   it('playNext promotes queue[0] when the queue is non-empty', async () => {

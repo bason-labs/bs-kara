@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, type RefObject } from 'react';
-import { ref, push, remove, set } from 'firebase/database';
+import { ref, push, remove, set, runTransaction } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { getRoomDataPath } from '@/lib/roomPaths';
 import type { QueueItem, YouTubeVideo } from '@/lib/youtube/types';
@@ -15,7 +15,7 @@ export function useRoomQueue(
   generateMCForQueueItem: GenerateMCForQueueItem,
 ) {
   const addSongToQueue = useCallback(
-    (item: YouTubeVideo, requesterName?: string | null) => {
+    async (item: YouTubeVideo, requesterName?: string | null) => {
       if (!roomId) return;
       const trimmed = requesterName?.trim();
       const payload: Omit<QueueItem, 'queueId'> = {
@@ -28,6 +28,32 @@ export function useRoomQueue(
       // Firebase rejects `undefined`; only include the field when there's a
       // real name. Empty strings are treated as "no requester" too.
       if (trimmed) payload.requesterName = trimmed;
+
+      // When nothing is currently playing, claim /currentPlaying atomically
+      // and skip the queue entirely. Without this, the song flashed in the
+      // queue list for one snapshot before the auto-promote effect moved it
+      // to currentPlaying — visually jumpy. The transaction handles the
+      // race where two devices add at the same idle moment: the loser
+      // (committed === false because Firebase saw a non-null value
+      // mid-flight) falls through to the queue path below.
+      if (!roomDataRef.current.currentPlaying) {
+        const result = await runTransaction(
+          ref(db, `${getRoomDataPath(roomId)}/currentPlaying`),
+          (current) => (current ? undefined : payload),
+        );
+        if (result.committed) {
+          if (roomDataRef.current.isMCEnabled) {
+            // No queueId for the direct path. Pass the videoId as a synthetic
+            // key — generateMCForQueueItem's queue transaction will see
+            // `current === null`, abort, and fall through to the
+            // currentPlaying path keyed by videoId, which is exactly what we
+            // want here.
+            generateMCForQueueItem(roomId, item.id, item.id, item.title, trimmed ?? null);
+          }
+          return;
+        }
+      }
+
       const newRef = push(ref(db, `${getRoomDataPath(roomId)}/queue`), payload);
       const newQueueId = newRef.key;
       // Only spend an API call when the host actually wants an MC. Host
