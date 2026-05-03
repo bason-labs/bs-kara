@@ -8,6 +8,12 @@ const state = vi.hoisted(() => ({
   mcText: null as string | null,
   videoPlayerProps: null as Record<string, unknown> | null,
   setIsPlayingMock: vi.fn(),
+  togglePlayPauseMock: vi.fn(),
+  playNextMock: vi.fn(),
+  playPreviousMock: vi.fn(),
+  isPlaying: true as boolean,
+  history: [] as unknown[],
+  queue: [] as unknown[],
   currentPlaying: {
     id: 'abc123',
     title: 'Test Song',
@@ -20,11 +26,11 @@ const state = vi.hoisted(() => ({
 vi.mock('@/hooks/useRoom', () => ({
   useRoom: () => ({
     roomData: {
-      queue: [],
+      queue: state.queue,
       currentPlaying: state.currentPlaying,
-      isPlaying: true,
+      isPlaying: state.isPlaying,
       volume: 80,
-      history: [],
+      history: state.history,
       isAutoRandomMode: false,
       randomFilters: {},
       playedHistory: [],
@@ -37,7 +43,9 @@ vi.mock('@/hooks/useRoom', () => ({
       lastEndedAt: null,
     },
     isLoading: false,
-    playNext: vi.fn(),
+    playNext: state.playNextMock,
+    playPrevious: state.playPreviousMock,
+    togglePlayPause: state.togglePlayPauseMock,
     resetRoom: vi.fn(),
     setIsPlaying: state.setIsPlayingMock,
     addToPlayedHistory: vi.fn(),
@@ -51,7 +59,9 @@ vi.mock('@/hooks/useMCPlayer', () => ({
 }));
 
 vi.mock('@/hooks/useAutoRandom', () => ({ useAutoRandom: () => {} }));
-vi.mock('@/hooks/useAutoHide', () => ({ useAutoHide: () => true }));
+vi.mock('@/hooks/useAutoHide', () => ({
+  useAutoHide: () => ({ visible: true, bump: vi.fn() }),
+}));
 
 vi.mock('@/lib/activeRoom', () => ({
   claimOrGetActiveRoom: vi.fn().mockResolvedValue('1234'),
@@ -106,6 +116,12 @@ describe('TVClient — MC gate / video autoplay', () => {
     state.mcText = null;
     state.videoPlayerProps = null;
     state.setIsPlayingMock = vi.fn();
+    state.togglePlayPauseMock = vi.fn();
+    state.playNextMock = vi.fn();
+    state.playPreviousMock = vi.fn();
+    state.isPlaying = true;
+    state.history = [];
+    state.queue = [];
     state.currentPlaying = {
       id: 'abc123',
       title: 'Test Song',
@@ -258,6 +274,85 @@ describe('TVClient — MC gate / video autoplay', () => {
     expect(state.videoPlayerProps).toMatchObject({
       isPlaying: true,
       volume: 80,
+    });
+  });
+
+  // The TV used to be a passive display — only a fullscreen toggle.
+  // Without transport controls the host had to walk to a phone to skip
+  // or pause, which broke the "TV is the player" mental model.
+  describe('transport controls', () => {
+    async function renderActivated() {
+      const utils = render(<TVClient />);
+      const waiting = await screen.findByRole('button', {
+        name: /waiting room/i,
+      });
+      await act(async () => {
+        waiting.click();
+      });
+      return utils;
+    }
+
+    it('renders prev / play-pause / next when a song is playing and MC is not gating', async () => {
+      await renderActivated();
+      expect(
+        screen.getByRole('button', { name: 'controls.previousLabel' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'controls.pauseLabel' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'controls.nextLabel' }),
+      ).toBeInTheDocument();
+    });
+
+    it('shows the play icon (not pause) when playback is paused', async () => {
+      state.isPlaying = false;
+      await renderActivated();
+      expect(
+        screen.getByRole('button', { name: 'controls.playLabel' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'controls.pauseLabel' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('clicking the play/pause button calls togglePlayPause with the current isPlaying value', async () => {
+      state.isPlaying = true;
+      await renderActivated();
+      await act(async () => {
+        screen.getByRole('button', { name: 'controls.pauseLabel' }).click();
+      });
+      expect(state.togglePlayPauseMock).toHaveBeenCalledWith(true);
+    });
+
+    it('clicking next calls playNext when the queue has items', async () => {
+      state.queue = [{ id: 'next-song' }];
+      await renderActivated();
+      await act(async () => {
+        screen.getByRole('button', { name: 'controls.nextLabel' }).click();
+      });
+      expect(state.playNextMock).toHaveBeenCalled();
+    });
+
+    it('clicking prev calls playPrevious when there is history', async () => {
+      state.history = [{ id: 'prev-song' }];
+      await renderActivated();
+      await act(async () => {
+        screen.getByRole('button', { name: 'controls.previousLabel' }).click();
+      });
+      expect(state.playPreviousMock).toHaveBeenCalled();
+    });
+
+    it('disables prev when there is no history and next when the queue is empty', async () => {
+      state.history = [];
+      state.queue = [];
+      await renderActivated();
+      expect(
+        screen.getByRole('button', { name: 'controls.previousLabel' }),
+      ).toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: 'controls.nextLabel' }),
+      ).toBeDisabled();
     });
   });
 });

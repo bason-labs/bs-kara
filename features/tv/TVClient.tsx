@@ -12,6 +12,7 @@ import { EmojiLayer } from '@/components/EmojiLayer';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
 import { IdleQRCode } from '@/components/IdleQRCode';
+import { TransportControls } from '@/components/TransportControls';
 import { useTVPresence } from '@/features/tv/hooks/useTVPresence';
 import { useEndParty } from '@/features/tv/hooks/useEndParty';
 import { BackdropLayers } from '@/features/tv/components/BackdropLayers';
@@ -29,6 +30,8 @@ export default function TVClient() {
     roomData,
     isLoading,
     playNext,
+    playPrevious,
+    togglePlayPause,
     resetRoom,
     setIsPlaying,
     addToPlayedHistory,
@@ -103,9 +106,21 @@ export default function TVClient() {
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const [isFs, setIsFs] = useState(false);
-  const userActive = useAutoHide(2500);
+  const { visible: userActive } = useAutoHide(2500);
   // While in fullscreen the button auto-hides; otherwise it's always visible.
   const fsButtonVisible = !isFs || userActive;
+  // Transport controls follow the FullscreenPlayer pattern: always visible
+  // while paused (so the user can resume) and tied to userActive while
+  // playing so they don't sit on top of the video forever. Hidden during
+  // the MC gate so the announcement overlay stands alone.
+  const showTransportControls =
+    isInitialized &&
+    !!roomData.currentPlaying &&
+    !isMcGated &&
+    (!roomData.isPlaying || userActive);
+
+  const hasHistory = roomData.history.length > 0;
+  const hasQueue = roomData.queue.length > 0;
 
   useEffect(() => {
     function handleFsChange() {
@@ -208,6 +223,28 @@ export default function TVClient() {
               >
                 {isFs ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
               </button>
+              {/* Center transport: prev / play-pause / next. Mirrors the
+                  FullscreenPlayer layout so the TV behaves like a player,
+                  not a passive display. The MC gate hides this so the
+                  announcement overlay isn't competing with controls. */}
+              {/* Wrapper handles overlay positioning + auto-hide; the
+                  TransportControls children carry their own
+                  pointer-events, so the surrounding div stays
+                  click-through. */}
+              <div
+                className={`absolute inset-0 z-20 flex items-center justify-center gap-5 pointer-events-none [&>button]:pointer-events-auto transition-opacity duration-300 ${
+                  showTransportControls ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                <TransportControls
+                  isPlaying={roomData.isPlaying}
+                  hasHistory={hasHistory}
+                  hasQueue={hasQueue}
+                  onTogglePlayPause={togglePlayPause}
+                  onPrev={playPrevious}
+                  onNext={playNext}
+                />
+              </div>
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center">

@@ -1,7 +1,6 @@
 'use client';
 
-import { Play, Pause, SkipForward, SkipBack } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { TransportControls } from '@/components/TransportControls';
 import { YouTubeVideo } from '@/lib/youtube/types';
 
 interface RemoteControlsProps {
@@ -9,11 +8,6 @@ interface RemoteControlsProps {
   hasHistory: boolean;
   hasQueue: boolean;
   currentPlaying: YouTubeVideo | null;
-  // Receives the current isPlaying so callers can pass the underlying
-  // mutator directly (stable reference) instead of wrapping it in an
-  // inline arrow that closes over isPlaying — the wrapper would change
-  // identity each parent render and defeat any React.memo on this
-  // component.
   onTogglePlayPause: (current: boolean) => void;
   onPrev: () => void;
   onNext: () => void;
@@ -28,39 +22,17 @@ export function RemoteControls({
   onPrev,
   onNext,
 }: RemoteControlsProps) {
-  const { t } = useTranslation();
   return (
     <div className="shrink-0 border-t border-border/60 px-4 py-4">
       <div className="relative flex items-center justify-center gap-5">
-        <button
-          onClick={onPrev}
-          disabled={!hasHistory}
-          className="w-11 h-11 flex items-center justify-center rounded-full bg-surface-2 text-fg hover:bg-glow/20 active:scale-90 transition-all disabled:opacity-30 disabled:hover:bg-surface-2"
-          aria-label={t('controls.previousLabel')}
-        >
-          <SkipBack size={20} strokeWidth={2.2} fill="currentColor" />
-        </button>
-
-        <button
-          onClick={() => onTogglePlayPause(isPlaying)}
-          className="w-16 h-16 flex items-center justify-center rounded-full bg-gradient-brand text-white shadow-glow active:scale-95 transition-transform"
-          aria-label={isPlaying ? t('controls.pauseLabel') : t('controls.playLabel')}
-        >
-          {isPlaying ? (
-            <Pause size={28} strokeWidth={2.4} fill="currentColor" />
-          ) : (
-            <Play size={28} strokeWidth={2.4} fill="currentColor" className="translate-x-0.5" />
-          )}
-        </button>
-
-        <button
-          onClick={onNext}
-          disabled={!hasQueue}
-          className="w-11 h-11 flex items-center justify-center rounded-full bg-surface-2 text-fg hover:bg-glow/20 active:scale-90 transition-all disabled:opacity-30 disabled:hover:bg-surface-2"
-          aria-label={t('controls.nextLabel')}
-        >
-          <SkipForward size={20} strokeWidth={2.2} fill="currentColor" />
-        </button>
+        <TransportControls
+          isPlaying={isPlaying}
+          hasHistory={hasHistory}
+          hasQueue={hasQueue}
+          onTogglePlayPause={onTogglePlayPause}
+          onPrev={onPrev}
+          onNext={onNext}
+        />
 
         {currentPlaying?.duration && (
           <span className="tabular absolute right-0 top-1/2 -translate-y-1/2 text-xs text-muted">
