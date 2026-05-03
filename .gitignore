@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# firebase emulator runtime artifacts
+database-debug.log
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# playwright runtime artifacts
+test-results/
