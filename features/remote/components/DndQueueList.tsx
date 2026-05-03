@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import {
@@ -10,6 +11,7 @@ import {
 } from '@hello-pangea/dnd';
 import { GripVertical, Trash2 } from 'lucide-react';
 import type { QueueItem } from '@/lib/youtube/types';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { QueueItemBody } from './QueueItemBody';
 
 export interface DndQueueListProps {
@@ -31,6 +33,7 @@ export function DndQueueList({
   onEditRequester,
 }: DndQueueListProps) {
   const { t } = useTranslation();
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
 
   function handleDragEnd(result: DropResult) {
     if (!result.destination) return;
@@ -39,6 +42,7 @@ export function DndQueueList({
   }
 
   return (
+    <>
     <DragDropContext onDragEnd={handleDragEnd}>
       <Droppable droppableId="queue">
         {(provided) => (
@@ -91,7 +95,7 @@ export function DndQueueList({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onRemove(item.queueId);
+                        setPendingRemoveId(item.queueId);
                       }}
                       aria-label={t('queue.removeAriaLabel')}
                       className="shrink-0 p-2 lg:p-1.5 rounded-md text-muted hover:text-danger hover:bg-surface transition-colors"
@@ -107,5 +111,18 @@ export function DndQueueList({
         )}
       </Droppable>
     </DragDropContext>
+    <ConfirmDialog
+      open={pendingRemoveId !== null}
+      title={t('queue.removeConfirm.title')}
+      message={t('queue.removeConfirm.message')}
+      confirmLabel={t('queue.removeConfirm.confirm')}
+      cancelLabel={t('queue.removeConfirm.cancel')}
+      onConfirm={() => {
+        if (pendingRemoveId !== null) onRemove(pendingRemoveId);
+        setPendingRemoveId(null);
+      }}
+      onCancel={() => setPendingRemoveId(null)}
+    />
+    </>
   );
 }

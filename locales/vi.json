@@ -61,7 +61,13 @@
   "queue": {
     "title": "Hàng chờ",
     "emptyMessage": "Hàng đợi đang trống. Hãy thêm bài hát nhé!",
-    "removeAriaLabel": "Xoá khỏi hàng chờ"
+    "removeAriaLabel": "Xoá khỏi hàng chờ",
+    "removeConfirm": {
+      "title": "Xoá bài này?",
+      "message": "Bài hát sẽ bị xoá khỏi hàng chờ.",
+      "confirm": "Xoá",
+      "cancel": "Huỷ"
+    }
   },
   "controls": {
     "playLabel": "Phát",

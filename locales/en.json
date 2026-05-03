@@ -61,7 +61,13 @@
   "queue": {
     "title": "Queue",
     "emptyMessage": "Your queue is empty. Add a song to get started!",
-    "removeAriaLabel": "Remove from queue"
+    "removeAriaLabel": "Remove from queue",
+    "removeConfirm": {
+      "title": "Remove this song?",
+      "message": "This song will be removed from the queue.",
+      "confirm": "Remove",
+      "cancel": "Cancel"
+    }
   },
   "controls": {
     "playLabel": "Play",
