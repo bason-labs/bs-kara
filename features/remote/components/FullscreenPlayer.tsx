@@ -9,6 +9,7 @@ import { useMCPlayer } from '@/hooks/useMCPlayer';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { EmojiLayer } from '@/components/EmojiLayer';
 import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
+import { IdleQRCode } from '@/components/IdleQRCode';
 
 interface FullscreenPlayerProps {
   // Nullable: the player stays mounted even when no song is loaded so the
@@ -313,10 +314,8 @@ export function FullscreenPlayer({
             )}
           </>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center px-8 text-center">
-            <p className="text-sm sm:text-base text-muted max-w-[320px]">
-              {t('player.idleFullscreenHint')}
-            </p>
+          <div className="absolute inset-0 flex items-center justify-center px-6 text-center overflow-y-auto py-8">
+            <IdleQRCode roomCode={roomId} size={200} />
           </div>
         )}
       </div>
@@ -340,7 +339,9 @@ export function FullscreenPlayer({
           stands alone. */}
       <div
         className={`absolute top-0 left-0 right-0 z-10 flex items-center justify-between gap-2 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] transition-opacity duration-300 ${
-          isMcGated || !chromeVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          isMcGated || (track && !chromeVisible)
+            ? 'opacity-0 pointer-events-none'
+            : 'opacity-100'
         }`}
       >
         <div className="min-w-0 flex-1 flex">

@@ -3,56 +3,25 @@
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { Mic } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
 import type { QueueItem } from '@/lib/youtube/types';
 
 interface QueuePanelProps {
-  roomCode: string | null;
-  joinUrl: string | null;
   queue: QueueItem[];
   isLoading: boolean;
   onEndParty: () => void;
 }
 
-// Right-side sidebar on the TV: room code header, mini QR for latecomers,
-// scrollable queue list (with skeletons / empty state), and the End Party
-// trigger at the bottom.
-export function QueuePanel({
-  roomCode,
-  joinUrl,
-  queue,
-  isLoading,
-  onEndParty,
-}: QueuePanelProps) {
+// Right-side sidebar on the TV: scrollable queue list (with skeletons /
+// empty state) and the End Party trigger at the bottom. Room code + scan-
+// to-join QR live on the idle screen now (IdleQRCode), so latecomers see
+// them whenever no song is playing instead of crowding the queue rail.
+export function QueuePanel({ queue, isLoading, onEndParty }: QueuePanelProps) {
   const { t } = useTranslation();
   return (
     <aside
       aria-label="Queue"
       className="relative z-10 w-72 flex flex-col bg-gray-900/80 border-l border-gray-700 shrink-0"
     >
-      {/* Room code */}
-      <div className="p-5 border-b border-gray-700">
-        <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">
-          {t('tv.roomCodeLabel')}
-        </p>
-        <div className="text-5xl font-bold tracking-[0.2em] tabular-nums">
-          {roomCode ?? '----'}
-        </div>
-        <p className="mt-2 text-xs text-gray-500">{t('tv.roomCodeHint')}</p>
-      </div>
-
-      {/* Mini QR — for latecomers */}
-      <div className="p-4 border-b border-gray-700 flex flex-col items-center gap-2">
-        <div className="bg-white p-2 rounded-lg">
-          {joinUrl ? (
-            <QRCodeSVG value={joinUrl} size={96} level="M" />
-          ) : (
-            <div className="w-24 h-24" />
-          )}
-        </div>
-        <p className="text-xs text-gray-400 text-center">{t('tv.scanToJoin')}</p>
-      </div>
-
       {/* Queue */}
       <div className="flex-1 overflow-y-auto p-4">
         <h2 className="text-xs text-gray-400 uppercase tracking-widest mb-3">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Maximize2, Mic, Minimize2, Music } from 'lucide-react';
+import { Maximize2, Mic, Minimize2 } from 'lucide-react';
 import { useRoom } from '@/hooks/useRoom';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
@@ -11,6 +11,7 @@ import { VideoPlayer } from '@/components/VideoPlayer';
 import { EmojiLayer } from '@/components/EmojiLayer';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
+import { IdleQRCode } from '@/components/IdleQRCode';
 import { useTVPresence } from '@/features/tv/hooks/useTVPresence';
 import { useEndParty } from '@/features/tv/hooks/useEndParty';
 import { BackdropLayers } from '@/features/tv/components/BackdropLayers';
@@ -209,18 +210,14 @@ export default function TVClient() {
               </button>
             </>
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-gray-600">
-              <Music size={64} color="#4b5563" />
-              <p className="text-lg">{t('tv.waitingMessage')}</p>
-              <p className="text-sm text-gray-700">{t('tv.addSongsHint')}</p>
+            <div className="w-full h-full flex items-center justify-center">
+              <IdleQRCode roomCode={roomCode} size={280} />
             </div>
           )}
         </div>
       </section>
 
       <QueuePanel
-        roomCode={roomCode}
-        joinUrl={joinUrl}
         queue={roomData.queue}
         isLoading={isLoading}
         onEndParty={openEndConfirm}

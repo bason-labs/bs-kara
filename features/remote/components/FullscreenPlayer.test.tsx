@@ -10,6 +10,12 @@ vi.mock('@/components/EmojiLayer', () => ({
   EmojiLayer: () => <div data-testid="emoji-layer" />,
 }));
 
+vi.mock('qrcode.react', () => ({
+  QRCodeSVG: ({ value, size }: { value: string; size: number }) => (
+    <div data-testid="qr-code" data-value={value} data-size={size} />
+  ),
+}));
+
 let mockGated = false;
 vi.mock('@/hooks/useMCPlayer', () => ({
   useMCPlayer: () => ({ isMcGated: mockGated, mcText: mockGated ? 'Hi!' : null }),
@@ -107,11 +113,37 @@ describe('FullscreenPlayer', () => {
       expect(container.querySelector('[role="dialog"]')).not.toBeNull();
     });
 
-    it('renders the idle hint and no YouTube iframe when track is null', () => {
+    it('renders the idle QR (encoded with the room code) and no YouTube iframe when track is null', () => {
       mockGated = false;
       render(<FullscreenPlayer {...baseProps} track={null} />);
-      expect(screen.getByText('player.idleFullscreenHint')).toBeInTheDocument();
+      const qr = screen.getByTestId('qr-code');
+      expect(qr).toBeInTheDocument();
+      // The QR encodes the join URL with the active room code so guests
+      // can scan and land in the same room.
+      expect(qr.getAttribute('data-value')).toContain('room=1234');
       expect(screen.queryByTestId('yt-stub')).not.toBeInTheDocument();
+    });
+
+    it('does NOT render the idle QR when a song is loaded', () => {
+      mockGated = false;
+      render(<FullscreenPlayer {...baseProps} />);
+      // With a real track, the iframe takes over — the idle QR must not be
+      // present (the QR is only for the empty/idle state).
+      expect(screen.queryByTestId('qr-code')).not.toBeInTheDocument();
+    });
+
+    // Regression: the close (X) button must remain reachable on the idle
+    // QR screen. The top bar previously auto-hid 2.5s after mount via
+    // chromeVisible, which would strand the user on the QR screen with
+    // no visible way out. We keep the bar always-on while track is null.
+    it('keeps the close button reachable on the idle QR screen', async () => {
+      mockGated = false;
+      const user = userEvent.setup();
+      const onClose = vi.fn();
+      render(<FullscreenPlayer {...baseProps} track={null} onClose={onClose} />);
+      const closeBtn = screen.getByRole('button', { name: 'player.closeFullscreen' });
+      await user.click(closeBtn);
+      expect(onClose).toHaveBeenCalledTimes(1);
     });
 
     it('auto-loads the new video when track transitions from null to a song', () => {

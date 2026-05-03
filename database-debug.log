@@ -1,0 +1,15 @@
+10:56:48.380 [NamespaceSystem-akka.actor.default-dispatcher-4] INFO akka.event.slf4j.Slf4jLogger - Slf4jLogger started
+10:56:48.447 [main] INFO com.firebase.server.forge.App$ - Listening at 127.0.0.1:9000
+10:56:48.644 [NamespaceSystem-akka.actor.default-dispatcher-4] INFO com.firebase.core.namespace.NamespaceActor - demo-bs-kara-default-rtdb successfully activated FBKV (SurveyIdle(0)) wait: 49ms, init: 0ms
+10:56:48.717 [NamespaceSystem-blocking-namespace-operation-dispatcher-7] INFO com.firebase.core.namespace.StateManager - Namespace demo-bs-kara-default-rtdb status Active to Active
+10:56:49.206 [FirebaseWorkerPool-1-3] WARN com.firebase.core.persistence.backend.dummy.EmulatorMetadataPersistence - Multiple projectIds are not recommended in single project mode. Requested 
+namespace demo-bs-kara, but the emulator is configured for demo-bs-kara-default-rtdb. To 
+opt-out of single project mode add/set the singleProjectMode: false property in 
+the firebase.json emulators config. 
+10:56:49.208 [NamespaceSystem-akka.actor.default-dispatcher-4] INFO com.firebase.core.namespace.NamespaceActor - demo-bs-kara successfully activated FBKV (SurveyIdle(0)) wait: 1ms, init: 0ms
+10:56:49.224 [NamespaceSystem-blocking-namespace-operation-dispatcher-7] INFO com.firebase.core.namespace.StateManager - Namespace demo-bs-kara status Active to Active
+10:56:50.334 [Thread-0] INFO com.firebase.server.forge.App$ - Attempting graceful shutdown.
+10:56:50.344 [NamespaceSystem-akka.actor.default-dispatcher-12] INFO com.firebase.core.namespace.Terminator$Terminator - 2 actors left to terminate: demo-bs-kara, demo-bs-kara-default-rtdb
+10:56:50.349 [NamespaceSystem-akka.actor.default-dispatcher-11] INFO com.firebase.core.namespace.NamespaceActor - stopped namespace actor for demo-bs-kara
+10:56:50.349 [NamespaceSystem-akka.actor.default-dispatcher-8] INFO com.firebase.core.namespace.NamespaceActor - stopped namespace actor for demo-bs-kara-default-rtdb
+10:56:50.351 [Thread-0] INFO com.firebase.server.forge.App$ - Graceful shutdown complete.

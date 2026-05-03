@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "activeRoom": "XXXX"
+  },
+  "rooms": {
+    "XX01": {
+      "currentPlaying": {
+        "channel": "Nhạc sống Nguyễn Linh",
+        "duration": "",
+        "id": "WfLSgRDL-D4",
+        "mcText": "Thưa quý ông quý bà cô bác, đêm nay có một chiến thần vừa từ chốn đô thành trở về, chính là Bá Huỳnh — ngôi sao karaoke đình đám với giọng ca nóng bỏng lửa tình. Đối diện với sự chờ đợi của hàng triệu fan thì bài hát này, nghe nói có liên quan đến những chuyến đi xa nhà trong mùa Xuân! Nào, mời chiến binh ra trận!",
+        "requesterName": "TestUser",
+        "thumbnail": "https://i.ytimg.com/vi/WfLSgRDL-D4/mqdefault.jpg",
+        "title": "Karaoke Xuân Này Con Không Về Tone Nam Nhạc Sống | Nguyễn Linh"
+      },
+      "dragDropEnabled": true,
+      "emojis": {
+        "-OrY7yRPPnKy3ofGjx5s": { "emoji": "🔥", "timestamp": 1777632274314 },
+        "-OrY7yXZ5lysOG0C9IkX": { "emoji": "🎉", "timestamp": 1777632274709 },
+        "-OrY7yjpisegYKxrYO0U": { "emoji": "🔥", "timestamp": 1777632275558 },
+        "-OrY7zEXznEegPuv-ChD": { "emoji": "🎉", "timestamp": 1777632277587 },
+        "-OrY7zSq35OA2DEWNkZ8": { "emoji": "💖", "timestamp": 1777632278502 },
+        "-OrY80IL_ZNjLelNSobL": { "emoji": "🥳", "timestamp": 1777632286023 },
+        "-OrY81EPRVPWxcYmYsgH": { "emoji": "👏", "timestamp": 1777632289867 }
+      },
+      "history": [
+        {
+          "channel": "Hiếu Organ",
+          "duration": "",
+          "id": "HXW1wGnuYQA",
+          "mcText": "Nhạc tan biến trong đêm, khúc tình ca nhẹ nhàng! Một chiến thần lãng tử vừa bước ra từ góc khuất, Bá Huỳnh — kẻ thách thức dàn loa, giọng ca vàng từng làm si mê bao trái tim. Anh mang theo những nỗi niềm giã từ, đưa ta lạc lối trong hồi ức. Nào, mời chiến binh ra trận!",
+          "requesterName": "TestUser",
+          "thumbnail": "https://i.ytimg.com/vi/HXW1wGnuYQA/mqdefault.jpg",
+          "title": "Karaoke Liên Khúc Nhạc Trữ Tình Tone Nam Dễ Hát | Tuyển Chọn Nhạc Vàng Bolero - Giã Từ"
+        }
+      ],
+      "isAutoRandomMode": false,
+      "isMCEnabled": true,
+      "lastAnnouncedSongId": "WfLSgRDL-D4",
+      "lastEndedAt": 1777774415923,
+      "mcVoice": "vi-VN-Wavenet-C",
+      "randomFilters": {
+        "genre": "all",
+        "tone": "all",
+        "type": "all"
+      },
+      "requesterPromptEnabled": true,
+      "volume": 100
+    },
+    "XX02": {
+      "currentPlaying": {
+        "channel": "Vie Channel - MUSIC",
+        "duration": "",
+        "id": "cEo_iv6vApw",
+        "thumbnail": "https://i.ytimg.com/vi/cEo_iv6vApw/mqdefault.jpg",
+        "title": "[KARAOKE] NGƯỜI NHƯ ANH XỨNG ĐÁNG CÔ ĐƠN | Anh Trai \"Say Hi\" 2025"
+      },
+      "emojis": {
+        "-Or9UxzT3A3lHMlxUB7-": { "emoji": "👏", "timestamp": 1777218871361 },
+        "-Or9Uy3b5pjSw9PIfO1B": { "emoji": "👏", "timestamp": 1777218871690 },
+        "-Or9UyMFCSZUQ6iK7S0B": { "emoji": "👏", "timestamp": 1777218872883 }
+      },
+      "queue": [
+        {
+          "channel": "Vie Channel - MUSIC",
+          "duration": "",
+          "id": "s5uHNcMUmLU",
+          "thumbnail": "https://i.ytimg.com/vi/s5uHNcMUmLU/mqdefault.jpg",
+          "title": "[KARAOKE] HÀO QUANG - Rhyder, Dương Domic, Pháp Kiều | Anh Trai Say Hi"
+        },
+        {
+          "channel": "Vie Channel - MUSIC",
+          "duration": "",
+          "id": "8A-U-2QqWN8",
+          "thumbnail": "https://i.ytimg.com/vi/8A-U-2QqWN8/mqdefault.jpg",
+          "title": "[KARAOKE] ĐOẠN KỊCH CÂM | Anh Trai \"Say Hi\" 2025"
+        }
+      ],
+      "volume": 45
+    },
+    "XX03": {
+      "queue": {
+        "-Or9MaIbgMhQ5owMWocN": {
+          "channel": "Hiền Hòa Heo",
+          "duration": "",
+          "id": "4Aog0Tw4Stg",
+          "thumbnail": "https://i.ytimg.com/vi/4Aog0Tw4Stg/mqdefault.jpg",
+          "title": "[Karaoke] Yến Vô Hiết (Song Ngữ Việt Trung) - Thu Dung x Châu Dương"
+        },
+        "-Or9McQ2mOxZqGO1uEsp": {
+          "channel": "Leo Karaoke",
+          "duration": "",
+          "id": "yRH8DjPpG_g",
+          "thumbnail": "https://i.ytimg.com/vi/yRH8DjPpG_g/mqdefault.jpg",
+          "title": "[Karaoke] YẾN VÔ HIẾT | Song Ngữ - Tưởng Tuyết Nhi, Châu Dương ft. Thu Dung | Beat Chuẩn"
+        }
+      }
+    }
+  }
+}

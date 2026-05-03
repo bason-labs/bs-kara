@@ -159,6 +159,16 @@ vi.mock('@/features/remote/components/FullscreenPlayer', () => ({
   },
 }));
 
+// If something in RemoteClient's main (non-expanded) view ever started
+// importing qrcode.react, this stub gives us a stable testid to assert
+// against. The expected count on the main view is zero — the QR lives
+// only on the TV idle screen and inside FullscreenPlayer's idle state.
+vi.mock('qrcode.react', () => ({
+  QRCodeSVG: ({ value }: { value: string }) => (
+    <div data-testid="qr-code" data-value={value} />
+  ),
+}));
+
 vi.mock('next/dynamic', () => ({
   default: () => () => null,
 }));
@@ -232,6 +242,17 @@ describe('RemoteClient — play/pause UI when no playback surface is mounted', (
     await user.click(playBtn);
     expect(screen.getByTestId('fullscreen-player')).toBeInTheDocument();
     expect(state.togglePlayPauseMock).not.toHaveBeenCalled();
+  });
+
+  // The QR code lives on the TV idle screen and inside the expanded
+  // FullscreenPlayer's idle state — NOT on RemoteClient's main
+  // (non-expanded) view. Adding it here would clutter the search/queue/
+  // player tabs that already work fine without one.
+  it('does not render a QR code on the main (non-expanded) view', () => {
+    state.isTvActive = false;
+    state.isPlaying = true;
+    render(<RemoteClient />);
+    expect(screen.queryByTestId('qr-code')).not.toBeInTheDocument();
   });
 
   // Inverse case: with the TV active, the remote is the actual control

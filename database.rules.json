@@ -1,13 +1,94 @@
 {
   "rules": {
-    ".read": true,
-    ".write": true,
+    "meta": {
+      "activeRoom": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.val() === null || (newData.isString() && newData.val().matches(/^[0-9]{4}$/))"
+      },
+      "$other": { ".validate": false }
+    },
+
     "rooms": {
       "$roomId": {
+        ".read": "$roomId.matches(/^[0-9]{4}$/)",
+        ".write": "$roomId.matches(/^[0-9]{4}$/)",
+
+        "queue": {
+          "$queueId": {
+            ".validate": "newData.hasChildren(['id', 'title', 'channel', 'thumbnail', 'duration'])",
+            "id":            { ".validate": "newData.isString() && newData.val().length <= 64" },
+            "title":         { ".validate": "newData.isString() && newData.val().length <= 500" },
+            "channel":       { ".validate": "newData.isString() && newData.val().length <= 200" },
+            "thumbnail":     { ".validate": "newData.isString() && newData.val().length <= 500" },
+            "duration":      { ".validate": "newData.isString() && newData.val().length <= 16" },
+            "requesterName": { ".validate": "newData.isString() && newData.val().length <= 60" },
+            "mcText":        { ".validate": "newData.isString() && newData.val().length <= 500" },
+            "$other":        { ".validate": false }
+          }
+        },
+
+        "currentPlaying": {
+          ".validate": "newData.hasChildren(['id', 'title', 'channel', 'thumbnail', 'duration'])",
+          "id":            { ".validate": "newData.isString() && newData.val().length <= 64" },
+          "title":         { ".validate": "newData.isString() && newData.val().length <= 500" },
+          "channel":       { ".validate": "newData.isString() && newData.val().length <= 200" },
+          "thumbnail":     { ".validate": "newData.isString() && newData.val().length <= 500" },
+          "duration":      { ".validate": "newData.isString() && newData.val().length <= 16" },
+          "requesterName": { ".validate": "newData.isString() && newData.val().length <= 60" },
+          "mcText":        { ".validate": "newData.isString() && newData.val().length <= 500" },
+          "$other":        { ".validate": false }
+        },
+
+        "history": {
+          "$idx": {
+            ".validate": "newData.hasChildren(['id', 'title', 'channel', 'thumbnail', 'duration'])",
+            "id":            { ".validate": "newData.isString() && newData.val().length <= 64" },
+            "title":         { ".validate": "newData.isString() && newData.val().length <= 500" },
+            "channel":       { ".validate": "newData.isString() && newData.val().length <= 200" },
+            "thumbnail":     { ".validate": "newData.isString() && newData.val().length <= 500" },
+            "duration":      { ".validate": "newData.isString() && newData.val().length <= 16" },
+            "requesterName": { ".validate": "newData.isString() && newData.val().length <= 60" },
+            "mcText":        { ".validate": "newData.isString() && newData.val().length <= 500" },
+            "$other":        { ".validate": false }
+          }
+        },
+
+        "playedHistory": {
+          "$idx": { ".validate": "newData.isString() && newData.val().length <= 64" }
+        },
+
+        "isPlaying":              { ".validate": "newData.isBoolean()" },
+        "isAutoRandomMode":       { ".validate": "newData.isBoolean()" },
+        "randomFilters": {
+          "type":  { ".validate": "newData.isString() && newData.val().matches(/^(all|solo|duet)$/)" },
+          "tone":  { ".validate": "newData.isString() && newData.val().matches(/^(all|male|female)$/)" },
+          "genre": { ".validate": "newData.isString() && newData.val().matches(/^(all|bolero|caco|tre)$/)" },
+          "$other": { ".validate": false }
+        },
+        "dragDropEnabled":        { ".validate": "newData.isBoolean()" },
+        "requesterPromptEnabled": { ".validate": "newData.isBoolean()" },
+        "isMCEnabled":            { ".validate": "newData.isBoolean()" },
+        "isAImcEnabled":          { ".validate": "newData.isBoolean()" },
+        "mcVoice":                { ".validate": "newData.isString() && newData.val().length <= 64" },
+        "lastAnnouncedSongId":    { ".validate": "newData.isString() && newData.val().length <= 64" },
+        "isTvActive":             { ".validate": "newData.isBoolean()" },
+        "lastEndedAt":            { ".validate": "newData.isNumber()" },
+
         "emojis": {
-          ".indexOn": ["timestamp"]
-        }
+          ".indexOn": ["timestamp"],
+          "$emojiId": {
+            ".validate": "newData.hasChildren(['emoji', 'timestamp'])",
+            "emoji":     { ".validate": "newData.isString() && newData.val().length <= 16" },
+            "timestamp": { ".validate": "newData.isNumber()" },
+            "$other":    { ".validate": false }
+          }
+        },
+
+        "$other": { ".validate": false }
       }
-    }
+    },
+
+    "$other": { ".validate": false }
   }
 }

@@ -70,7 +70,9 @@ vi.mock('firebase/database', () => ({
 }));
 
 vi.mock('qrcode.react', () => ({
-  QRCodeSVG: () => null,
+  QRCodeSVG: ({ value, size }: { value: string; size: number }) => (
+    <div data-testid="qr-code" data-value={value} data-size={size} />
+  ),
 }));
 
 vi.mock('next/image', () => ({
@@ -178,6 +180,54 @@ describe('TVClient — MC gate / video autoplay', () => {
   //     its own prop-driven effect calls player.playVideo(). If iOS
   //     refuses, the iframe lands in CUED and the broadened
   //     handleStateChange echoes `false` back, self-correcting.
+  // The idle screen on the TV should expose a QR code so guests can scan to
+  // join. Previously the idle state only showed a Music icon + room-code
+  // hint text, which forced the user to type the 4-digit code by hand.
+  describe('idle state QR code', () => {
+    it('renders the QR code when currentPlaying is null', async () => {
+      state.currentPlaying = null;
+
+      render(<TVClient />);
+      const waiting = await screen.findByRole('button', { name: /waiting room/i });
+      await act(async () => {
+        waiting.click();
+      });
+
+      // The WaitingOverlay also renders a QR; once isInitialized flips,
+      // the WaitingOverlay fades to opacity-0 / pointer-events-none but
+      // remains in the DOM. The idle-screen QR is the second one.
+      const codes = screen.getAllByTestId('qr-code');
+      // At least the idle QR exists — and at least one of them encodes
+      // the join URL with the active room code.
+      expect(codes.length).toBeGreaterThanOrEqual(1);
+      const idle = codes.find((el) => el.getAttribute('data-size') === '280');
+      expect(idle).toBeDefined();
+      expect(idle?.getAttribute('data-value')).toContain('room=1234');
+    });
+
+    it('does NOT render the idle QR when a song is currently playing', async () => {
+      state.currentPlaying = {
+        id: 'abc123',
+        title: 'Test Song',
+        channel: 'Test Channel',
+        thumbnail: 'https://example.com/thumb.jpg',
+        duration: '3:30',
+      };
+
+      render(<TVClient />);
+      const waiting = await screen.findByRole('button', { name: /waiting room/i });
+      await act(async () => {
+        waiting.click();
+      });
+
+      // Only the WaitingOverlay's QR (size=200) should remain — the
+      // size=280 idle QR must not be mounted while a song is playing.
+      const codes = screen.queryAllByTestId('qr-code');
+      const idle = codes.find((el) => el.getAttribute('data-size') === '280');
+      expect(idle).toBeUndefined();
+    });
+  });
+
   it('does not write isPlaying to Firebase on the MC gated→ungated edge (no optimistic kick)', async () => {
     // Start gated: simulates the MC announcement actively running.
     state.isMcGated = true;
