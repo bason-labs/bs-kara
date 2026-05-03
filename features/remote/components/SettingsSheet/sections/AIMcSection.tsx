@@ -11,6 +11,7 @@ interface AIMcSectionProps {
   onToggle: (enabled: boolean) => void;
   mcVoice: string;
   onMcVoiceChange: (voice: string) => void;
+  panelOpen: boolean;
 }
 
 export function AIMcSection({
@@ -18,6 +19,7 @@ export function AIMcSection({
   onToggle,
   mcVoice,
   onMcVoiceChange,
+  panelOpen,
 }: AIMcSectionProps) {
   const { t } = useTranslation();
   return (
@@ -53,6 +55,7 @@ export function AIMcSection({
               value={mcVoice}
               disabled={!enabled}
               onChange={onMcVoiceChange}
+              panelOpen={panelOpen}
             />
           </div>
         </div>

@@ -155,6 +155,7 @@ export function SettingsSheet({
                 onToggle={onMCToggle}
                 mcVoice={mcVoice}
                 onMcVoiceChange={onMcVoiceChange}
+                panelOpen={open}
               />
 
               <ThemeSection />

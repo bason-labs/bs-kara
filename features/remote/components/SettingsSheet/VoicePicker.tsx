@@ -36,23 +36,35 @@ interface VoicePickerProps {
   value: string;
   disabled: boolean;
   onChange: (voice: string) => void;
+  // SettingsSheet stays mounted across open/close (it just slides off-
+  // screen), so an unmount-only cleanup leaves a mid-flight preview audible
+  // after the user closes the sheet. The picker watches this and cancels
+  // the moment it goes false.
+  panelOpen: boolean;
 }
 
 // Radio-card list with live audio preview. Each card click writes the new
 // voice through the parent's onChange (which Firebase-syncs the room) and
 // fires a device-local TTS preview — the preview never goes on the wire,
 // so other clients (TV, other phones) don't echo it.
-export function VoicePicker({ value, disabled, onChange }: VoicePickerProps) {
+export function VoicePicker({
+  value,
+  disabled,
+  onChange,
+  panelOpen,
+}: VoicePickerProps) {
   const { t } = useTranslation();
   const { previewVoice, cancel } = useAIVoice();
 
-  // Stop any in-flight preview when the picker unmounts (sheet closes).
-  // Without this, closing the sheet mid-playback leaves audio playing.
+  // Stop any in-flight preview when the sheet closes or the picker
+  // unmounts. Without this, closing the sheet mid-playback leaves audio
+  // playing.
   useEffect(() => {
+    if (!panelOpen) cancel();
     return () => {
       cancel();
     };
-  }, [cancel]);
+  }, [panelOpen, cancel]);
 
   function handleSelect(voice: string) {
     onChange(voice);
