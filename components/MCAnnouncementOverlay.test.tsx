@@ -25,6 +25,26 @@ describe('MCAnnouncementOverlay', () => {
     ).not.toBeInTheDocument();
   });
 
+  // While the AI MC line is still being generated, mcText is empty. Without
+  // a placeholder the overlay shows the song title with no explanation, so
+  // users wonder why playback hasn't started — surface a "preparing" hint.
+  it('shows a preparing hint when mcText is missing', () => {
+    render(<MCAnnouncementOverlay variant="phone" title="My Song" />);
+    expect(screen.getByText('aiMc.preparing')).toBeInTheDocument();
+  });
+
+  it('shows the mcText quote and hides the preparing hint when mcText is provided', () => {
+    render(
+      <MCAnnouncementOverlay
+        variant="phone"
+        title="My Song"
+        mcText="Here we go!"
+      />,
+    );
+    expect(screen.getByText(/Here we go!/)).toBeInTheDocument();
+    expect(screen.queryByText('aiMc.preparing')).not.toBeInTheDocument();
+  });
+
   it('renders a close button and fires onClose when provided', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

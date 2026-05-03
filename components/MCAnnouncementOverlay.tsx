@@ -26,6 +26,7 @@ const VARIANTS = {
     title: 'text-3xl font-bold text-white max-w-3xl line-clamp-3',
     requester: 'text-base text-pink-200',
     mcText: 'text-sm text-gray-300 max-w-2xl italic',
+    preparing: 'text-sm text-gray-400 max-w-2xl animate-pulse',
   },
   phone: {
     container: 'absolute inset-0 z-[8] flex flex-col items-center justify-center gap-4 px-6 text-center bg-black',
@@ -34,6 +35,7 @@ const VARIANTS = {
     title: 'text-xl sm:text-2xl font-bold text-white max-w-2xl line-clamp-3',
     requester: 'text-sm text-pink-200',
     mcText: 'text-xs sm:text-sm text-gray-300 max-w-xl italic',
+    preparing: 'text-xs sm:text-sm text-gray-400 max-w-xl animate-pulse',
   },
 } as const;
 
@@ -69,7 +71,11 @@ export function MCAnnouncementOverlay({
           <span className="text-white font-semibold">{requesterName}</span>
         </p>
       )}
-      {mcText && <p className={v.mcText}>“{mcText}”</p>}
+      {mcText ? (
+        <p className={v.mcText}>“{mcText}”</p>
+      ) : (
+        <p className={v.preparing}>{t('aiMc.preparing')}</p>
+      )}
     </div>
   );
 }

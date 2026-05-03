@@ -164,7 +164,8 @@
     }
   },
   "aiMc": {
-    "announcing": "AI MC is talking"
+    "announcing": "AI MC is talking",
+    "preparing": "MC is warming up…"
   },
   "requester": {
     "title": "Who's singing this?",
