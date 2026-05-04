@@ -326,7 +326,7 @@ function RemoteInner() {
       >
         <button
           onClick={handleLeave}
-          className="flex items-center gap-1.5 text-sm text-muted hover:text-danger transition-colors"
+          className="-m-2 p-2 sm:m-0 sm:p-0 flex items-center gap-1.5 text-sm text-muted hover:text-danger transition-colors"
         >
           <LogOut size={16} />
           <span className="hidden sm:inline">{t('header.leaveButton')}</span>
