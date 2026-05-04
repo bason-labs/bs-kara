@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Maximize2, Mic, Minimize2 } from 'lucide-react';
+import type { YouTubePlayer } from 'react-youtube';
 import { useRoom } from '@/hooks/useRoom';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
@@ -11,6 +12,7 @@ import { VideoPlayer } from '@/components/VideoPlayer';
 import { EmojiLayer } from '@/components/EmojiLayer';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
+import { EndScreenOverlay } from '@/components/EndScreenOverlay';
 import { IdleQRCode } from '@/components/IdleQRCode';
 import { TransportControls } from '@/components/TransportControls';
 import { useTVPresence } from '@/features/tv/hooks/useTVPresence';
@@ -105,6 +107,7 @@ export default function TVClient() {
   });
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const [ytPlayer, setYtPlayer] = useState<YouTubePlayer | null>(null);
   const [isFs, setIsFs] = useState(false);
   const { visible: userActive } = useAutoHide(2500);
   // While in fullscreen the button auto-hides; otherwise it's always visible.
@@ -190,6 +193,7 @@ export default function TVClient() {
                 // immediately pause would otherwise echo back into Firebase
                 // and flip isPlaying to false.
                 onPlayingChange={isMcGated ? undefined : setIsPlaying}
+                onPlayerReady={setYtPlayer}
               />
               {isMcGated && (
                 <MCAnnouncementOverlay
@@ -197,6 +201,13 @@ export default function TVClient() {
                   title={roomData.currentPlaying.title}
                   requesterName={roomData.currentPlaying.requesterName}
                   mcText={mcText ?? undefined}
+                />
+              )}
+              {!isMcGated && (
+                <EndScreenOverlay
+                  player={ytPlayer}
+                  songId={roomData.currentPlaying.id}
+                  nextSongTitle={roomData.queue[0]?.title ?? null}
                 />
               )}
               {roomData.currentPlaying.requesterName && !isMcGated && (

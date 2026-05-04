@@ -574,6 +574,7 @@ function RemoteInner() {
           onPrev={playPrevious}
           onNext={playNext}
           onPlayingChange={setIsPlaying}
+          nextSongTitle={roomData.queue[0]?.title ?? null}
         />
       )}
 

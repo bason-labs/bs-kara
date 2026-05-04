@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pause, Play, SkipBack, SkipForward, X } from 'lucide-react';
+import type { YouTubePlayer } from 'react-youtube';
 import { YouTubeVideo } from '@/lib/youtube/types';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { EmojiLayer } from '@/components/EmojiLayer';
 import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
+import { EndScreenOverlay } from '@/components/EndScreenOverlay';
 import { IdleQRCode } from '@/components/IdleQRCode';
 
 interface FullscreenPlayerProps {
@@ -34,6 +36,9 @@ interface FullscreenPlayerProps {
   onPrev: () => void;
   onNext: () => void;
   onPlayingChange?: (playing: boolean) => void;
+  // Title shown by the end-of-song celebratory overlay during the last
+  // ~5s of playback. RemoteClient passes queue[0]?.title.
+  nextSongTitle?: string | null;
 }
 
 export function FullscreenPlayer({
@@ -51,9 +56,11 @@ export function FullscreenPlayer({
   onPrev,
   onNext,
   onPlayingChange,
+  nextSongTitle,
 }: FullscreenPlayerProps) {
   const { t } = useTranslation();
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const [ytPlayer, setYtPlayer] = useState<YouTubePlayer | null>(null);
   const { visible: chromeVisible, bump } = useAutoHide(2500);
 
   // Opening the fullscreen player IS the user gesture, so speech can start
@@ -302,6 +309,7 @@ export function FullscreenPlayer({
               isPlaying={!isMcGated && isPlaying}
               volume={isMcGated ? 0 : volume}
               onPlayingChange={isMcGated ? undefined : onPlayingChange}
+              onPlayerReady={setYtPlayer}
             />
             {isMcGated && (
               <MCAnnouncementOverlay
@@ -311,6 +319,19 @@ export function FullscreenPlayer({
                 mcText={mcText ?? undefined}
                 onClose={onClose}
               />
+            )}
+            {/* End-screen overlay sits above the iframe + tap layer (z-[5])
+                but below the chrome and center transport (z-10). The wrapper
+                creates a stacking context at z-[6] so the overlay's internal
+                z-20 doesn't escape past the chrome. */}
+            {!isMcGated && (
+              <div className="absolute inset-0 z-[6] pointer-events-none">
+                <EndScreenOverlay
+                  player={ytPlayer}
+                  songId={track.id}
+                  nextSongTitle={nextSongTitle ?? null}
+                />
+              </div>
             )}
           </>
         ) : (

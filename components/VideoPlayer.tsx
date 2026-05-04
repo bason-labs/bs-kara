@@ -12,9 +12,13 @@ interface VideoPlayerProps {
   // the iframe (e.g. user clicks the video on the TV to pause). Used to sync
   // that change back into the shared room state.
   onPlayingChange?: (playing: boolean) => void;
+  // Hands the underlying YouTube player object to the parent once it's
+  // ready. Used by EndScreenOverlay to poll getCurrentTime / getDuration
+  // without re-implementing iframe state inside the overlay.
+  onPlayerReady?: (player: YouTubePlayer) => void;
 }
 
-export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingChange }: VideoPlayerProps) {
+export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingChange, onPlayerReady }: VideoPlayerProps) {
   const playerRef = useRef<YouTubePlayer | null>(null);
   const isPlayingRef = useRef(isPlaying);
 
@@ -87,6 +91,7 @@ export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingCh
     } else {
       event.target.pauseVideo();
     }
+    onPlayerReady?.(event.target);
   }
 
   function handleEnd() {
@@ -119,9 +124,6 @@ export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingCh
       opts={{
         playerVars: {
           autoplay: 1,
-          controls: 0,
-          disablekb: 1,
-          modestbranding: 1,
           // Cap requested quality at 720p. YouTube ABR still adapts down for
           // weak connections; this just prevents the player from REQUESTING
           // 1080p, which is the common cause of buffer-rebuffer stutter on
@@ -139,6 +141,19 @@ export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingCh
           // "target origin provided ... does not match" console warning.
           origin:
             typeof window !== 'undefined' ? window.location.origin : undefined,
+          // Cleanest possible playback chrome for karaoke: hide native
+          // controls, keyboard shortcuts, fullscreen button, captions
+          // auto-load, and legacy annotations. End-screen suggestions cannot
+          // be fully suppressed via iframe params (YouTube API limitation
+          // since 2018) — handled by switching tracks on ENDED via onSongEnd.
+          controls: 0,
+          rel: 0,
+          iv_load_policy: 3,
+          fs: 0,
+          disablekb: 1,
+          playsinline: 1,
+          cc_load_policy: 0,
+          modestbranding: 1,
         },
       }}
       onReady={handleReady}

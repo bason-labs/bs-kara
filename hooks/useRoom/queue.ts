@@ -50,6 +50,11 @@ export function useRoomQueue(
             // want here.
             generateMCForQueueItem(roomId, item.id, item.id, item.title, trimmed ?? null);
           }
+          // Promoting into an empty currentPlaying slot implies playback
+          // intent. isPlaying may have been left false by the prior song's
+          // ENDED iframe ping or an earlier explicit pause; flip it back so
+          // the new song actually plays instead of mounting paused.
+          await set(ref(db, `${getRoomDataPath(roomId)}/isPlaying`), true);
           return;
         }
       }
