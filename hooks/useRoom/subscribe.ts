@@ -59,6 +59,7 @@ export function useRoomSubscribe(roomId: string | null) {
         isAImcEnabled?: boolean;
         lastAnnouncedSongId?: string | null;
         isTvActive?: boolean;
+        fullscreenOwner?: string | null;
         lastEndedAt?: number | null;
       } | null;
 
@@ -125,6 +126,10 @@ export function useRoomSubscribe(roomId: string | null) {
             ? data.lastAnnouncedSongId
             : null,
         isTvActive: data.isTvActive === true,
+        fullscreenOwner:
+          typeof data.fullscreenOwner === 'string' && data.fullscreenOwner
+            ? data.fullscreenOwner
+            : null,
         lastEndedAt:
           typeof data.lastEndedAt === 'number' ? data.lastEndedAt : null,
       });

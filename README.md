@@ -28,6 +28,32 @@ Full env-var matrix and architecture notes: [CLAUDE.md](./CLAUDE.md).
 
 ---
 
+### Multi-device dev testing
+
+To test on real phones during development, expose the local server over HTTPS using a tunnel.
+
+```bash
+# Terminal 1 — production build (closer to prod behavior than `next dev`)
+npm run build && npm run start
+
+# Terminal 2 — tunnel (pick one)
+ngrok http 3000
+# OR: cloudflared tunnel --url http://localhost:3000
+# OR: lt --port 3000
+```
+
+Then add the tunnel URL to `.env.local`:
+
+```
+NEXT_PUBLIC_PUBLIC_ORIGIN=https://<your-tunnel>.ngrok-free.app
+```
+
+Restart `npm run start` after changing `.env.local`. The QR code on `/tv` will embed the tunnel URL so phones scanning it reach this dev machine over HTTPS — required for camera/QR scan, fullscreen API, and other secure-context browser features.
+
+`NEXT_PUBLIC_PUBLIC_ORIGIN` is dev-only. Do not set it in `.env.production` or commit it.
+
+---
+
 ## Architecture at a glance
 
 ```mermaid

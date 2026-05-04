@@ -31,6 +31,7 @@ import { JoinForm } from '@/features/remote/components/JoinForm';
 import { useRoomGate } from '@/features/remote/hooks/useRoomGate';
 import { useRequesterDialog } from '@/features/remote/hooks/useRequesterDialog';
 import { useQueuedMap } from '@/features/remote/hooks/useQueuedMap';
+import { useFullscreenOwnership } from '@/features/remote/hooks/useFullscreenOwnership';
 
 // SettingsSheet pulls in VoicePicker + AutoRandomSection + the rest of the
 // settings tree (~28 KB minified). Lazy-load it on first gear-icon click so
@@ -226,31 +227,72 @@ function RemoteInner() {
   const queuedMap = useQueuedMap(roomData.queue);
   const currentPlayingId = roomData.currentPlaying?.id ?? null;
 
-  // The phone is a remote — it doesn't host the iframe unless the user
-  // opens FullscreenPlayer. When neither the TV (`isTvActive`) nor the
-  // local fullscreen surface (`playerOpen`) is mounted, no one is
-  // *actually* playing, so the play/pause UI must show "paused" even if
-  // Firebase still says playing (e.g. stale state from a previous TV
-  // session, or the old optimistic kick before this fix).
-  const hasPlaybackSurface = roomData.isTvActive || playerOpen;
-  const displayedIsPlaying = hasPlaybackSurface ? roomData.isPlaying : false;
+  const { deviceId, claim, release } = useFullscreenOwnership(roomCode);
 
-  // When there's no playback surface, tapping the play button can't
-  // toggle Firebase usefully — nothing would receive the command. Open
-  // FullscreenPlayer instead. The user's tap doubles as the user gesture
-  // iOS Safari needs to autoplay the iframe once it mounts.
-  const handleTogglePlayPause = useCallback(
-    (current: boolean) => {
-      if (!hasPlaybackSurface) {
-        primeAudio();
-        document.documentElement.requestFullscreen?.().catch(() => {});
-        setPlayerOpen(true);
-        return;
-      }
-      togglePlayPause(current);
-    },
-    [hasPlaybackSurface, togglePlayPause],
-  );
+  // Cluster-wide view: any device (TV or a phone holding the
+  // fullscreenOwner lock) counts as "the cluster has a playback surface".
+  // displayedIsPlaying must trust Firebase whenever that's true, so a
+  // remote-control phone reflects the host's play/pause state instead of
+  // being clamped to "paused".
+  const someoneHasSurface =
+    roomData.isTvActive || roomData.fullscreenOwner !== null;
+  const iAmFullscreenOwner = roomData.fullscreenOwner === deviceId;
+  const displayedIsPlaying = someoneHasSurface ? roomData.isPlaying : false;
+
+  // Tapping play/pause on a phone that already has a host (TV or another
+  // phone) is a pure remote-control gesture — write Firebase, do not open
+  // local fullscreen. With no host in the cluster, this phone must claim
+  // the lock and become the host before opening its own surface.
+  const handleTogglePlayPause = useCallback(() => {
+    if (someoneHasSurface) {
+      togglePlayPause(roomData.isPlaying);
+      return;
+    }
+    primeAudio();
+    void (async () => {
+      const ok = await claim();
+      if (!ok) return;
+      document.documentElement.requestFullscreen?.().catch(() => {});
+      setPlayerOpen(true);
+      // Assert intent so the iframe will play once the MC gate (if any)
+      // releases. Without this, expand-after-MC reads stale isPlaying=false.
+      setIsPlaying(true);
+    })();
+  }, [someoneHasSurface, roomData.isPlaying, togglePlayPause, claim, setIsPlaying]);
+
+  // Shared expand handler for the NowPlayingCard "maximize" button. Same
+  // claim → fullscreen → setIsPlaying(true) sequence as the surface-less
+  // togglePlayPause path: asserting isPlaying after claim is the Bug B fix.
+  const handleExpand = useCallback(() => {
+    primeAudio();
+    void (async () => {
+      const ok = await claim();
+      if (!ok) return;
+      document.documentElement.requestFullscreen?.().catch(() => {});
+      setPlayerOpen(true);
+      setIsPlaying(true);
+    })();
+  }, [claim, setIsPlaying]);
+
+  // True when another phone currently owns the surface — TV authority is
+  // already handled by hiding onExpand when isTvActive.
+  // TODO: NowPlayingCard does not yet support a `disabled` / `disabledReason`
+  // prop. Once it does, surface this state in the UI with a sublabel like
+  // "Đang xem trên thiết bị khác" instead of hiding the button.
+  const isExpandBlocked = roomData.isTvActive
+    ? false
+    : roomData.fullscreenOwner !== null && !iAmFullscreenOwner;
+
+  // TV came online while we held the phone-side fullscreen lock: drop the
+  // claim and close the local surface so the TV takes over cleanly. The TV
+  // doesn't write fullscreenOwner; isTvActive alone is enough to make
+  // someoneHasSurface true, so other phones already see the cluster as hosted.
+  useEffect(() => {
+    if (roomData.isTvActive && iAmFullscreenOwner) {
+      void release();
+      setPlayerOpen(false);
+    }
+  }, [roomData.isTvActive, iAmFullscreenOwner, release]);
 
   const noticeBanner = notice ? (
     <div className="fixed top-4 inset-x-0 z-[60] flex justify-center px-16 sm:px-4 pointer-events-none">
@@ -406,15 +448,9 @@ function RemoteInner() {
                   track={roomData.currentPlaying}
                   isPlaying={displayedIsPlaying}
                   onExpand={
-                    roomData.isTvActive
+                    roomData.isTvActive || isExpandBlocked
                       ? undefined
-                      : () => {
-                          primeAudio();
-                          document.documentElement
-                            .requestFullscreen?.()
-                            .catch(() => {});
-                          setPlayerOpen(true);
-                        }
+                      : handleExpand
                   }
                   onRemove={removeCurrentPlaying}
                 />
@@ -436,23 +472,9 @@ function RemoteInner() {
                     track={roomData.currentPlaying}
                     isPlaying={displayedIsPlaying}
                     onExpand={
-                      roomData.isTvActive
+                      roomData.isTvActive || isExpandBlocked
                         ? undefined
-                        : () => {
-                            // requestFullscreen must run synchronously inside
-                            // the user gesture; deferring to the
-                            // FullscreenPlayer's mount effect loses the
-                            // activation token in some browsers. primeAudio()
-                            // also runs inside the gesture so the MC
-                            // announcement (which fires from an async
-                            // useEffect after the player mounts) can actually
-                            // produce audio on iOS Safari and mobile Chrome.
-                            primeAudio();
-                            document.documentElement
-                              .requestFullscreen?.()
-                              .catch(() => {});
-                            setPlayerOpen(true);
-                          }
+                        : handleExpand
                     }
                     onRemove={removeCurrentPlaying}
                   />
@@ -545,7 +567,10 @@ function RemoteInner() {
             roomData.isTvActive ? tryClaimAnnouncementLock : undefined
           }
           onSongEnd={playNext}
-          onClose={() => setPlayerOpen(false)}
+          onClose={() => {
+            setPlayerOpen(false);
+            void release();
+          }}
           onPrev={playPrevious}
           onNext={playNext}
           onPlayingChange={setIsPlaying}

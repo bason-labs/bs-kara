@@ -73,6 +73,7 @@
         "mcVoice":                { ".validate": "newData.isString() && newData.val().length <= 64" },
         "lastAnnouncedSongId":    { ".validate": "newData.isString() && newData.val().length <= 64" },
         "isTvActive":             { ".validate": "newData.isBoolean()" },
+        "fullscreenOwner":        { ".validate": "newData.val() === null || (newData.isString() && newData.val().length <= 64)" },
         "lastEndedAt":            { ".validate": "newData.isNumber()" },
 
         "emojis": {

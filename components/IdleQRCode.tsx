@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
+import { getPublicOrigin } from '@/lib/publicOrigin';
 
 interface IdleQRCodeProps {
   roomCode: string | null;
@@ -13,15 +14,16 @@ interface IdleQRCodeProps {
 // Shared idle/empty-state QR. Lives on the TV's "no song" screen and on the
 // mobile FullscreenPlayer when track is null. joinUrl is computed in an
 // effect (not at render time) to avoid SSR hydration mismatches —
-// window.location.origin is browser-only.
+// getPublicOrigin() reads window.location.origin in the browser branch.
 export function IdleQRCode({ roomCode, size = 240 }: IdleQRCodeProps) {
   const { t } = useTranslation();
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!roomCode) return;
+    const origin = getPublicOrigin() ?? window.location.origin;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setJoinUrl(`${window.location.origin}/?room=${roomCode}`);
+    setJoinUrl(`${origin}/?room=${roomCode}`);
   }, [roomCode]);
 
   const cardPadding = 16;

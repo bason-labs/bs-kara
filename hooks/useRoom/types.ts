@@ -28,6 +28,11 @@ export interface RoomState {
   // Set by the TV via Firebase onDisconnect presence; mobile uses this to
   // hide its now-playing card (the TV is already showing it).
   isTvActive: boolean;
+  // Per-tab device id of the phone currently hosting the FullscreenPlayer
+  // (i.e. acting as the playback surface when no TV is connected). Claimed
+  // atomically and released via Firebase onDisconnect — see
+  // useFullscreenOwnership. `null` means no phone owns the surface.
+  fullscreenOwner: string | null;
   // Timestamp written by `resetRoom` (End Party). Phones watch this so they
   // can surface a "party ended" notice while staying connected to the room.
   lastEndedAt: number | null;
@@ -48,6 +53,7 @@ export const DEFAULT_STATE: RoomState = {
   mcVoice: 'vi-VN-Neural2-A',
   lastAnnouncedSongId: null,
   isTvActive: false,
+  fullscreenOwner: null,
   lastEndedAt: null,
 };
 

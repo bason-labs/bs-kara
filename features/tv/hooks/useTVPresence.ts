@@ -5,6 +5,7 @@ import { onDisconnect, ref, remove, set } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { claimOrGetActiveRoom } from '@/lib/activeRoom';
 import { getRoomDataPath } from '@/lib/roomPaths';
+import { getPublicOrigin } from '@/lib/publicOrigin';
 
 const TV_ROOM_STORAGE_KEY = 'karaoke_tv_room';
 
@@ -45,14 +46,15 @@ export function useTVPresence() {
     };
   }, [roomCode]);
 
-  // Computed in an effect (not at render time) because window.location.origin
-  // is browser-only — running it during render produces a hydration mismatch
-  // (SSR sees null, client sees a URL). Same idiomatic mount-once pattern as
-  // `setIsCoarsePointer` in useRoomGate.
+  // Computed in an effect (not at render time) because getPublicOrigin()
+  // reads window.location.origin in the browser branch — running it during
+  // render produces a hydration mismatch (SSR sees null, client sees a URL).
+  // Same idiomatic mount-once pattern as `setIsCoarsePointer` in useRoomGate.
   useEffect(() => {
     if (!roomCode) return;
+    const origin = getPublicOrigin() ?? window.location.origin;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setJoinUrl(`${window.location.origin}/?room=${roomCode}`);
+    setJoinUrl(`${origin}/?room=${roomCode}`);
   }, [roomCode]);
 
   useEffect(() => {
