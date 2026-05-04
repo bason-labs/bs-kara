@@ -122,10 +122,12 @@ export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingCh
           controls: 0,
           disablekb: 1,
           modestbranding: 1,
-          // Hint YouTube to pick quality adaptively based on network +
-          // player size. Paired with setPlaybackQuality('default') in
-          // handleReady; either alone is enough but both is harmless.
-          vq: 'default',
+          // Cap requested quality at 720p. YouTube ABR still adapts down for
+          // weak connections; this just prevents the player from REQUESTING
+          // 1080p, which is the common cause of buffer-rebuffer stutter on
+          // typical home WiFi. Karaoke prioritizes smooth playback over max
+          // resolution.
+          vq: 'hd720',
           // Mount muted when the caller starts at volume 0 (mobile
           // FullscreenPlayer during MC). playerVars are baked at iframe
           // creation, so this prevents the iframe's own autoplay from
