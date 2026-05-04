@@ -129,7 +129,7 @@ export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingCh
           // 1080p, which is the common cause of buffer-rebuffer stutter on
           // typical home WiFi. Karaoke prioritizes smooth playback over max
           // resolution.
-          vq: 'hd720',
+          vq: 'large',
           // Mount muted when the caller starts at volume 0 (mobile
           // FullscreenPlayer during MC). playerVars are baked at iframe
           // creation, so this prevents the iframe's own autoplay from

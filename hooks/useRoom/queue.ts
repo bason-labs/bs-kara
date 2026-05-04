@@ -185,6 +185,10 @@ export function useRoomQueue(
     if (next.mcText) nextPayload.mcText = next.mcText;
     await set(ref(db, `${getRoomDataPath(roomId)}/currentPlaying`), nextPayload);
     await remove(ref(db, `${getRoomDataPath(roomId)}/queue/${next.queueId}`));
+    // Promoting from the queue implies playback intent. The previous song's
+    // ENDED iframe ping (or an explicit pause) may have left isPlaying=false;
+    // flip it back so the new song actually plays after the MC gate releases.
+    await set(ref(db, `${getRoomDataPath(roomId)}/isPlaying`), true);
   }, [roomId, roomDataRef]);
 
   // Used by auto-random to bypass the queue entirely: writes the picked
@@ -201,6 +205,10 @@ export function useRoomQueue(
         thumbnail: item.thumbnail,
         duration: item.duration,
       });
+      // Auto-random is the user's "keep the room playing forever" toggle —
+      // promoting a picked song must also flip isPlaying back on, since the
+      // prior song's ENDED ping likely left it false.
+      await set(ref(db, `${getRoomDataPath(roomId)}/isPlaying`), true);
     },
     [roomId],
   );
@@ -245,6 +253,10 @@ export function useRoomQueue(
     const histObj = arrayToRecord(newHistory);
 
     await set(ref(db, `${getRoomDataPath(roomId)}/currentPlaying`), prev);
+    // Restoring a previous song is a playback-intent action; mirror the
+    // playNext promote path so the restored song doesn't mount paused if
+    // isPlaying was left false by the prior song's ENDED ping.
+    await set(ref(db, `${getRoomDataPath(roomId)}/isPlaying`), true);
 
     if (newQueue.length > 0) {
       await set(ref(db, `${getRoomDataPath(roomId)}/queue`), queueObj);
