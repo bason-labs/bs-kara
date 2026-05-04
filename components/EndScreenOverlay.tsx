@@ -25,7 +25,7 @@ const MESSAGES = [
   { headline: '🎉 Quá xuất sắc!', subline: 'Một bài hát đỉnh của đỉnh! ⭐' },
 ];
 
-const TRIGGER_SECONDS_BEFORE_END = 5;
+const TRIGGER_SECONDS_BEFORE_END = 8;
 const POLL_INTERVAL_MS = 250;
 const CONFETTI_COLORS = ['#FFD700', '#FF6B6B', '#4ECDC4', '#95E1D3', '#F38181'];
 
