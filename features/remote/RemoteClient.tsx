@@ -58,7 +58,6 @@ function RemoteInner() {
     isCoarsePointer,
     submitJoin,
     handleLeave,
-    forgetSavedRoom,
   } = useRoomGate();
 
   const [tab, setTab] = useState<Tab>('search');
@@ -158,13 +157,6 @@ function RemoteInner() {
   // malformed code, or a 4-digit code Firebase says doesn't exist.
   const roomMissing =
     (!!rawRoomCode && !roomCode) || (!!roomCode && roomExists === false);
-
-  // If we're showing the not-found panel, forget any saved code so leaving
-  // via "Về trang chủ" actually lands on home (and doesn't immediately
-  // restore the bad code from localStorage).
-  useEffect(() => {
-    if (roomMissing) forgetSavedRoom();
-  }, [roomMissing, forgetSavedRoom]);
 
   // Inline toast for transient notices (e.g. "the room you were in has
   // ended"). Lives next to the rest of the home/main UI rather than the

@@ -21,6 +21,8 @@ const claimMock = claimOrGetActiveRoom as unknown as ReturnType<typeof vi.fn>;
 
 let pushSpy: ReturnType<typeof vi.fn>;
 let replaceSpy: ReturnType<typeof vi.fn>;
+let assignSpy: ReturnType<typeof vi.fn>;
+let originalLocation: Location;
 
 function setUrlRoom(room: string | null) {
   useSearchParamsMock.mockReturnValue({
@@ -52,9 +54,25 @@ beforeEach(() => {
   setUrlRoom(null);
   setCoarsePointer(false);
   claimMock.mockReset();
+
+  // handleLeave now does a hard reload via window.location.assign('/').
+  // Stash the real Location and substitute one whose assign is spyable;
+  // afterEach restores the original.
+  assignSpy = vi.fn();
+  originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: { ...window.location, assign: assignSpy },
+    writable: true,
+    configurable: true,
+  });
 });
 
 afterEach(() => {
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+    configurable: true,
+  });
   vi.clearAllMocks();
 });
 
@@ -107,9 +125,10 @@ describe('useRoomGate', () => {
     act(() => {
       result.current.handleLeave();
     });
-    expect(pushSpy).toHaveBeenCalledWith('/');
+    expect(assignSpy).toHaveBeenCalledWith('/');
+    expect(pushSpy).not.toHaveBeenCalled();
 
-    // Simulate the URL update that router.push would produce.
+    // Simulate the URL update that the hard reload would produce.
     setUrlRoom(null);
     rerender();
     await act(async () => {

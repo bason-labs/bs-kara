@@ -1,20 +1,21 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { subscribeActiveRoom } from '@/lib/activeRoom';
 
 const ROOM_CODE_PATTERN = /^\d{4}$/;
-const STORAGE_KEY = 'karaoke_client_room';
 
-// Owns the URL ↔ room-code contract: validates ?room=, persists the active
-// room across reloads, restores it on a bare /, and subscribes to the
+// Owns the URL ↔ room-code contract: validates ?room= and subscribes to the
 // global active-room pointer so JoinForm can offer a "join the open party"
-// shortcut. Joining always requires an explicit user gesture (scanning the
-// TV's QR, tapping the shortcut, or entering the OTP) — there is no
-// device-class auto-claim. Earlier versions auto-claimed on coarse-pointer
-// devices, which made tapping Leave on a phone visually do nothing because
-// the same effect re-claimed the still-live TV room within milliseconds.
+// shortcut. Room code lives in the URL only — refreshing keeps the user in
+// the room because the URL persists, and Leave is irreversible without an
+// explicit re-join action. Joining always requires an explicit user gesture
+// (scanning the TV's QR, tapping the shortcut, or entering the OTP) — there
+// is no device-class auto-claim. Earlier versions auto-claimed on coarse-
+// pointer devices, which made tapping Leave on a phone visually do nothing
+// because the same effect re-claimed the still-live TV room within
+// milliseconds.
 export function useRoomGate() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -25,33 +26,6 @@ export function useRoomGate() {
   // garbage Firebase path or render the shell with bogus data.
   const roomCode =
     rawRoomCode && ROOM_CODE_PATTERN.test(rawRoomCode) ? rawRoomCode : null;
-
-  // Persist the current room code so a fresh tab can restore it on first
-  // load. Runs whenever the URL settles on a valid room.
-  useEffect(() => {
-    if (roomCode) {
-      localStorage.setItem(STORAGE_KEY, roomCode);
-    }
-  }, [roomCode]);
-
-  // Restore the last valid saved code only on the initial mount with a bare
-  // `/` URL. Doing this on every navigation to `/` would trap the user: once
-  // they Back out of a room, the effect would immediately redirect them
-  // straight back into it. handleLeave clears localStorage before navigating,
-  // so an explicit Leave + reload lands on the JoinForm, not back in the room.
-  const restoreCheckedRef = useRef(false);
-  useEffect(() => {
-    if (restoreCheckedRef.current) return;
-    restoreCheckedRef.current = true;
-    if (rawRoomCode) return;
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && ROOM_CODE_PATTERN.test(saved)) {
-      router.replace(`/?room=${saved}`);
-    } else if (saved) {
-      // Clear garbage that may have been persisted before validation existed.
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, [rawRoomCode, router]);
 
   // Pointer detection still drives the brief skeleton the home page shows
   // before deciding what to render — kept post-mount so SSR and the first
@@ -90,15 +64,13 @@ export function useRoomGate() {
   );
 
   const handleLeave = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    router.push('/');
-  }, [router]);
-
-  // Drops the persisted code without navigating. Used when the URL points
-  // at a stale room so leaving via the home button doesn't immediately
-  // restore the bad code from localStorage.
-  const forgetSavedRoom = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
+    // Full page reload instead of router.push: Next.js App Router silently
+    // no-ops push('/') when the user landed directly on /?room=… (the target
+    // pathname is not in the client router cache and matches the current one,
+    // only searchParams differ). A hard reload is deterministic, also tears
+    // down the Firebase subscription and media state cleanly — desirable
+    // semantics for "Leave Room".
+    window.location.assign('/');
   }, []);
 
   return {
@@ -109,6 +81,5 @@ export function useRoomGate() {
     isCoarsePointer,
     submitJoin,
     handleLeave,
-    forgetSavedRoom,
   };
 }

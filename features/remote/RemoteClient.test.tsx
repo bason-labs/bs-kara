@@ -77,7 +77,6 @@ vi.mock('@/features/remote/hooks/useRoomGate', () => ({
     isCoarsePointer: true,
     submitJoin: vi.fn(),
     handleLeave: vi.fn(),
-    forgetSavedRoom: vi.fn(),
   }),
 }));
 
