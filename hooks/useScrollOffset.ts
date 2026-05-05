@@ -48,7 +48,7 @@ export function useScrollOffset(
   scrollRef: RefObject<HTMLElement | null>,
   maxOffset: number,
   {
-    snapMs = 180,
+    snapMs = 300,
     endDelayMs = 90,
     edgePx = 50,
     minDeltaPx = 5,

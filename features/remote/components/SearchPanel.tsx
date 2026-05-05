@@ -158,17 +158,19 @@ export function SearchPanel({
     headerHeight + searchBarHeight,
   );
 
-  // Sequential retraction with layout collapse so the bar doesn't leave
-  // a visible flow gap when it translates away. The iOS guards in
-  // useScrollOffset (edge-zone freeze + min-delta filter) plus
-  // overscroll-y-contain on the results scroll container neutralize the
-  // rubber-band scroll-stuck issue that originally motivated removing
-  // marginBottom — without those guards, animating margin-bottom mid-
-  // scroll caused iOS Safari to read invalid scrollTop values during
-  // bounce and pin the page at the bottom.
+  // Synchronized retraction: header and search bar share the same shift
+  // (= chromeOffset). For chromeOffset 0..headerHeight the chrome reads
+  // as one rigid block sliding up. Past that point the header is fully
+  // off-screen, so the search bar's continued translate is invisible.
+  // The scroll container holds an in-list spacer (first child below)
+  // sized to header + search bar — it scrolls away with the list and
+  // visually fills the chrome's resting area at scrollTop = 0.
+  // The explicit clamp is defensive — useScrollOffset already clamps
+  // chromeOffset to [0, maxOffset], but we don't want to depend on that
+  // contract being preserved across hook refactors.
   const searchBarShift = Math.max(
     0,
-    Math.min(searchBarHeight, chromeOffset - headerHeight),
+    Math.min(headerHeight + searchBarHeight, chromeOffset),
   );
 
   useEffect(() => {
@@ -177,7 +179,6 @@ export function SearchPanel({
 
   const searchBarStyle: CSSProperties = {
     transform: `translateY(-${searchBarShift}px)`,
-    marginBottom: `-${searchBarShift}px`,
   };
 
   // Render-time choice between hot hits (initial) and user-search results.
@@ -273,7 +274,7 @@ export function SearchPanel({
   }, []);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="relative flex flex-col h-full">
       {isListening && (
         <div
           role="button"
@@ -422,9 +423,9 @@ export function SearchPanel({
       <div
         ref={searchBarRef}
         style={searchBarStyle}
-        className={`sticky top-0 z-10 p-4 bg-bg/85 backdrop-blur-md border-b border-border will-change-transform lg:overflow-visible lg:[transform:none]! lg:[margin-bottom:0]! ${
+        className={`absolute top-[var(--header-h)] left-0 right-0 z-20 p-4 bg-bg/85 backdrop-blur-md border-b border-border will-change-transform lg:sticky lg:top-0 lg:z-10 lg:overflow-visible lg:[transform:none]! ${
           chromeSnap
-            ? 'transition-[transform,margin-bottom] duration-200 ease-out lg:transition-none!'
+            ? 'transition-transform duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] lg:transition-none!'
             : ''
         }`}
       >
@@ -552,8 +553,14 @@ export function SearchPanel({
 
       <div
         ref={resultsScrollRef}
-        className="flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] p-4 space-y-3"
+        style={{ '--searchbar-h': `${searchBarHeight}px` } as CSSProperties}
+        className="flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] px-4 pb-4 lg:pt-4 space-y-3"
       >
+        <div
+          aria-hidden
+          className="lg:hidden shrink-0"
+          style={{ height: 'calc(var(--header-h) + var(--searchbar-h))' }}
+        />
         {(isInitialLoading || loading) &&
           SEARCH_SKELETONS.map((_, i) => <SongSkeleton key={i} />)}
 

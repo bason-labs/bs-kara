@@ -87,15 +87,13 @@ function RemoteInner() {
   const headerShift =
     tab === 'search' ? Math.min(headerHeight, Math.max(0, chromeOffset)) : 0;
   const headerSnap = tab === 'search' && chromeSnap;
-  // Both translate AND marginBottom collapse so the header retracts
-  // without leaving a visible gap below it. The iOS rubber-band guards
-  // in useScrollOffset (edge-zone freeze + min-delta filter) plus
-  // overscroll-y-contain on the search results' scroll container
-  // neutralize the scroll-stuck issue that originally pushed us to
-  // translate-only.
+  // Header is absolutely positioned on mobile (see className below) and
+  // floats above the list on its own layer, so retraction is pure
+  // translateY — no margin animation, no list reflow. The flex-1 content
+  // area below is padded by --header-h to keep its content clear of the
+  // header's resting position.
   const headerStyle: CSSProperties = {
     transform: `translateY(-${headerShift}px)`,
-    marginBottom: `-${headerShift}px`,
   };
   // Latches true on the first gear-icon click and stays true for the rest of
   // the session. Gates the dynamic-imported SettingsSheet so it doesn't
@@ -353,16 +351,16 @@ function RemoteInner() {
   ];
 
   return (
-    <main className="h-[100dvh] w-full flex flex-col overflow-hidden bg-bg text-fg">
+    <main className="relative h-[100dvh] w-full flex flex-col overflow-hidden bg-bg text-fg">
       {noticeBanner}
       <h1 className="sr-only">{t('home.appHeading')}</h1>
 
       <header
         ref={headerRef}
         style={headerStyle}
-        className={`flex items-center justify-between px-4 py-3 bg-surface/70 backdrop-blur-md border-b border-border shrink-0 will-change-transform lg:[transform:none]! lg:[margin-bottom:0]! ${
+        className={`absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 bg-surface/70 backdrop-blur-md border-b border-border will-change-transform lg:static lg:z-auto lg:shrink-0 lg:[transform:none]! ${
           headerSnap
-            ? 'transition-[transform,margin-bottom] duration-200 ease-out lg:transition-none!'
+            ? 'transition-transform duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] lg:transition-none!'
             : ''
         }`}
       >
@@ -406,7 +404,10 @@ function RemoteInner() {
       </header>
 
       {/* Main content: mobile shows one tab at a time; lg+ shows two columns */}
-      <div className="flex-1 min-h-0 overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_460px] xl:grid-cols-[minmax(0,1fr)_500px]">
+      <div
+        style={{ '--header-h': `${headerHeight}px` } as CSSProperties}
+        className="flex-1 min-h-0 overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_460px] xl:grid-cols-[minmax(0,1fr)_500px]"
+      >
         {/* Search column */}
         <section
           aria-label="Search"
@@ -431,7 +432,7 @@ function RemoteInner() {
             so the queue tab stays uncluttered. */}
         <section
           aria-label="Queue and controls"
-          className={`relative min-h-0 flex-col overflow-hidden lg:flex lg:bg-surface/40 ${
+          className={`relative min-h-0 flex-col overflow-hidden pt-[var(--header-h)] lg:pt-0 lg:flex lg:bg-surface/40 ${
             tab === 'queue' || tab === 'player' ? 'flex h-full' : 'hidden'
           }`}
         >
@@ -518,7 +519,7 @@ function RemoteInner() {
               the player tab so the queue tab doesn't render unrelated rises. */}
           <div
             aria-hidden
-            className={`pointer-events-none absolute inset-x-0 top-0 bottom-28 lg:bottom-32 z-40 overflow-hidden ${
+            className={`pointer-events-none absolute inset-x-0 top-[var(--header-h)] bottom-28 lg:top-0 lg:bottom-32 z-40 overflow-hidden ${
               tab === 'player' ? '' : 'hidden lg:block'
             }`}
           >

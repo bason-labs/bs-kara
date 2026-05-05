@@ -82,7 +82,7 @@ describe('useScrollOffset', () => {
     expect(result.current.offset).toBe(100);
     expect(result.current.snap).toBe(true);
 
-    act(() => vi.advanceTimersByTime(180));
+    act(() => vi.advanceTimersByTime(300));
     expect(result.current.snap).toBe(false);
   });
 
