@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { REACTIONS, getGifUrl } from './reactions';
+import { REACTIONS, getGifUrl, getStaticUrl } from './reactions';
 
 describe('REACTIONS', () => {
   it('exposes a non-empty list of emoji', () => {
@@ -14,25 +14,39 @@ describe('REACTIONS', () => {
 describe('getGifUrl', () => {
   it('embeds the codepoint hex of the emoji in the URL', () => {
     // 💖 = U+1F496
-    expect(getGifUrl('💖')).toBe(
-      'https://fonts.gstatic.com/s/e/notoemoji/latest/1f496/512.gif',
-    );
+    expect(getGifUrl('💖')).toBe('/reactions/1f496.gif');
   });
 
   it('uses the first codepoint for compound strings', () => {
-    expect(getGifUrl('🔥xx')).toBe(
-      'https://fonts.gstatic.com/s/e/notoemoji/latest/1f525/512.gif',
-    );
+    expect(getGifUrl('🔥xx')).toBe('/reactions/1f525.gif');
   });
 
   it('falls back to an empty codepoint for empty input', () => {
-    expect(getGifUrl('')).toBe(
-      'https://fonts.gstatic.com/s/e/notoemoji/latest//512.gif',
-    );
+    expect(getGifUrl('')).toBe('/reactions/.gif');
   });
 
   it('produces a unique URL for every reaction', () => {
     const urls = REACTIONS.map(getGifUrl);
+    expect(new Set(urls).size).toBe(REACTIONS.length);
+  });
+});
+
+describe('getStaticUrl', () => {
+  it('embeds the codepoint hex of the emoji in the URL', () => {
+    // 💖 = U+1F496
+    expect(getStaticUrl('💖')).toBe('/reactions/1f496.svg');
+  });
+
+  it('uses the first codepoint for compound strings', () => {
+    expect(getStaticUrl('🔥xx')).toBe('/reactions/1f525.svg');
+  });
+
+  it('falls back to an empty codepoint for empty input', () => {
+    expect(getStaticUrl('')).toBe('/reactions/.svg');
+  });
+
+  it('produces a unique URL for every reaction', () => {
+    const urls = REACTIONS.map(getStaticUrl);
     expect(new Set(urls).size).toBe(REACTIONS.length);
   });
 });
