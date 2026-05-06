@@ -56,7 +56,10 @@
     "errorQuota": "Dịch vụ tìm kiếm đang bận. Vui lòng thử lại sau giây lát.",
     "errorGeneric": "Tìm kiếm thất bại. Vui lòng thử lại.",
     "addToQueueButton": "+ Thêm vào hàng chờ",
-    "addedToQueueButton": "Đã thêm"
+    "addedToQueueButton": "Đã thêm",
+    "filtersGroupAriaLabel": "Bộ lọc nhanh",
+    "clearFilters": "Xoá lọc ({{count}})",
+    "clearFiltersAriaLabel": "Xoá tất cả bộ lọc"
   },
   "queue": {
     "title": "Hàng chờ",

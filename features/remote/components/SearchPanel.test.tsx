@@ -84,4 +84,137 @@ describe('SearchPanel', () => {
       expect(screen.getByText('search.errorQuota')).toBeInTheDocument(),
     );
   });
+
+  describe('quick filter chips', () => {
+    // The MSW default handler echoes the query back as the result title
+    // ("Mock result for ${q}"), so we can verify the exact query string the
+    // BFF received by reading the rendered result text.
+    it('renders all 6 quick-filter chips with aria-pressed=false initially', async () => {
+      render(<SearchPanel onAdd={() => {}} />);
+      // Wait for hot hits to settle so the chip row is mounted.
+      await waitFor(() =>
+        expect(screen.getByText(/Mock result for bolero/)).toBeInTheDocument(),
+      );
+      const labels = ['Song ca', 'Tone nam', 'Tone nữ', 'Trữ tình', 'Ca cổ', 'Nhạc trẻ'];
+      for (const label of labels) {
+        const chip = screen.getByRole('button', { name: label });
+        expect(chip).toHaveAttribute('aria-pressed', 'false');
+      }
+    });
+
+    it('toggling a chip on its own (no query) triggers a search using just the chip keyword', async () => {
+      const user = userEvent.setup();
+      render(<SearchPanel onAdd={() => {}} />);
+      await waitFor(() =>
+        expect(screen.getByText(/Mock result for bolero/)).toBeInTheDocument(),
+      );
+      await user.click(screen.getByRole('button', { name: 'Song ca' }));
+      await waitFor(() =>
+        expect(screen.getByText(/Mock result for song ca/)).toBeInTheDocument(),
+      );
+      expect(
+        screen.getByRole('button', { name: 'Song ca' }),
+      ).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('combines user query and chip keywords as "<query> <chip keywords>" without dedupe or reorder', async () => {
+      const user = userEvent.setup();
+      render(<SearchPanel onAdd={() => {}} />);
+      await waitFor(() =>
+        expect(screen.getByText(/Mock result for bolero/)).toBeInTheDocument(),
+      );
+      const input = screen.getByPlaceholderText('search.placeholder');
+      await user.type(input, 'hello');
+      await user.click(
+        screen.getByRole('button', { name: 'search.submitAriaLabel' }),
+      );
+      await waitFor(() =>
+        expect(screen.getByText(/Mock result for hello/)).toBeInTheDocument(),
+      );
+      // Now toggle two chips while the user query is still active — the
+      // re-run search must fire with all three terms in chip-definition
+      // order, query first.
+      await user.click(screen.getByRole('button', { name: 'Tone nam' }));
+      await user.click(screen.getByRole('button', { name: 'Trữ tình' }));
+      await waitFor(() =>
+        expect(
+          screen.getByText('Mock result for hello tone nam trữ tình'),
+        ).toBeInTheDocument(),
+      );
+    });
+
+    it('multi-select: tapping a second chip keeps the first active (AND, not radio)', async () => {
+      const user = userEvent.setup();
+      render(<SearchPanel onAdd={() => {}} />);
+      await waitFor(() =>
+        expect(screen.getByText(/Mock result for bolero/)).toBeInTheDocument(),
+      );
+      await user.click(screen.getByRole('button', { name: 'Song ca' }));
+      await user.click(screen.getByRole('button', { name: 'Tone nam' }));
+      expect(
+        screen.getByRole('button', { name: 'Song ca' }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      expect(
+        screen.getByRole('button', { name: 'Tone nam' }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      await waitFor(() =>
+        expect(
+          screen.getByText('Mock result for song ca tone nam'),
+        ).toBeInTheDocument(),
+      );
+    });
+
+    it('clear-all button appears only when ≥1 chip is active and resets every chip', async () => {
+      const user = userEvent.setup();
+      render(<SearchPanel onAdd={() => {}} />);
+      await waitFor(() =>
+        expect(screen.getByText(/Mock result for bolero/)).toBeInTheDocument(),
+      );
+      // No active chip → no clear button
+      expect(
+        screen.queryByRole('button', { name: 'search.clearFiltersAriaLabel' }),
+      ).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Song ca' }));
+      await user.click(screen.getByRole('button', { name: 'Tone nam' }));
+
+      const clearBtn = await screen.findByRole('button', {
+        name: 'search.clearFiltersAriaLabel',
+      });
+      await user.click(clearBtn);
+
+      expect(
+        screen.getByRole('button', { name: 'Song ca' }),
+      ).toHaveAttribute('aria-pressed', 'false');
+      expect(
+        screen.getByRole('button', { name: 'Tone nam' }),
+      ).toHaveAttribute('aria-pressed', 'false');
+      expect(
+        screen.queryByRole('button', { name: 'search.clearFiltersAriaLabel' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('chips persist across submits within the session — typing a fresh query does not reset chips', async () => {
+      const user = userEvent.setup();
+      render(<SearchPanel onAdd={() => {}} />);
+      await waitFor(() =>
+        expect(screen.getByText(/Mock result for bolero/)).toBeInTheDocument(),
+      );
+      await user.click(screen.getByRole('button', { name: 'Tone nữ' }));
+      const input = screen.getByPlaceholderText('search.placeholder');
+      await user.type(input, 'lan');
+      await user.click(
+        screen.getByRole('button', { name: 'search.submitAriaLabel' }),
+      );
+      await waitFor(() =>
+        expect(
+          screen.getByText('Mock result for lan tone nữ'),
+        ).toBeInTheDocument(),
+      );
+      // Chip is still active after the submit.
+      expect(
+        screen.getByRole('button', { name: 'Tone nữ' }),
+      ).toHaveAttribute('aria-pressed', 'true');
+    });
+  });
 });

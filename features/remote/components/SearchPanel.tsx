@@ -28,6 +28,27 @@ import { AddToQueueButton } from './AddToQueueButton';
 // used to spread into 8 SongSkeleton elements.
 const SEARCH_SKELETONS = Array.from({ length: 8 });
 
+// Quick-filter chips. Labels are domain terms — kept in Vietnamese for both
+// locales. The keyword is appended verbatim to the user query before hitting
+// the BFF (same keyword-AND approach used by lib/random/picker.ts), so the
+// final search becomes "<user query> <chip keywords>".
+const FILTER_CHIPS = [
+  { id: 'song-ca', label: 'Song ca', keyword: 'song ca' },
+  { id: 'tone-nam', label: 'Tone nam', keyword: 'tone nam' },
+  { id: 'tone-nu', label: 'Tone nữ', keyword: 'tone nữ' },
+  { id: 'tru-tinh', label: 'Trữ tình', keyword: 'trữ tình' },
+  { id: 'ca-co', label: 'Ca cổ', keyword: 'ca cổ' },
+  { id: 'nhac-tre', label: 'Nhạc trẻ', keyword: 'nhạc trẻ' },
+] as const;
+
+type FilterChipId = (typeof FILTER_CHIPS)[number]['id'];
+
+function buildChipKeywords(chips: Set<FilterChipId>): string {
+  return FILTER_CHIPS.filter((c) => chips.has(c.id))
+    .map((c) => c.keyword)
+    .join(' ');
+}
+
 interface SearchResultsProps {
   results: YouTubeVideo[];
   isQueueLoading: boolean;
@@ -128,6 +149,12 @@ export function SearchPanel({
   const [showingHotHits, setShowingHotHits] = useState(true);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  // Active quick-filter chip ids. Persisted across searches within the same
+  // session via React state only — refreshing the page resets, which matches
+  // the rest of the search UI (history is the only thing that survives reload).
+  const [activeChips, setActiveChips] = useState<Set<FilterChipId>>(
+    () => new Set(),
+  );
 
   const { hotHits, isLoading: isInitialLoading } = useHotHits();
   const { history, push: pushHistory, remove: removeHistoryEntry } = useSearchHistory();
@@ -195,20 +222,30 @@ export function SearchPanel({
     panelInputRef.current?.blur();
   }, []);
 
+  // Takes chips explicitly so callers (chip toggle, clear-all) can pass a
+  // freshly computed Set without waiting for the activeChips state update to
+  // flush. For form/suggestion/voice paths, we read activeChips directly.
   const runSearch = useCallback(
-    async (q: string) => {
+    async (q: string, chips: Set<FilterChipId>) => {
       const trimmed = q.trim();
-      if (!trimmed) return;
+      const chipKeywords = buildChipKeywords(chips);
+      // Final query is the user's typed query first, then chip keywords —
+      // no dedupe, no reorder. YouTube handles relevance.
+      const finalQuery = [trimmed, chipKeywords].filter(Boolean).join(' ');
+      if (!finalQuery) return;
       dismissPanel();
       setLoading(true);
       setSearched(true);
       setShowingHotHits(false);
       setSearchError(null);
       try {
-        const { videos, error } = await searchYouTube(trimmed);
+        const { videos, error } = await searchYouTube(finalQuery);
         setResults(videos);
         setSearchError(error ?? null);
-        if (videos.length > 0) {
+        // Only record the user-typed portion in history — chip-only or
+        // chip-augmented searches shouldn't pollute the recents list with
+        // filter keywords the user never typed.
+        if (videos.length > 0 && trimmed) {
           pushHistory(trimmed, videos[0]?.thumbnail);
         }
       } finally {
@@ -221,28 +258,62 @@ export function SearchPanel({
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
       e.preventDefault();
-      await runSearch(query);
+      await runSearch(query, activeChips);
     },
-    [query, runSearch],
+    [query, runSearch, activeChips],
   );
 
   const handleSuggestionClick = useCallback(
     (suggestion: string) => {
       setQuery(suggestion);
       clearSuggestions();
-      runSearch(suggestion);
+      runSearch(suggestion, activeChips);
     },
-    [clearSuggestions, runSearch],
+    [clearSuggestions, runSearch, activeChips],
   );
 
   const handleVoiceFinal = useCallback(
     (transcript: string) => {
       setQuery(transcript);
       clearSuggestions();
-      runSearch(transcript);
+      runSearch(transcript, activeChips);
     },
-    [clearSuggestions, runSearch],
+    [clearSuggestions, runSearch, activeChips],
   );
+
+  const handleChipToggle = useCallback(
+    (id: FilterChipId) => {
+      const next = new Set(activeChips);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      setActiveChips(next);
+      const trimmed = query.trim();
+      if (trimmed || next.size > 0) {
+        runSearch(query, next);
+      } else {
+        // All chips off + empty query → drop back to hot hits.
+        setSearched(false);
+        setShowingHotHits(true);
+        setResults([]);
+        setSearchError(null);
+      }
+    },
+    [activeChips, query, runSearch],
+  );
+
+  const handleClearChips = useCallback(() => {
+    const empty = new Set<FilterChipId>();
+    setActiveChips(empty);
+    const trimmed = query.trim();
+    if (trimmed) {
+      runSearch(query, empty);
+    } else {
+      setSearched(false);
+      setShowingHotHits(true);
+      setResults([]);
+      setSearchError(null);
+    }
+  }, [query, runSearch]);
 
   const handleVoiceUnsupported = useCallback(() => {
     alert(t('search.voiceNotSupported'));
@@ -272,6 +343,47 @@ export function SearchPanel({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Negative inline margin lets the row's first/last chip bleed into the
+  // wrapper padding so a horizontal swipe feels edge-to-edge on mobile,
+  // while the wrap behaviour on lg+ keeps the row aligned with the form.
+  const renderChipRow = (extraClass = '') => (
+    <div
+      role="group"
+      aria-label={t('search.filtersGroupAriaLabel')}
+      className={`-mx-4 px-4 flex gap-2 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:px-0 lg:flex-wrap lg:overflow-visible ${extraClass}`}
+    >
+      {FILTER_CHIPS.map((chip) => {
+        const active = activeChips.has(chip.id);
+        return (
+          <button
+            key={chip.id}
+            type="button"
+            aria-pressed={active}
+            onClick={() => handleChipToggle(chip.id)}
+            className={`flex-shrink-0 inline-flex items-center px-4 py-2 rounded-full text-xs font-medium tracking-wide whitespace-nowrap border transition-colors active:scale-95 ${
+              active
+                ? 'bg-gradient-brand text-white border-transparent shadow-glow'
+                : 'bg-surface text-muted border-border hover:text-fg hover:border-glow/40'
+            }`}
+          >
+            {chip.label}
+          </button>
+        );
+      })}
+      {activeChips.size > 0 && (
+        <button
+          type="button"
+          onClick={handleClearChips}
+          aria-label={t('search.clearFiltersAriaLabel')}
+          className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-2 rounded-full text-xs font-medium text-danger border border-danger/40 bg-danger/10 hover:bg-danger/20 active:scale-95 whitespace-nowrap"
+        >
+          <X size={14} />
+          <span>{t('search.clearFilters', { count: activeChips.size })}</span>
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="relative flex flex-col h-full">
@@ -328,7 +440,7 @@ export function SearchPanel({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  runSearch(query);
+                  runSearch(query, activeChips);
                 }
               }}
               placeholder={t('search.placeholder')}
@@ -358,6 +470,12 @@ export function SearchPanel({
                 <Mic size={20} />
               </button>
             )}
+          </div>
+          {/* Chip row stays visible while the focus overlay is open so users
+              can toggle filters mid-typing. mx/px values match the overlay's
+              own gutter so the chips align with the input above. */}
+          <div className="px-2 py-2 border-b border-border">
+            {renderChipRow()}
           </div>
           <ul className="flex-1 overflow-y-auto">
             {query.trim().length === 0
@@ -549,6 +667,10 @@ export function SearchPanel({
             <Mic size={20} />
           </button>
         </form>
+        {/* Chip row sits inside the same wrapper as the form so its height
+            is captured by useLayoutEffect → searchBarHeight, which keeps the
+            scroll-coupled retraction (header + bar + chips) consistent. */}
+        <div className="mt-3">{renderChipRow()}</div>
       </div>
 
       <div
