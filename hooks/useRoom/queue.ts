@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, type RefObject } from 'react';
-import { ref, push, remove, set, runTransaction } from 'firebase/database';
+import { ref, push, remove, set, runTransaction, update } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { getRoomDataPath } from '@/lib/roomPaths';
 import type { QueueItem, YouTubeVideo } from '@/lib/youtube/types';
@@ -213,6 +213,55 @@ export function useRoomQueue(
     [roomId],
   );
 
+  // "Play Now": promotes `video` to currentPlaying immediately. The
+  // previous track (if any) is sent to history — NOT prepended back to
+  // the queue — so this behaves like Skip + Replace: the displaced song
+  // is reachable via the Previous button (mirrors removeCurrentPlaying's
+  // pattern), but the queue order is untouched. When sourced from a queue
+  // item, only that one queueId is removed from /queue; the rest stays
+  // as-is. Everything lands in one multi-path update() so no observer
+  // sees the picked song in both /currentPlaying and /queue at once.
+  const playSongNow = useCallback(
+    async (video: YouTubeVideo, sourceQueueId?: string) => {
+      if (!roomId) return;
+      const { currentPlaying, history } = roomDataRef.current;
+
+      // Already playing — nothing to do (button is also hidden in this
+      // case; this guard handles the rare race where the snapshot updates
+      // between the row render and the confirm tap).
+      if (currentPlaying && currentPlaying.id === video.id) return;
+
+      const nextPayload: YouTubeVideo = {
+        id: video.id,
+        title: video.title,
+        channel: video.channel,
+        thumbnail: video.thumbnail,
+        duration: video.duration,
+      };
+      if (video.requesterName) nextPayload.requesterName = video.requesterName;
+      if (video.mcText) nextPayload.mcText = video.mcText;
+
+      const updates: Record<string, unknown> = {
+        currentPlaying: nextPayload,
+        isPlaying: true,
+      };
+      // Skip-and-replace: same pattern as removeCurrentPlaying — the
+      // displaced song lands at the tail of /history so playPrevious can
+      // restore it. The full /history array is rewritten via
+      // arrayToRecord (Firebase's index-keyed wire shape).
+      if (currentPlaying) {
+        updates.history = arrayToRecord([...history, currentPlaying]);
+      }
+      // Source is a queue row → remove just that one entry as part of
+      // the same atomic write. Nothing else in /queue is touched.
+      if (sourceQueueId) {
+        updates[`queue/${sourceQueueId}`] = null;
+      }
+      await update(ref(db, getRoomDataPath(roomId)), updates);
+    },
+    [roomId, roomDataRef],
+  );
+
   // Removes the currently-playing song without skipping to the next via
   // queue. Pushes it onto history (so playPrevious can restore it) and
   // clears currentPlaying. The TV's auto-promote effect will pick up the
@@ -282,5 +331,6 @@ export function useRoomQueue(
     playPrevious,
     setCurrentPlayingDirectly,
     removeCurrentPlaying,
+    playSongNow,
   };
 }

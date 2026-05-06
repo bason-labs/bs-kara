@@ -10,6 +10,10 @@ interface ConfirmDialogProps {
   cancelLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
+  // Primary-button styling. 'danger' (default) preserves the existing
+  // destructive-confirm look; 'brand' uses the gradient + glow to signal
+  // a non-destructive primary action like "Play Now".
+  variant?: 'danger' | 'brand';
 }
 
 export function ConfirmDialog({
@@ -20,6 +24,7 @@ export function ConfirmDialog({
   cancelLabel,
   onConfirm,
   onCancel,
+  variant = 'danger',
 }: ConfirmDialogProps) {
   // Mirrors RequesterDialog: callers may remount us on each open via a
   // `key`, so the closed state never gets a chance to paint before `open`
@@ -114,7 +119,11 @@ export function ConfirmDialog({
               <button
                 type="button"
                 onClick={onConfirm}
-                className="w-full lg:w-auto px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-danger hover:opacity-90 shadow active:scale-95 transition"
+                className={`w-full lg:w-auto px-5 py-2.5 rounded-full text-sm font-semibold text-white active:scale-95 transition ${
+                  variant === 'brand'
+                    ? 'bg-gradient-brand shadow-glow hover:brightness-110'
+                    : 'bg-danger shadow hover:opacity-90'
+                }`}
               >
                 {confirmLabel}
               </button>

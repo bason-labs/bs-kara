@@ -93,6 +93,13 @@
     "queue": "Queue",
     "player": "Player"
   },
+  "playNow": {
+    "title": "Play this song now?",
+    "message": "“{{title}}” will start playing now. The current song will be skipped.",
+    "confirm": "Play Now",
+    "cancel": "Cancel",
+    "aria": "Play this song now"
+  },
   "nowPlaying": {
     "label": "Now playing",
     "removeAriaLabel": "Skip current song",

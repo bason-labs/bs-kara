@@ -93,6 +93,13 @@
     "queue": "Hàng chờ",
     "player": "Đang phát"
   },
+  "playNow": {
+    "title": "Phát bài này ngay?",
+    "message": "“{{title}}” sẽ được phát ngay. Bài đang phát sẽ bị bỏ qua.",
+    "confirm": "Phát ngay",
+    "cancel": "Huỷ",
+    "aria": "Phát bài này ngay"
+  },
   "nowPlaying": {
     "label": "Đang phát",
     "removeAriaLabel": "Bỏ qua bài đang phát",

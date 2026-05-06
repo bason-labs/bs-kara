@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { ListMusic, Trash2 } from 'lucide-react';
 import { QueueItem } from '@/lib/youtube/types';
 import { QueueItemBody } from './QueueItemBody';
+import { PlayNowButton } from './PlayNowButton';
 import type { DndQueueListProps } from './DndQueueList';
 
 // Flips to true on the first client render (post-hydration), so we don't
@@ -28,6 +29,10 @@ interface ClientQueueProps {
   // omitted, the edit affordance is hidden (e.g. for a future read-only
   // viewer).
   onEditRequester?: (item: QueueItem) => void;
+  // "Play Now" — promotes the picked item to currentPlaying. Optional;
+  // when omitted, the row hides the action.
+  onPlayNow?: (item: QueueItem) => void;
+  currentPlayingId?: string | null;
   // Room-wide setting. When false we render the static list (same path used
   // during SSR/pre-hydration), so songs can still be removed but not dragged.
   dragDropEnabled?: boolean;
@@ -39,6 +44,8 @@ export function ClientQueue({
   onReorder,
   onRemove,
   onEditRequester,
+  onPlayNow,
+  currentPlayingId,
   dragDropEnabled = true,
 }: ClientQueueProps) {
   const { t } = useTranslation();
@@ -105,13 +112,15 @@ export function ClientQueue({
                 onReorder={onReorder}
                 onRemove={onRemove}
                 onEditRequester={onEditRequester}
+                onPlayNow={onPlayNow}
+                currentPlayingId={currentPlayingId}
               />
             ) : (
               <div className="space-y-2.5">
                 {items.map((item, index) => (
                   <div
                     key={item.queueId}
-                    className="flex items-center gap-3 p-3 lg:gap-2.5 lg:p-2.5 bg-surface rounded-xl border border-border"
+                    className="group flex items-center gap-3 p-3 lg:gap-2.5 lg:p-2.5 bg-surface rounded-xl border border-border"
                   >
                     <span className="tabular shrink-0 w-5 lg:w-4 text-xs lg:text-[11px] font-semibold text-muted text-center">
                       {index + 1}
@@ -131,6 +140,14 @@ export function ClientQueue({
                       item={item}
                       onEditRequester={onEditRequester}
                     />
+
+                    {onPlayNow && (
+                      <PlayNowButton
+                        videoId={item.id}
+                        currentPlayingId={currentPlayingId}
+                        onClick={() => onPlayNow(item)}
+                      />
+                    )}
 
                     <button
                       type="button"

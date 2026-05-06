@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslation } from 'react-i18next';
-import { Check, X } from 'lucide-react';
+import { Check, Plus, X } from 'lucide-react';
 import type { YouTubeVideo } from '@/lib/youtube/types';
 
 interface AddToQueueButtonProps {
@@ -29,16 +29,22 @@ export function AddToQueueButton({
 }: AddToQueueButtonProps) {
   const { t } = useTranslation();
 
+  // Mobile (< lg) renders icon-only ~40×40 rounded-full so this button
+  // pairs visually with the PlayNowButton next to it. Desktop (≥ lg)
+  // keeps the original pill+text styling. Text labels stay in the DOM
+  // (hidden lg:inline) so screen-reader users still read them on mobile,
+  // and an aria-label is set on the idle button to cover the icon-only
+  // path explicitly.
   if (isQueueLoading) {
     return (
       <button
         type="button"
         disabled
         aria-hidden="true"
-        className="px-4 py-1.5 text-sm lg:px-3 lg:py-1 lg:text-xs font-semibold rounded-full border border-border text-muted bg-surface-2 inline-flex items-center gap-1.5 lg:gap-1 opacity-60 transition-opacity duration-300"
+        className="w-10 h-10 inline-flex items-center justify-center rounded-full border border-border text-muted bg-surface-2 opacity-60 transition-opacity duration-300 lg:w-auto lg:h-auto lg:px-3 lg:py-1 lg:text-xs lg:font-semibold lg:gap-1"
       >
         <span className="inline-block w-4 h-4 lg:w-3.5 lg:h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
-        {t('search.addToQueueButton')}
+        <span className="hidden lg:inline">{t('search.addToQueueButton')}</span>
       </button>
     );
   }
@@ -52,11 +58,11 @@ export function AddToQueueButton({
         type="button"
         onClick={() => onRemove(queueId)}
         aria-label={t('search.addedToQueueButton')}
-        className="group px-4 py-1.5 text-sm lg:px-3 lg:py-1 lg:text-xs font-semibold rounded-full border border-border text-muted bg-surface-2 inline-flex items-center gap-1.5 lg:gap-1 hover:border-danger hover:text-danger hover:bg-surface transition-colors duration-200"
+        className="group w-10 h-10 inline-flex items-center justify-center rounded-full border border-border text-muted bg-surface-2 hover:border-danger hover:text-danger hover:bg-surface transition-colors duration-200 lg:w-auto lg:h-auto lg:px-3 lg:py-1 lg:text-xs lg:font-semibold lg:gap-1"
       >
         <Check strokeWidth={2.4} className="w-4 h-4 lg:w-3.5 lg:h-3.5 group-hover:hidden" />
         <X strokeWidth={2.4} className="w-4 h-4 lg:w-3.5 lg:h-3.5 hidden group-hover:inline" />
-        {t('search.addedToQueueButton')}
+        <span className="hidden lg:inline">{t('search.addedToQueueButton')}</span>
       </button>
     );
   }
@@ -67,10 +73,10 @@ export function AddToQueueButton({
         type="button"
         disabled
         aria-label={t('search.addedToQueueButton')}
-        className="px-4 py-1.5 text-sm lg:px-3 lg:py-1 lg:text-xs font-semibold rounded-full border border-border text-muted bg-surface-2 inline-flex items-center gap-1.5 lg:gap-1 transition-colors duration-200"
+        className="w-10 h-10 inline-flex items-center justify-center rounded-full border border-border text-muted bg-surface-2 transition-colors duration-200 lg:w-auto lg:h-auto lg:px-3 lg:py-1 lg:text-xs lg:font-semibold lg:gap-1"
       >
         <Check strokeWidth={2.4} className="w-4 h-4 lg:w-3.5 lg:h-3.5" />
-        {t('search.addedToQueueButton')}
+        <span className="hidden lg:inline">{t('search.addedToQueueButton')}</span>
       </button>
     );
   }
@@ -78,9 +84,11 @@ export function AddToQueueButton({
   return (
     <button
       onClick={() => onAdd(video)}
-      className="px-4 py-1.5 text-sm lg:px-3 lg:py-1 lg:text-xs font-semibold text-white bg-gradient-brand rounded-full shadow-glow hover:brightness-110 active:scale-[0.97] transition duration-200"
+      aria-label={t('search.addToQueueButton')}
+      className="w-10 h-10 inline-flex items-center justify-center text-white bg-gradient-brand rounded-full shadow-glow hover:brightness-110 active:scale-[0.97] transition duration-200 lg:w-auto lg:h-auto lg:px-3 lg:py-1 lg:text-xs lg:font-semibold"
     >
-      {t('search.addToQueueButton')}
+      <Plus strokeWidth={2.4} className="w-5 h-5 lg:hidden" />
+      <span className="hidden lg:inline">{t('search.addToQueueButton')}</span>
     </button>
   );
 }

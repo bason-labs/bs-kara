@@ -13,12 +13,15 @@ import { GripVertical, Trash2 } from 'lucide-react';
 import type { QueueItem } from '@/lib/youtube/types';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { QueueItemBody } from './QueueItemBody';
+import { PlayNowButton } from './PlayNowButton';
 
 export interface DndQueueListProps {
   items: QueueItem[];
   onReorder: (startIndex: number, endIndex: number) => void;
   onRemove: (queueId: string) => void;
   onEditRequester?: (item: QueueItem) => void;
+  onPlayNow?: (item: QueueItem) => void;
+  currentPlayingId?: string | null;
 }
 
 // The drag-and-drop branch lives in its own file so @hello-pangea/dnd
@@ -31,6 +34,8 @@ export function DndQueueList({
   onReorder,
   onRemove,
   onEditRequester,
+  onPlayNow,
+  currentPlayingId,
 }: DndQueueListProps) {
   const { t } = useTranslation();
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
@@ -90,6 +95,14 @@ export function DndQueueList({
                       item={item}
                       onEditRequester={onEditRequester}
                     />
+
+                    {onPlayNow && (
+                      <PlayNowButton
+                        videoId={item.id}
+                        currentPlayingId={currentPlayingId}
+                        onClick={() => onPlayNow(item)}
+                      />
+                    )}
 
                     <button
                       type="button"

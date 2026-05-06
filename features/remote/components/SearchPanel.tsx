@@ -22,6 +22,7 @@ import { useHotHits } from '@/features/remote/hooks/useHotHits';
 import { useScrollOffset } from '@/hooks/useScrollOffset';
 import { SongSkeleton } from './SongSkeleton';
 import { AddToQueueButton } from './AddToQueueButton';
+import { PlayNowButton } from './PlayNowButton';
 
 // Hoisted out of the render function so the array isn't recreated on every
 // keystroke. The contents (8 nulls) are never read — only the length is
@@ -56,6 +57,7 @@ interface SearchResultsProps {
   currentPlayingId?: string | null;
   onAdd: (video: YouTubeVideo) => void;
   onRemove?: (queueId: string) => void;
+  onPlayNow?: (video: YouTubeVideo) => void;
 }
 
 // React.memo so the up-to-15 result cards (each with an <Image>) don't
@@ -70,13 +72,14 @@ const SearchResults = memo(function SearchResults({
   currentPlayingId,
   onAdd,
   onRemove,
+  onPlayNow,
 }: SearchResultsProps) {
   return (
     <>
       {results.map((video) => (
         <div
           key={video.id}
-          className="flex gap-3 p-3 bg-surface rounded-lg border border-border hover:border-glow/40 transition-colors"
+          className="group flex gap-3 p-3 bg-surface rounded-lg border border-border hover:border-glow/40 transition-colors"
         >
           <div className="relative w-28 h-16 flex-shrink-0 rounded overflow-hidden bg-surface-2">
             <Image
@@ -95,7 +98,14 @@ const SearchResults = memo(function SearchResults({
               </p>
               <p className="text-xs text-muted mt-0.5 truncate">{video.channel}</p>
             </div>
-            <div className="flex items-center justify-end mt-2">
+            <div className="flex items-center justify-end gap-2 lg:gap-1 mt-2">
+              {onPlayNow && (
+                <PlayNowButton
+                  videoId={video.id}
+                  currentPlayingId={currentPlayingId}
+                  onClick={() => onPlayNow(video)}
+                />
+              )}
               <AddToQueueButton
                 video={video}
                 isQueueLoading={isQueueLoading}
@@ -115,6 +125,7 @@ const SearchResults = memo(function SearchResults({
 interface SearchPanelProps {
   onAdd: (video: YouTubeVideo) => void;
   onRemove?: (queueId: string) => void;
+  onPlayNow?: (video: YouTubeVideo) => void;
   queuedMap?: Map<string, string>;
   currentPlayingId?: string | null;
   isQueueLoading?: boolean;
@@ -134,6 +145,7 @@ interface SearchPanelProps {
 export function SearchPanel({
   onAdd,
   onRemove,
+  onPlayNow,
   queuedMap,
   currentPlayingId,
   isQueueLoading = false,
@@ -714,6 +726,7 @@ export function SearchPanel({
             currentPlayingId={currentPlayingId}
             onAdd={onAdd}
             onRemove={onRemove}
+            onPlayNow={onPlayNow}
           />
         )}
       </div>

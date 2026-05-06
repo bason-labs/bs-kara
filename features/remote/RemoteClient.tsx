@@ -21,6 +21,8 @@ import { ClientQueue } from '@/features/remote/components/ClientQueue';
 import { RemoteControls } from '@/features/remote/components/RemoteControls';
 import { EmojiPad } from '@/features/remote/components/EmojiPad';
 import { EmojiLayer, type EmojiLayerHandle } from '@/components/EmojiLayer';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import type { QueueItem, YouTubeVideo } from '@/lib/youtube/types';
 import { NowPlayingCard } from '@/features/remote/components/NowPlayingCard';
 import { FullscreenPlayer } from '@/features/remote/components/FullscreenPlayer';
 import { NeonOrbs } from '@/features/remote/components/NeonOrbs';
@@ -122,7 +124,30 @@ function RemoteInner() {
     removeCurrentPlaying,
     addToPlayedHistory,
     setCurrentPlayingDirectly,
+    playSongNow,
   } = useRoom(roomCode);
+
+  // "Play Now" pending state: holds the video the user wants to promote
+  // until they confirm. We carry the queueId separately because the queue
+  // path needs the original /queue/{queueId} entry removed in the same
+  // atomic update that writes /currentPlaying — see playSongNow.
+  const [pendingPlayNow, setPendingPlayNow] = useState<{
+    video: YouTubeVideo;
+    queueId?: string;
+  } | null>(null);
+  const handleRequestPlayNowFromSearch = useCallback((video: YouTubeVideo) => {
+    setPendingPlayNow({ video });
+  }, []);
+  const handleRequestPlayNowFromQueue = useCallback((item: QueueItem) => {
+    setPendingPlayNow({ video: item, queueId: item.queueId });
+  }, []);
+  const handleConfirmPlayNow = useCallback(() => {
+    if (pendingPlayNow) {
+      void playSongNow(pendingPlayNow.video, pendingPlayNow.queueId);
+    }
+    setPendingPlayNow(null);
+  }, [pendingPlayNow, playSongNow]);
+  const handleCancelPlayNow = useCallback(() => setPendingPlayNow(null), []);
 
   // Mobile drives auto-random whenever a room is joined, so the room never
   // goes silent even when no TV is connected. The TV (if also open) drives
@@ -418,6 +443,7 @@ function RemoteInner() {
           <SearchPanel
             onAdd={handleAddToQueue}
             onRemove={removeSong}
+            onPlayNow={handleRequestPlayNowFromSearch}
             queuedMap={queuedMap}
             currentPlayingId={currentPlayingId}
             isQueueLoading={isLoading}
@@ -510,6 +536,8 @@ function RemoteInner() {
               onEditRequester={
                 roomData.requesterPromptEnabled ? handleEditRequester : undefined
               }
+              onPlayNow={handleRequestPlayNowFromQueue}
+              currentPlayingId={currentPlayingId}
               dragDropEnabled={roomData.dragDropEnabled}
             />
           </div>
@@ -646,6 +674,17 @@ function RemoteInner() {
           dismissToast();
         }}
         onDismiss={dismissToast}
+      />
+
+      <ConfirmDialog
+        open={pendingPlayNow !== null}
+        variant="brand"
+        title={t('playNow.title')}
+        message={t('playNow.message', { title: pendingPlayNow?.video.title ?? '' })}
+        confirmLabel={t('playNow.confirm')}
+        cancelLabel={t('playNow.cancel')}
+        onConfirm={handleConfirmPlayNow}
+        onCancel={handleCancelPlayNow}
       />
     </main>
   );
