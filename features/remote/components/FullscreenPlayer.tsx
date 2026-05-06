@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pause, Play, SkipBack, SkipForward, X } from 'lucide-react';
 import type { YouTubePlayer } from 'react-youtube';
 import { YouTubeVideo } from '@/lib/youtube/types';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
+import { useOutroControls } from '@/hooks/useOutroControls';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { EmojiLayer } from '@/components/EmojiLayer';
 import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
@@ -62,6 +63,15 @@ export function FullscreenPlayer({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [ytPlayer, setYtPlayer] = useState<YouTubePlayer | null>(null);
   const { visible: chromeVisible, bump } = useAutoHide(2500);
+  const [outroActive, setOutroActive] = useState(false);
+  const handleOutroVisibleChange = useCallback((v: boolean) => setOutroActive(v), []);
+  const {
+    visible: outroControlsVisible,
+    handleMouseEnter: outroMouseEnter,
+    handleMouseLeave: outroMouseLeave,
+    handlePointerDown: outroPointerDown,
+    handleFocusIn: outroFocusIn,
+  } = useOutroControls(outroActive);
 
   // Opening the fullscreen player IS the user gesture, so speech can start
   // immediately on subsequent transitions. The hook also handles the
@@ -288,6 +298,9 @@ export function FullscreenPlayer({
       role="dialog"
       aria-modal="true"
       aria-label={t('nowPlaying.label')}
+      onMouseEnter={outroMouseEnter}
+      onMouseLeave={outroMouseLeave}
+      onPointerDown={outroPointerDown}
     >
       {/* The iframe stays mounted from open — that load happens inside the
           user gesture from the expand tap, so mobile won't block the
@@ -330,6 +343,7 @@ export function FullscreenPlayer({
                   player={ytPlayer}
                   songId={track.id}
                   nextSongTitle={nextSongTitle ?? null}
+                  onVisibleChange={handleOutroVisibleChange}
                 />
               </div>
             )}
@@ -388,12 +402,20 @@ export function FullscreenPlayer({
       </div>
 
       {/* Center transport: prev / play-pause / next.
-          Always visible while paused, otherwise tied to chrome. */}
-      {showCenterControls && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center gap-6 pointer-events-none">
+          Normal mode: snap-mounted via showCenterControls (paused → always
+          visible, playing → tied to chrome) — behavior unchanged.
+          Outro mode: stays mounted so focus + a11y survive; visibility is
+          driven by hover / tap / focus via useOutroControls. */}
+      {!!track && !isMcGated && (outroActive ? (
+        <div
+          className={`absolute inset-0 z-10 flex items-center justify-center gap-6 pointer-events-none transition-opacity duration-200 focus-within:opacity-100 ${
+            outroControlsVisible ? 'opacity-100' : 'opacity-0 [&>button]:pointer-events-none'
+          }`}
+        >
           <button
             type="button"
             onClick={handlePrev}
+            onFocus={outroFocusIn}
             disabled={!hasHistory}
             aria-label={t('controls.previousLabel')}
             className="pointer-events-auto w-12 h-12 rounded-full bg-surface/80 backdrop-blur-md border border-border text-fg flex items-center justify-center active:scale-95 disabled:opacity-40 disabled:active:scale-100"
@@ -403,6 +425,7 @@ export function FullscreenPlayer({
           <button
             type="button"
             onClick={handleTogglePlay}
+            onFocus={outroFocusIn}
             aria-label={t(isPlaying ? 'player.pause' : 'player.play')}
             className="pointer-events-auto w-16 h-16 rounded-full bg-gradient-brand text-white shadow-glow flex items-center justify-center active:scale-95"
           >
@@ -415,6 +438,7 @@ export function FullscreenPlayer({
           <button
             type="button"
             onClick={handleNext}
+            onFocus={outroFocusIn}
             disabled={!hasQueue}
             aria-label={t('controls.nextLabel')}
             className="pointer-events-auto w-12 h-12 rounded-full bg-surface/80 backdrop-blur-md border border-border text-fg flex items-center justify-center active:scale-95 disabled:opacity-40 disabled:active:scale-100"
@@ -422,7 +446,42 @@ export function FullscreenPlayer({
             <SkipForward size={22} strokeWidth={2.4} />
           </button>
         </div>
-      )}
+      ) : (
+        showCenterControls && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center gap-6 pointer-events-none">
+            <button
+              type="button"
+              onClick={handlePrev}
+              disabled={!hasHistory}
+              aria-label={t('controls.previousLabel')}
+              className="pointer-events-auto w-12 h-12 rounded-full bg-surface/80 backdrop-blur-md border border-border text-fg flex items-center justify-center active:scale-95 disabled:opacity-40 disabled:active:scale-100"
+            >
+              <SkipBack size={22} strokeWidth={2.4} />
+            </button>
+            <button
+              type="button"
+              onClick={handleTogglePlay}
+              aria-label={t(isPlaying ? 'player.pause' : 'player.play')}
+              className="pointer-events-auto w-16 h-16 rounded-full bg-gradient-brand text-white shadow-glow flex items-center justify-center active:scale-95"
+            >
+              {isPlaying ? (
+                <Pause size={28} strokeWidth={2.4} />
+              ) : (
+                <Play size={28} strokeWidth={2.4} className="translate-x-0.5" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={!hasQueue}
+              aria-label={t('controls.nextLabel')}
+              className="pointer-events-auto w-12 h-12 rounded-full bg-surface/80 backdrop-blur-md border border-border text-fg flex items-center justify-center active:scale-95 disabled:opacity-40 disabled:active:scale-100"
+            >
+              <SkipForward size={22} strokeWidth={2.4} />
+            </button>
+          </div>
+        )
+      ))}
     </div>
   );
 }

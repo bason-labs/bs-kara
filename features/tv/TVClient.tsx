@@ -8,6 +8,7 @@ import { useRoom } from '@/hooks/useRoom';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
+import { useOutroControls } from '@/hooks/useOutroControls';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { EmojiLayer } from '@/components/EmojiLayer';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -110,17 +111,29 @@ export default function TVClient() {
   const [ytPlayer, setYtPlayer] = useState<YouTubePlayer | null>(null);
   const [isFs, setIsFs] = useState(false);
   const { visible: userActive } = useAutoHide(2500);
+  const [outroActive, setOutroActive] = useState(false);
+  const handleOutroVisibleChange = useCallback((v: boolean) => setOutroActive(v), []);
+  const {
+    visible: outroControlsVisible,
+    handleMouseEnter: outroMouseEnter,
+    handleMouseLeave: outroMouseLeave,
+    handlePointerDown: outroPointerDown,
+    handleFocusIn: outroFocusIn,
+  } = useOutroControls(outroActive);
   // While in fullscreen the button auto-hides; otherwise it's always visible.
   const fsButtonVisible = !isFs || userActive;
   // Transport controls follow the FullscreenPlayer pattern: always visible
   // while paused (so the user can resume) and tied to userActive while
   // playing so they don't sit on top of the video forever. Hidden during
   // the MC gate so the announcement overlay stands alone.
-  const showTransportControls =
-    isInitialized &&
-    !!roomData.currentPlaying &&
-    !isMcGated &&
-    (!roomData.isPlaying || userActive);
+  // While the end-of-song outro is up, the controls fall under the outro
+  // hover/tap/focus rules instead of the userActive timer.
+  const transportMounted =
+    isInitialized && !!roomData.currentPlaying && !isMcGated;
+  const transportOpaque = outroActive
+    ? outroControlsVisible
+    : !roomData.isPlaying || userActive;
+  const showTransportControls = transportMounted && transportOpaque;
 
   const hasHistory = roomData.history.length > 0;
   const hasQueue = roomData.queue.length > 0;
@@ -166,7 +179,13 @@ export default function TVClient() {
 
       {/* Left: Video Player */}
       <section aria-label="Now playing" className="relative z-10 flex-1 min-w-0 overflow-hidden">
-        <div ref={videoContainerRef} className="relative w-full h-full bg-black">
+        <div
+          ref={videoContainerRef}
+          className="relative w-full h-full bg-black"
+          onMouseEnter={outroMouseEnter}
+          onMouseLeave={outroMouseLeave}
+          onPointerDown={outroPointerDown}
+        >
           {/* Lives inside the fullscreen target so reactions remain visible
               when the video is expanded — at <main> level the layer would
               be detached from the fullscreened element and disappear. */}
@@ -208,6 +227,7 @@ export default function TVClient() {
                   player={ytPlayer}
                   songId={roomData.currentPlaying.id}
                   nextSongTitle={roomData.queue[0]?.title ?? null}
+                  onVisibleChange={handleOutroVisibleChange}
                 />
               )}
               {roomData.currentPlaying.requesterName && !isMcGated && (
@@ -243,8 +263,11 @@ export default function TVClient() {
                   pointer-events, so the surrounding div stays
                   click-through. */}
               <div
-                className={`absolute inset-0 z-20 flex items-center justify-center gap-5 pointer-events-none [&>button]:pointer-events-auto transition-opacity duration-300 ${
-                  showTransportControls ? 'opacity-100' : 'opacity-0'
+                onFocus={outroFocusIn}
+                className={`absolute inset-0 z-20 flex items-center justify-center gap-5 pointer-events-none transition-opacity duration-300 focus-within:opacity-100 focus-within:[&>button]:pointer-events-auto ${
+                  showTransportControls
+                    ? 'opacity-100 [&>button]:pointer-events-auto'
+                    : 'opacity-0 [&>button]:pointer-events-none'
                 }`}
               >
                 <TransportControls

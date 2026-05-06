@@ -12,6 +12,9 @@ interface EndScreenOverlayProps {
   songId: string | null;
   // Optional next-song teaser shown in the footer.
   nextSongTitle?: string | null;
+  // Fires whenever the overlay's own visibility flips. Parents use this
+  // to drive transport-control hide/show while the outro is up.
+  onVisibleChange?: (visible: boolean) => void;
 }
 
 const MESSAGES = [
@@ -33,7 +36,12 @@ function pickMessage() {
   return MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
 }
 
-export function EndScreenOverlay({ player, songId, nextSongTitle }: EndScreenOverlayProps) {
+export function EndScreenOverlay({
+  player,
+  songId,
+  nextSongTitle,
+  onVisibleChange,
+}: EndScreenOverlayProps) {
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState(pickMessage);
 
@@ -41,6 +49,12 @@ export function EndScreenOverlay({ player, songId, nextSongTitle }: EndScreenOve
     setVisible(false);
     setMessage(pickMessage());
   }, [songId]);
+
+  // Forward overlay visibility to the parent so it can drive transport-
+  // control hide/show while the outro is up.
+  useEffect(() => {
+    onVisibleChange?.(visible);
+  }, [visible, onVisibleChange]);
 
   useEffect(() => {
     if (!player || !songId) return;
