@@ -146,11 +146,11 @@ export function VideoPlayer({ videoId, onSongEnd, isPlaying, volume, onPlayingCh
           // auto-load, and legacy annotations. End-screen suggestions cannot
           // be fully suppressed via iframe params (YouTube API limitation
           // since 2018) — handled by switching tracks on ENDED via onSongEnd.
-          controls: 0,
+          controls: process.env.NODE_ENV === 'development' ? 1 : 0,
           rel: 0,
           iv_load_policy: 3,
           fs: 0,
-          disablekb: 1,
+          disablekb: process.env.NODE_ENV === 'development' ? 0 : 1,
           playsinline: 1,
           cc_load_policy: 0,
           modestbranding: 1,
