@@ -25,6 +25,14 @@ export interface RoomState {
   // matches and skip the MC. Persists across reconnects so a refresh of
   // the announcing device doesn't double up.
   lastAnnouncedSongId: string | null;
+  // Per-room AI scoring toggle. Default false; flipping it ON does NOT
+  // retroactively start scoring the song already playing — the toggle is
+  // sampled at song-start by useSongScore.
+  aiScoringEnabled: boolean;
+  // Cross-device scoring lock — mirrors lastAnnouncedSongId. Devices race
+  // to write currentPlaying.id here at onEnd; the winner persists the
+  // ScoreRecord onto history[last].score and losers no-op.
+  lastScoredSongId: string | null;
   // Set by the TV via Firebase onDisconnect presence; mobile uses this to
   // hide its now-playing card (the TV is already showing it).
   isTvActive: boolean;
@@ -52,6 +60,8 @@ export const DEFAULT_STATE: RoomState = {
   isMCEnabled: true,
   mcVoice: 'vi-VN-Neural2-A',
   lastAnnouncedSongId: null,
+  aiScoringEnabled: false,
+  lastScoredSongId: null,
   isTvActive: false,
   fullscreenOwner: null,
   lastEndedAt: null,

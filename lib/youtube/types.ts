@@ -1,3 +1,5 @@
+import type { ScoreRecord } from '@/lib/scoring';
+
 export interface YouTubeVideo {
   id: string;
   title: string;
@@ -12,6 +14,11 @@ export interface YouTubeVideo {
   // is ready by the time the song reaches the top, removing the awkward
   // gap between the previous song ending and the MC starting to talk.
   mcText?: string;
+  // AI scoring result frozen at natural song-end. Only populated on the
+  // /history array (not on /queue or /currentPlaying). Absent when the
+  // toggle is off, when the song was skipped, or when reaction signal
+  // never crossed the threshold.
+  score?: ScoreRecord;
 }
 
 export interface QueueItem extends YouTubeVideo {

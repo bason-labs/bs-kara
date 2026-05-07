@@ -58,6 +58,8 @@ export function useRoomSubscribe(roomId: string | null) {
         // before the rename, never written.
         isAImcEnabled?: boolean;
         lastAnnouncedSongId?: string | null;
+        aiScoringEnabled?: boolean;
+        lastScoredSongId?: string | null;
         isTvActive?: boolean;
         fullscreenOwner?: string | null;
         lastEndedAt?: number | null;
@@ -124,6 +126,12 @@ export function useRoomSubscribe(roomId: string | null) {
         lastAnnouncedSongId:
           typeof data.lastAnnouncedSongId === 'string'
             ? data.lastAnnouncedSongId
+            : null,
+        // Default off — only opt-in rooms see scoring UI.
+        aiScoringEnabled: data.aiScoringEnabled === true,
+        lastScoredSongId:
+          typeof data.lastScoredSongId === 'string'
+            ? data.lastScoredSongId
             : null,
         isTvActive: data.isTvActive === true,
         fullscreenOwner:
