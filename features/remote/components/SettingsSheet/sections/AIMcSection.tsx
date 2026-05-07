@@ -1,6 +1,6 @@
 'use client';
 
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Trophy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SectionHeader } from '../primitives/SectionHeader';
 import { ToggleRow } from '../primitives/ToggleRow';
@@ -11,6 +11,8 @@ interface AIMcSectionProps {
   onToggle: (enabled: boolean) => void;
   mcVoice: string;
   onMcVoiceChange: (voice: string) => void;
+  aiScoringEnabled: boolean;
+  onAiScoringToggle: (enabled: boolean) => void;
   panelOpen: boolean;
 }
 
@@ -19,6 +21,8 @@ export function AIMcSection({
   onToggle,
   mcVoice,
   onMcVoiceChange,
+  aiScoringEnabled,
+  onAiScoringToggle,
   panelOpen,
 }: AIMcSectionProps) {
   const { t } = useTranslation();
@@ -35,6 +39,13 @@ export function AIMcSection({
         hint={t('settings.aiMcHint')}
         enabled={enabled}
         onToggle={onToggle}
+      />
+      <ToggleRow
+        Icon={Trophy}
+        label={t('scoring.toggleLabel')}
+        hint={t('scoring.toggleHelp')}
+        enabled={aiScoringEnabled}
+        onToggle={onAiScoringToggle}
       />
       {/* Animated reveal mirrors the auto-random sub-section pattern: the
           voice picker only matters when MC is on. */}

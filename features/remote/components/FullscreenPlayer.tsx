@@ -7,6 +7,7 @@ import type { YouTubePlayer } from 'react-youtube';
 import { YouTubeVideo } from '@/lib/youtube/types';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
+import { useSongScore } from '@/hooks/useSongScore';
 import { useOutroControls } from '@/hooks/useOutroControls';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { EmojiLayer } from '@/components/EmojiLayer';
@@ -29,6 +30,9 @@ interface FullscreenPlayerProps {
   isMCEnabled: boolean;
   // Google TTS voice id selected in Settings. Forwarded to useMCPlayer.
   mcVoice: string;
+  // Per-room AI scoring toggle. Forwarded to useSongScore so the outro
+  // ScoreBlock only renders when the host opted in.
+  aiScoringEnabled: boolean;
   // Cross-device lock from useRoom — passed through so this player can
   // race the TV for the announcement and stay quiet if it loses.
   tryClaimAnnouncementLock?: (songId: string) => Promise<boolean>;
@@ -51,6 +55,7 @@ export function FullscreenPlayer({
   hasQueue,
   isMCEnabled,
   mcVoice,
+  aiScoringEnabled,
   tryClaimAnnouncementLock,
   onSongEnd,
   onClose,
@@ -90,6 +95,10 @@ export function FullscreenPlayer({
     mcVoice,
     tryClaimAnnouncementLock,
   });
+
+  // Live outro score. Returns null when the toggle is off or no song is
+  // loaded — pass-through into EndScreenOverlay's optional `score` prop.
+  const songScore = useSongScore(roomId, track?.id ?? null, aiScoringEnabled);
 
   // The browser Fullscreen API is entered by the caller (the user-gesture
   // handler that flips playerOpen). Here we just make sure to leave it on
@@ -344,6 +353,7 @@ export function FullscreenPlayer({
                   songId={track.id}
                   nextSongTitle={nextSongTitle ?? null}
                   onVisibleChange={handleOutroVisibleChange}
+                  score={songScore}
                 />
               </div>
             )}

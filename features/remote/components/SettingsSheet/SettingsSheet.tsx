@@ -26,6 +26,8 @@ interface SettingsSheetProps {
   onMCToggle: (enabled: boolean) => void;
   mcVoice: string;
   onMcVoiceChange: (voice: string) => void;
+  aiScoringEnabled: boolean;
+  onAiScoringToggle: (enabled: boolean) => void;
 }
 
 export function SettingsSheet({
@@ -44,6 +46,8 @@ export function SettingsSheet({
   onMCToggle,
   mcVoice,
   onMcVoiceChange,
+  aiScoringEnabled,
+  onAiScoringToggle,
 }: SettingsSheetProps) {
   const { t } = useTranslation();
   // Mirrors RequesterDialog / ConfirmDialog: when the parent lazy-mounts
@@ -155,6 +159,8 @@ export function SettingsSheet({
                 onToggle={onMCToggle}
                 mcVoice={mcVoice}
                 onMcVoiceChange={onMcVoiceChange}
+                aiScoringEnabled={aiScoringEnabled}
+                onAiScoringToggle={onAiScoringToggle}
                 panelOpen={open}
               />
 

@@ -39,6 +39,8 @@ function renderSheet(over: Partial<React.ComponentProps<typeof SettingsSheet>> =
     onMCToggle: vi.fn(),
     mcVoice: 'vi-VN-Neural2-A',
     onMcVoiceChange: vi.fn(),
+    aiScoringEnabled: false,
+    onAiScoringToggle: vi.fn(),
     ...over,
   };
   render(

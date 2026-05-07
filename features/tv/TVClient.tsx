@@ -9,6 +9,7 @@ import { useAutoHide } from '@/hooks/useAutoHide';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
 import { useOutroControls } from '@/hooks/useOutroControls';
+import { useSongScore } from '@/hooks/useSongScore';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { EmojiLayer } from '@/components/EmojiLayer';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -106,6 +107,15 @@ export default function TVClient() {
     mcVoice: roomData.mcVoice,
     tryClaimAnnouncementLock,
   });
+
+  // Live outro score. The hook short-circuits to null when the toggle is
+  // off or there's no song, so unconditional pass-through into
+  // EndScreenOverlay's `score` prop is safe.
+  const songScore = useSongScore(
+    roomCode,
+    roomData.currentPlaying?.id ?? null,
+    roomData.aiScoringEnabled,
+  );
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const [ytPlayer, setYtPlayer] = useState<YouTubePlayer | null>(null);
@@ -228,6 +238,7 @@ export default function TVClient() {
                   songId={roomData.currentPlaying.id}
                   nextSongTitle={roomData.queue[0]?.title ?? null}
                   onVisibleChange={handleOutroVisibleChange}
+                  score={songScore}
                 />
               )}
               {roomData.currentPlaying.requesterName && !isMcGated && (

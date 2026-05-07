@@ -21,6 +21,12 @@ vi.mock('@/hooks/useMCPlayer', () => ({
   useMCPlayer: () => ({ isMcGated: mockGated, mcText: mockGated ? 'Hi!' : null }),
 }));
 
+// useSongScore subscribes to Firebase at module load. The test runs
+// without env, so swap in a stub that mirrors the off-toggle behaviour.
+vi.mock('@/hooks/useSongScore', () => ({
+  useSongScore: () => null,
+}));
+
 import { FullscreenPlayer } from './FullscreenPlayer';
 
 const baseTrack = {
@@ -40,6 +46,7 @@ const baseProps = {
   hasQueue: false,
   isMCEnabled: true,
   mcVoice: 'vi-VN-Neural2-A',
+  aiScoringEnabled: false,
   onSongEnd: vi.fn(),
   onClose: vi.fn(),
   onPrev: vi.fn(),

@@ -41,6 +41,7 @@ export function useRoom(roomId: string | null) {
     setDragDropEnabled: settings.setDragDropEnabled,
     setRequesterPromptEnabled: settings.setRequesterPromptEnabled,
     setMCEnabled: settings.setMCEnabled,
+    setAiScoringEnabled: settings.setAiScoringEnabled,
     setMcVoice: settings.setMcVoice,
     tryClaimAnnouncementLock,
     removeCurrentPlaying: queue.removeCurrentPlaying,

@@ -75,6 +75,14 @@ export function useRoomSettings(
     [roomId],
   );
 
+  const setAiScoringEnabled = useCallback(
+    (enabled: boolean) => {
+      if (!roomId) return;
+      set(ref(db, `${getRoomDataPath(roomId)}/aiScoringEnabled`), enabled);
+    },
+    [roomId],
+  );
+
   const setMcVoice = useCallback(
     (voice: string) => {
       if (!roomId) return;
@@ -99,6 +107,7 @@ export function useRoomSettings(
     setDragDropEnabled,
     setRequesterPromptEnabled,
     setMCEnabled,
+    setAiScoringEnabled,
     setMcVoice,
     sendEmoji,
   };

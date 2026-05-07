@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
+import type { ScoreResult } from '@/lib/scoring';
+import { ScoreBlock } from '@/components/ScoreBlock';
 
 interface EndScreenOverlayProps {
   // YouTube player handle. Must expose getCurrentTime + getDuration; we
@@ -15,6 +17,11 @@ interface EndScreenOverlayProps {
   // Fires whenever the overlay's own visibility flips. Parents use this
   // to drive transport-control hide/show while the outro is up.
   onVisibleChange?: (visible: boolean) => void;
+  // Live AI score for the song. When provided, ScoreBlock renders inside
+  // the overlay between the headline subline and the footer teaser. Null
+  // / undefined → no scoring UI rendered (toggle is off, or no song).
+  // Inherits the overlay's 8s visibility gate by being part of its tree.
+  score?: ScoreResult | null;
 }
 
 const MESSAGES = [
@@ -41,6 +48,7 @@ export function EndScreenOverlay({
   songId,
   nextSongTitle,
   onVisibleChange,
+  score,
 }: EndScreenOverlayProps) {
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState(pickMessage);
@@ -159,6 +167,12 @@ export function EndScreenOverlay({
           {message.subline}
         </div>
       </div>
+
+      {score && (
+        <div className="mt-8 pointer-events-none">
+          <ScoreBlock score={score} />
+        </div>
+      )}
 
       <div
         className="absolute bottom-12 left-0 right-0 text-center text-white/80 text-base md:text-xl font-medium px-8"

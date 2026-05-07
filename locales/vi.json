@@ -219,6 +219,8 @@
   "scoring": {
     "zeroState": "Thả icon để chấm điểm 🎤",
     "partialState": "Cần thêm reactions để chấm điểm…",
-    "tierLabel": "Hạng"
+    "tierLabel": "Hạng",
+    "toggleLabel": "AI chấm điểm",
+    "toggleHelp": "Hiển thị điểm cho mỗi bài hát ở 8 giây cuối, dựa trên reactions từ phòng"
   }
 }

@@ -24,7 +24,7 @@ interface StoredReaction {
 // (whichever wins tryClaimScoreLock in Batch 4); this hook only drives the
 // live display.
 export function useSongScore(
-  roomId: string,
+  roomId: string | null | undefined,
   currentSongId: string | null | undefined,
   enabled: boolean,
 ): ScoreResult | null {
@@ -71,9 +71,9 @@ export function useSongScore(
   }, [enabled, currentSongId, roomId]);
 
   return useMemo(() => {
-    if (!enabled || !currentSongId) return null;
+    if (!enabled || !currentSongId || !roomId) return null;
     return computeScore({
       reactions: reactions.map((r) => ({ emoji: r.emoji })),
     });
-  }, [reactions, enabled, currentSongId]);
+  }, [reactions, enabled, currentSongId, roomId]);
 }

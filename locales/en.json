@@ -219,6 +219,8 @@
   "scoring": {
     "zeroState": "Drop reactions to score 🎤",
     "partialState": "Need more reactions to score…",
-    "tierLabel": "Tier"
+    "tierLabel": "Tier",
+    "toggleLabel": "AI Scoring",
+    "toggleHelp": "Show a score for each song in the last 8 seconds, based on room reactions"
   }
 }
