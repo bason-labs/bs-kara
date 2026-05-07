@@ -145,7 +145,7 @@ export function EndScreenOverlay({
         style={{ animation: 'end-overlay-headline-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
       >
         <div
-          className="text-6xl md:text-8xl font-black mb-6 tracking-tight"
+          className="text-6xl md:text-8xl font-black mb-6 tracking-tight leading-tight pb-3"
           style={{
             backgroundImage:
               'linear-gradient(90deg, #FFD700 0%, #FFFFFF 25%, #FFD700 50%, #FFFFFF 75%, #FFD700 100%)',
@@ -160,7 +160,7 @@ export function EndScreenOverlay({
           {message.headline}
         </div>
         <div
-          className="text-2xl md:text-4xl font-semibold text-white"
+          className="text-2xl md:text-4xl font-semibold text-white leading-tight pb-1"
           style={{
             textShadow: '0 2px 12px rgba(0, 0, 0, 0.8)',
             animation: 'end-overlay-emoji-pulse 1.2s ease-in-out infinite',
