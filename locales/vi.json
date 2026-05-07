@@ -215,5 +215,10 @@
       "message": "Mã phòng không đúng hoặc phòng đã đóng. Vui lòng kiểm tra lại trên TV.",
       "cta": "Về trang chủ"
     }
+  },
+  "scoring": {
+    "zeroState": "Thả icon để chấm điểm 🎤",
+    "partialState": "Cần thêm reactions để chấm điểm…",
+    "tierLabel": "Hạng"
   }
 }

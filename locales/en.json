@@ -215,5 +215,10 @@
       "message": "This room code is invalid or the party has ended. Please check the code shown on the TV.",
       "cta": "Back to home"
     }
+  },
+  "scoring": {
+    "zeroState": "Drop reactions to score 🎤",
+    "partialState": "Need more reactions to score…",
+    "tierLabel": "Tier"
   }
 }
