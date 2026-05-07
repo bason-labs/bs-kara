@@ -111,11 +111,13 @@ export function EndScreenOverlay({
 
   return (
     <div
-      className="absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-none"
+      className="outro-aurora-bg absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-none"
       style={{
-        background:
-          'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.75) 60%, rgba(0,0,0,0.85) 100%)',
-        animation: 'end-overlay-fade-in 0.4s ease-out',
+        // Two animations stacked: the existing fade-in for mount reveal +
+        // the aurora cycle from .outro-aurora-bg. Inline `animation` would
+        // otherwise shadow the utility's animation property.
+        animation:
+          'end-overlay-fade-in 0.4s ease-out, outroAurora 14s ease-in-out infinite',
       }}
     >
       <style>{`
