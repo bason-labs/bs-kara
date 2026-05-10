@@ -92,16 +92,17 @@ export function FullscreenPlayer({
   // loaded — pass-through into EndScreenOverlay's optional `score` prop.
   const songScore = useSongScore(roomId, track?.id ?? null, aiScoringEnabled);
 
-  // The browser Fullscreen API is entered by the caller (the user-gesture
-  // handler that flips playerOpen). Here we just make sure to leave it on
-  // unmount so closing the overlay also exits native fullscreen.
-  useEffect(() => {
-    return () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      }
-    };
-  }, []);
+  // The browser Fullscreen API is entered by the *caller* (the user-gesture
+  // handler that flips playerOpen) and exited by the *caller* on every real
+  // close path (RemoteClient's onClose handler + the TV-active effect).
+  //
+  // We deliberately do NOT exit fullscreen from a useEffect cleanup here:
+  // in dev (Next.js defaults reactStrictMode=true), Strict Mode runs every
+  // effect's cleanup in a synthetic mount → cleanup → mount bounce right
+  // after first mount. With fullscreen already active, that cleanup would
+  // exit fullscreen, the close-on-fs-exit listener below would fire onClose
+  // on the next mount, and the user would see the overlay flash open and
+  // close instantly. Letting the parent own the exit avoids the bounce.
 
   // Android path: lock to landscape while the fullscreen player is open via
   // the Screen Orientation API. iOS Safari does not implement

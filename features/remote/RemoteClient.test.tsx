@@ -12,6 +12,11 @@ const state = vi.hoisted(() => ({
   fullscreenPlayerProps: null as Record<string, unknown> | null,
   primeAudioMock: vi.fn(),
   requestFullscreenMock: vi.fn().mockResolvedValue(undefined),
+  // claim() is async (Firebase round-trip in real life). Tests can swap in a
+  // manually-controlled promise to assert the *ordering* of side effects
+  // around the await — see the requestFullscreen-must-be-synchronous tests.
+  claimMock: vi.fn().mockResolvedValue(true) as ReturnType<typeof vi.fn>,
+  releaseMock: vi.fn().mockResolvedValue(undefined) as ReturnType<typeof vi.fn>,
 }));
 
 const baseTrack = {
@@ -39,6 +44,10 @@ vi.mock('@/hooks/useRoom', () => ({
       mcVoice: 'vi-VN-Neural2-A',
       lastAnnouncedSongId: null,
       isTvActive: state.isTvActive,
+      // Explicitly null (not undefined) so isExpandBlocked stays false in the
+      // tests' default world — `roomData.fullscreenOwner !== null` would
+      // otherwise be true for `undefined`, which hides the expand button.
+      fullscreenOwner: null,
       lastEndedAt: null,
     },
     isLoading: false,
@@ -66,6 +75,18 @@ vi.mock('@/hooks/useRoom', () => ({
 }));
 
 vi.mock('@/hooks/useAutoRandom', () => ({ useAutoRandom: () => {} }));
+
+// useFullscreenOwnership pulls in firebase/database; under vitest there is no
+// Firebase env, so importing it crashes module load. Stub it with mocks the
+// tests can introspect (claim/release are the integration points the
+// expand & play handlers depend on).
+vi.mock('@/features/remote/hooks/useFullscreenOwnership', () => ({
+  useFullscreenOwnership: () => ({
+    deviceId: 'test-device',
+    claim: state.claimMock,
+    release: state.releaseMock,
+  }),
+}));
 
 // Pin the gate to a known state so RemoteClient renders the room shell.
 vi.mock('@/features/remote/hooks/useRoomGate', () => ({
@@ -144,8 +165,20 @@ vi.mock('@/features/remote/components/JoinForm', () => ({
 }));
 
 vi.mock('@/features/remote/components/NowPlayingCard', () => ({
-  NowPlayingCard: ({ isPlaying }: { isPlaying?: boolean }) => (
-    <div data-testid="now-playing" data-playing={String(isPlaying)} />
+  NowPlayingCard: ({
+    isPlaying,
+    onExpand,
+  }: {
+    isPlaying?: boolean;
+    onExpand?: () => void;
+  }) => (
+    <div data-testid="now-playing" data-playing={String(isPlaying)}>
+      {onExpand && (
+        <button type="button" onClick={onExpand}>
+          mock-expand
+        </button>
+      )}
+    </div>
   ),
 }));
 
@@ -185,6 +218,8 @@ beforeEach(() => {
   state.fullscreenPlayerProps = null;
   state.primeAudioMock = vi.fn();
   state.requestFullscreenMock = vi.fn().mockResolvedValue(undefined);
+  state.claimMock = vi.fn().mockResolvedValue(true);
+  state.releaseMock = vi.fn().mockResolvedValue(undefined);
   Object.defineProperty(document.documentElement, 'requestFullscreen', {
     configurable: true,
     value: state.requestFullscreenMock,
@@ -252,6 +287,33 @@ describe('RemoteClient — play/pause UI when no playback surface is mounted', (
     state.isPlaying = true;
     render(<RemoteClient />);
     expect(screen.queryByTestId('qr-code')).not.toBeInTheDocument();
+  });
+
+  // Regression: commit a94ab01 ("implement fullscreen ownership management")
+  // wrapped requestFullscreen behind `await claim()`. After an await the
+  // user-gesture activation token is consumed in most browsers, so either
+  //   (a) requestFullscreen is rejected (no fullscreen at all), or
+  //   (b) the engine briefly enters fullscreen and then exits as untrusted —
+  //       FullscreenPlayer's own fullscreenchange listener interprets the
+  //       exit as an explicit close and unmounts the overlay.
+  // The visible symptom was: tap expand → screen flashes fullscreen → closes.
+  // Fix: requestFullscreen MUST run synchronously in the click handler,
+  // before any await. Asserted here by holding claim() pending and checking
+  // requestFullscreen was called anyway.
+  it('handleExpand calls requestFullscreen synchronously, before awaiting claim()', async () => {
+    state.isTvActive = false;
+    state.isPlaying = false;
+    // Never-resolving claim — exposes any code that awaits before the
+    // fullscreen request.
+    state.claimMock = vi.fn(() => new Promise<boolean>(() => {}));
+    const user = userEvent.setup();
+    render(<RemoteClient />);
+    const expandBtn = (await screen.findAllByText('mock-expand'))[0];
+    await user.click(expandBtn);
+    expect(state.requestFullscreenMock).toHaveBeenCalledTimes(1);
+    // claim() should also have been invoked (in parallel, not sequenced
+    // before the fullscreen request).
+    expect(state.claimMock).toHaveBeenCalledTimes(1);
   });
 
   // Inverse case: with the TV active, the remote is the actual control

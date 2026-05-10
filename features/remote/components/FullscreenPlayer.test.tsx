@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -105,6 +106,58 @@ describe('FullscreenPlayer', () => {
     render(<FullscreenPlayer {...baseProps} onClose={onClose} />);
     await user.click(screen.getByRole('button', { name: 'player.closeFullscreen' }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  // Regression: in dev (Next.js defaults reactStrictMode=true), every effect
+  // is double-invoked on mount: mount → cleanup → mount. If FullscreenPlayer
+  // owns an unmount effect that calls document.exitFullscreen() while
+  // fullscreenElement is set, the Strict Mode bounce will exit fullscreen
+  // immediately after entering, the close-on-fs-exit listener at line ~263
+  // catches the resulting fullscreenchange, and onClose fires — the user
+  // sees the overlay flash open and close instantly. The fix is to NOT
+  // exit fullscreen from within FullscreenPlayer's lifecycle; the parent
+  // (RemoteClient) handles fullscreen exit at every real close path.
+  it('does not call onClose during a Strict Mode mount bounce while fullscreen is active', async () => {
+    mockGated = false;
+    // Pretend the browser is currently in fullscreen (entered by the
+    // parent's click handler before FullscreenPlayer mounted).
+    Object.defineProperty(document, 'fullscreenElement', {
+      configurable: true,
+      get: () => document.documentElement,
+    });
+    // Simulate the real-browser behavior: exitFullscreen resolves async,
+    // and only after that does fullscreenElement clear and a
+    // fullscreenchange (exit) event fire.
+    const exitFullscreen = vi.fn().mockImplementation(() => {
+      queueMicrotask(() => {
+        Object.defineProperty(document, 'fullscreenElement', {
+          configurable: true,
+          get: () => null,
+        });
+        document.dispatchEvent(new Event('fullscreenchange'));
+      });
+      return Promise.resolve();
+    });
+    (document as unknown as { exitFullscreen: () => Promise<void> }).exitFullscreen =
+      exitFullscreen;
+
+    const onClose = vi.fn();
+    await act(async () => {
+      render(
+        <StrictMode>
+          <FullscreenPlayer {...baseProps} onClose={onClose} />
+        </StrictMode>,
+      );
+      // Flush any pending microtasks from the simulated fullscreenchange.
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+
+    // Cleanup: restore fullscreen API stubs.
+    delete (document as unknown as { fullscreenElement?: unknown }).fullscreenElement;
+    delete (document as unknown as { exitFullscreen?: unknown }).exitFullscreen;
   });
 
   // Regression: when a song ends on mobile and the queue is empty, the

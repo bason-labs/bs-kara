@@ -267,16 +267,28 @@ function RemoteInner() {
   // phone) is a pure remote-control gesture — write Firebase, do not open
   // local fullscreen. With no host in the cluster, this phone must claim
   // the lock and become the host before opening its own surface.
+  //
+  // requestFullscreen MUST run synchronously inside the click handler,
+  // before the `await claim()`. After an await the user-gesture activation
+  // is consumed and the engine either rejects the request outright or
+  // briefly enters fullscreen and exits as untrusted — FullscreenPlayer's
+  // own fullscreenchange listener then interprets that exit as an explicit
+  // close. If the claim later loses the race, exit fullscreen as cleanup.
   const handleTogglePlayPause = useCallback(() => {
     if (someoneHasSurface) {
       togglePlayPause(roomData.isPlaying);
       return;
     }
     primeAudio();
+    document.documentElement.requestFullscreen?.().catch(() => {});
     void (async () => {
       const ok = await claim();
-      if (!ok) return;
-      document.documentElement.requestFullscreen?.().catch(() => {});
+      if (!ok) {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+        return;
+      }
       setPlayerOpen(true);
       // Assert intent so the iframe will play once the MC gate (if any)
       // releases. Without this, expand-after-MC reads stale isPlaying=false.
@@ -285,14 +297,20 @@ function RemoteInner() {
   }, [someoneHasSurface, roomData.isPlaying, togglePlayPause, claim, setIsPlaying]);
 
   // Shared expand handler for the NowPlayingCard "maximize" button. Same
-  // claim → fullscreen → setIsPlaying(true) sequence as the surface-less
-  // togglePlayPause path: asserting isPlaying after claim is the Bug B fix.
+  // sync-fullscreen-then-claim sequence as the surface-less togglePlayPause
+  // path above; see the comment there for why requestFullscreen cannot
+  // wait for the claim. Asserting isPlaying after claim is the Bug B fix.
   const handleExpand = useCallback(() => {
     primeAudio();
+    document.documentElement.requestFullscreen?.().catch(() => {});
     void (async () => {
       const ok = await claim();
-      if (!ok) return;
-      document.documentElement.requestFullscreen?.().catch(() => {});
+      if (!ok) {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+        return;
+      }
       setPlayerOpen(true);
       setIsPlaying(true);
     })();
@@ -313,6 +331,9 @@ function RemoteInner() {
   // someoneHasSurface true, so other phones already see the cluster as hosted.
   useEffect(() => {
     if (roomData.isTvActive && iAmFullscreenOwner) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
       void release();
       setPlayerOpen(false);
     }
@@ -599,6 +620,15 @@ function RemoteInner() {
           }
           onSongEnd={playNext}
           onClose={() => {
+            // Exit native fullscreen here (the parent owns this; see the
+            // long comment in FullscreenPlayer near the removed cleanup
+            // for why FullscreenPlayer must NOT do this from a useEffect
+            // teardown). Idempotent — fullscreenElement is null if the
+            // user just hit ESC / swiped to leave fullscreen, in which
+            // case the close-on-fs-exit listener routed us here.
+            if (document.fullscreenElement) {
+              document.exitFullscreen().catch(() => {});
+            }
             setPlayerOpen(false);
             void release();
           }}
