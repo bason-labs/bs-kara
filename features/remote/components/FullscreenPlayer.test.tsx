@@ -108,6 +108,26 @@ describe('FullscreenPlayer', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  // Regression: there used to be an aria-hidden tap-bump button overlaying
+  // the iframe whose sole job was to bump the auto-hide chrome on touch
+  // (the iframe lives in its own document, so window-level listeners in
+  // useAutoHide can't see those touches). It also intercepted every click
+  // on YouTube's native controls (timeline scrubber, play/pause, fullscreen
+  // toggle) — which VideoPlayer enables in dev (commit d4090b7) — making
+  // the player effectively read-only.
+  // TVClient's video surface has no such layer and works correctly; this
+  // overlay mirrors that. Trade-off: chrome may stay hidden once the user
+  // is interacting with the iframe; pausing or hitting an existing button
+  // re-bumps it.
+  it('does not render a tap-bump layer over the iframe (YouTube native controls must be reachable)', () => {
+    mockGated = false;
+    const { container } = render(<FullscreenPlayer {...baseProps} />);
+    const tapLayer = container.querySelector(
+      'button[aria-hidden="true"][tabindex="-1"]',
+    );
+    expect(tapLayer).toBeNull();
+  });
+
   // Regression: in dev (Next.js defaults reactStrictMode=true), every effect
   // is double-invoked on mount: mount → cleanup → mount. If FullscreenPlayer
   // owns an unmount effect that calls document.exitFullscreen() while

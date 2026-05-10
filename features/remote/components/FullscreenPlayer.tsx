@@ -267,13 +267,6 @@ export function FullscreenPlayer({
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, [onClose]);
 
-  // The YouTube iframe lives in its own document, so window-level touchstart
-  // listeners (in useAutoHide) never fire when the user taps the video. This
-  // overlay sits above the iframe and bumps the chrome back into view.
-  function handleTapLayer() {
-    bump();
-  }
-
   function handleTogglePlay() {
     onPlayingChange?.(!isPlaying);
     bump();
@@ -359,17 +352,19 @@ export function FullscreenPlayer({
         )}
       </div>
 
-      {/* Tap layer above iframe to capture touches that the iframe would
-          otherwise swallow. Sits below the chrome (z-10) and play button. */}
-      <button
-        type="button"
-        onClick={handleTapLayer}
-        aria-hidden="true"
-        tabIndex={-1}
-        className="absolute inset-0 z-[5] cursor-default"
-      />
+      {/* No tap-bump layer here. TVClient (the reference implementation)
+          renders the iframe under transport / close chrome with no overlay
+          and works correctly. An aria-hidden button used to sit on top to
+          bump the auto-hide chrome on touch (because the iframe is a
+          separate document and its events don't bubble to window-level
+          useAutoHide listeners), but it also blocked YouTube's native
+          controls — the timeline scrubber, play/pause, fullscreen, etc.,
+          which VideoPlayer enables in dev. Trade-off: chrome may stay
+          hidden once the user starts interacting with the iframe; pause
+          or any visible button (top-bar X, transport prev/next/play) will
+          re-bump it. */}
 
-      {/* Reactions float above the video and tap layer; pointer-events-none
+      {/* Reactions float above the video; pointer-events-none
           inside EmojiLayer keeps the tap layer reachable. */}
       <EmojiLayer roomId={roomId} />
 
