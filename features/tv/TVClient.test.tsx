@@ -21,6 +21,9 @@ const state = vi.hoisted(() => ({
     thumbnail: 'https://example.com/thumb.jpg',
     duration: '3:30',
   } as Record<string, unknown> | null,
+  // Captured by the EndScreenOverlay mock so tests can drive the outro
+  // visibility transition (true ↔ false) without faking real timers.
+  outroOnVisibleChange: null as ((visible: boolean) => void) | null,
 }));
 
 vi.mock('@/hooks/useRoom', () => ({
@@ -104,6 +107,17 @@ vi.mock('@/components/EmojiLayer', () => ({
   EmojiLayer: () => null,
 }));
 
+vi.mock('@/components/EndScreenOverlay', () => ({
+  EndScreenOverlay: ({
+    onVisibleChange,
+  }: {
+    onVisibleChange?: (visible: boolean) => void;
+  }) => {
+    state.outroOnVisibleChange = onVisibleChange ?? null;
+    return null;
+  },
+}));
+
 vi.mock('@/components/ConfirmDialog', () => ({
   ConfirmDialog: () => null,
 }));
@@ -129,6 +143,7 @@ describe('TVClient — MC gate / video autoplay', () => {
       thumbnail: 'https://example.com/thumb.jpg',
       duration: '3:30',
     };
+    state.outroOnVisibleChange = null;
   });
 
   afterEach(() => {
@@ -353,6 +368,32 @@ describe('TVClient — MC gate / video autoplay', () => {
       expect(
         screen.getByRole('button', { name: 'controls.nextLabel' }),
       ).toBeDisabled();
+    });
+
+    // Regression: the outro previously kept the transport controls mounted
+    // and only faded them on a hover/tap timer, so the prev/play/next
+    // cluster sat on top of the celebratory headline. The fix is to fade
+    // the controls out entirely while the outro is up.
+    it('hides the controls completely while the end-of-song outro is visible', async () => {
+      await renderActivated();
+      // Sanity: controls live in the DOM with the visible class set first.
+      const playButton = screen.getByRole('button', {
+        name: 'controls.pauseLabel',
+      });
+      const wrapper = playButton.parentElement!;
+      expect(wrapper.className).toContain('opacity-100');
+      expect(wrapper.className).not.toContain('opacity-0');
+
+      // Outro fires onVisibleChange(true) when it becomes visible.
+      expect(state.outroOnVisibleChange).not.toBeNull();
+      await act(async () => {
+        state.outroOnVisibleChange?.(true);
+      });
+
+      // Same wrapper, controls are now collapsed via opacity-0 — no
+      // hover / focus path can bring them back during the outro.
+      expect(wrapper.className).toContain('opacity-0');
+      expect(wrapper.className).not.toContain('opacity-100');
     });
   });
 });

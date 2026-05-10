@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import type { ScoreResult } from '@/lib/scoring';
 import { ScoreBlock } from '@/components/ScoreBlock';
@@ -52,10 +52,19 @@ export function EndScreenOverlay({
 }: EndScreenOverlayProps) {
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState(pickMessage);
+  // Re-arming gate: only fire the outro once we've seen the player report
+  // a position comfortably away from the end for the *current* songId.
+  // This blocks a stale YouTubePlayer reference (held by the parent across
+  // song changes; the iframe is keyed by song id, but the JS player ref
+  // isn't reset until the new instance fires onPlayerReady) from leaking
+  // the previous song's near-end values into the new song's gate and
+  // re-triggering the finale.
+  const seenEarlyRef = useRef(false);
 
   useEffect(() => {
     setVisible(false);
     setMessage(pickMessage());
+    seenEarlyRef.current = false;
   }, [songId]);
 
   // Forward overlay visibility to the parent so it can drive transport-
@@ -73,6 +82,15 @@ export function EndScreenOverlay({
       // most of its life under the overlay.
       if (!duration || duration < TRIGGER_SECONDS_BEFORE_END * 2) return;
       const remaining = duration - current;
+      // Arm only after the player reports a non-near-end position for the
+      // current song. A stale ref still reporting the previous song's
+      // near-end frame can never satisfy this, so it can't re-trigger.
+      if (!seenEarlyRef.current) {
+        if (remaining > TRIGGER_SECONDS_BEFORE_END * 2) {
+          seenEarlyRef.current = true;
+        }
+        return;
+      }
       if (remaining <= TRIGGER_SECONDS_BEFORE_END && remaining > 0) {
         setVisible(true);
       } else {
@@ -111,13 +129,15 @@ export function EndScreenOverlay({
 
   return (
     <div
-      className="outro-aurora-bg absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-none"
+      // pointer-events-auto so the outro swallows clicks instead of letting
+      // them fall through to the YouTube iframe (which would otherwise pause
+      // playback or open YouTube). Transport controls are sibling overlays
+      // rendered later in the DOM and stay clickable on top of this layer.
+      // bg-gradient-brand keeps the outro in the same teal family as the
+      // rest of the UI (header chip, transport play button, theme accents).
+      className="bg-gradient-brand absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-auto"
       style={{
-        // Two animations stacked: the existing fade-in for mount reveal +
-        // the aurora cycle from .outro-aurora-bg. Inline `animation` would
-        // otherwise shadow the utility's animation property.
-        animation:
-          'end-overlay-fade-in 0.4s ease-out, outroAurora 14s ease-in-out infinite',
+        animation: 'end-overlay-fade-in 0.4s ease-out',
       }}
     >
       <style>{`

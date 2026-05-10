@@ -8,7 +8,6 @@ import { useRoom } from '@/hooks/useRoom';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
-import { useOutroControls } from '@/hooks/useOutroControls';
 import { useSongScore } from '@/hooks/useSongScore';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { EmojiLayer } from '@/components/EmojiLayer';
@@ -123,27 +122,20 @@ export default function TVClient() {
   const { visible: userActive } = useAutoHide(2500);
   const [outroActive, setOutroActive] = useState(false);
   const handleOutroVisibleChange = useCallback((v: boolean) => setOutroActive(v), []);
-  const {
-    visible: outroControlsVisible,
-    handleMouseEnter: outroMouseEnter,
-    handleMouseLeave: outroMouseLeave,
-    handlePointerDown: outroPointerDown,
-    handleFocusIn: outroFocusIn,
-  } = useOutroControls(outroActive);
   // While in fullscreen the button auto-hides; otherwise it's always visible.
   const fsButtonVisible = !isFs || userActive;
   // Transport controls follow the FullscreenPlayer pattern: always visible
   // while paused (so the user can resume) and tied to userActive while
   // playing so they don't sit on top of the video forever. Hidden during
-  // the MC gate so the announcement overlay stands alone.
-  // While the end-of-song outro is up, the controls fall under the outro
-  // hover/tap/focus rules instead of the userActive timer.
-  const transportMounted =
-    isInitialized && !!roomData.currentPlaying && !isMcGated;
-  const transportOpaque = outroActive
-    ? outroControlsVisible
-    : !roomData.isPlaying || userActive;
-  const showTransportControls = transportMounted && transportOpaque;
+  // the MC gate so the announcement overlay stands alone, and during the
+  // end-of-song outro so the celebratory headline isn't competing with
+  // playback chrome.
+  const showTransportControls =
+    isInitialized &&
+    !!roomData.currentPlaying &&
+    !isMcGated &&
+    !outroActive &&
+    (!roomData.isPlaying || userActive);
 
   const hasHistory = roomData.history.length > 0;
   const hasQueue = roomData.queue.length > 0;
@@ -192,9 +184,6 @@ export default function TVClient() {
         <div
           ref={videoContainerRef}
           className="relative w-full h-full bg-black"
-          onMouseEnter={outroMouseEnter}
-          onMouseLeave={outroMouseLeave}
-          onPointerDown={outroPointerDown}
         >
           {/* Lives inside the fullscreen target so reactions remain visible
               when the video is expanded — at <main> level the layer would
@@ -274,8 +263,7 @@ export default function TVClient() {
                   pointer-events, so the surrounding div stays
                   click-through. */}
               <div
-                onFocus={outroFocusIn}
-                className={`absolute inset-0 z-20 flex items-center justify-center gap-5 pointer-events-none transition-opacity duration-300 focus-within:opacity-100 focus-within:[&>button]:pointer-events-auto ${
+                className={`absolute inset-0 z-20 flex items-center justify-center gap-5 pointer-events-none transition-opacity duration-300 ${
                   showTransportControls
                     ? 'opacity-100 [&>button]:pointer-events-auto'
                     : 'opacity-0 [&>button]:pointer-events-none'
