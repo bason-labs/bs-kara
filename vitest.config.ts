@@ -7,6 +7,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./', import.meta.url)),
+      // `server-only` is a Next.js build-time marker (no real runtime
+      // export). Vitest's Vite resolver can't load it, so stub to empty.
+      'server-only': fileURLToPath(
+        new URL('./tests/server-only-stub.ts', import.meta.url),
+      ),
     },
   },
   test: {
