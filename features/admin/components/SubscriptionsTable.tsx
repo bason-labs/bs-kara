@@ -190,6 +190,14 @@ export function SubscriptionsTable({ data, now }: SubscriptionsTableProps) {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Link
+          href="/admin/subscriptions/new"
+          className="px-4 py-2 rounded-full bg-gradient-brand text-white text-sm font-medium tracking-wide shadow-glow transition-transform active:scale-[0.98]"
+        >
+          Thêm gói mới
+        </Link>
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <Segmented<TypeFilter>
           value={filters.type}
