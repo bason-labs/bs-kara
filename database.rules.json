@@ -90,6 +90,59 @@
       }
     },
 
+    "admins": {
+      "emails": {
+        ".read": "auth != null && auth.token.email != null && root.child('admins/emails/' + auth.token.email.toLowerCase().replace('.', ',')).exists()",
+        "$emailKey": {
+          ".write": "auth != null && auth.token.email != null && root.child('admins/emails/' + auth.token.email.toLowerCase().replace('.', ',')).exists()",
+          ".validate": "newData.hasChildren(['uid', 'addedAt'])",
+          "uid":     { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128" },
+          "addedAt": { ".validate": "newData.isNumber()" },
+          "$other":  { ".validate": false }
+        }
+      },
+      "$other": { ".validate": false }
+    },
+
+    "subscriptions": {
+      ".read": "auth != null && auth.token.email != null && root.child('admins/emails/' + auth.token.email.toLowerCase().replace('.', ',')).exists()",
+      ".write": "auth != null && auth.token.email != null && root.child('admins/emails/' + auth.token.email.toLowerCase().replace('.', ',')).exists()",
+      ".indexOn": ["userPhone", "endDate", "status", "type", "source"],
+      "$subscriptionId": {
+        ".validate": "newData.hasChildren(['userPhone', 'type', 'status', 'durationDays', 'startDate', 'endDate', 'source', 'createdAt', 'updatedAt'])",
+        "userPhone":    { ".validate": "newData.isString() && newData.val().matches(/^\\+84[0-9]{9}$/)" },
+        "userId":       { ".validate": "newData.val() === null || (newData.isString() && newData.val().length > 0 && newData.val().length <= 128)" },
+        "type":         { ".validate": "newData.isString() && newData.val().matches(/^(trial|paid)$/)" },
+        "status":       { ".validate": "newData.isString() && newData.val().matches(/^(active|cancelled)$/)" },
+        "durationDays": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 365" },
+        "startDate":    { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "endDate":      { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "source":       { ".validate": "newData.isString() && newData.val().matches(/^(manual_admin|self_register_phone|payment_webhook)$/)" },
+        "paymentRef":   { ".validate": "newData.val() === null || (newData.isString() && newData.val().length > 0 && newData.val().length <= 128)" },
+        "createdBy":    { ".validate": "newData.val() === null || (newData.isString() && newData.val().length > 0 && newData.val().length <= 128)" },
+        "createdAt":    { ".validate": "newData.isNumber()" },
+        "updatedAt":    { ".validate": "newData.isNumber()" },
+        "$other":       { ".validate": false }
+      }
+    },
+
+    "subscriptionsByPhone": {
+      ".read": "auth != null && auth.token.email != null && root.child('admins/emails/' + auth.token.email.toLowerCase().replace('.', ',')).exists()",
+      ".write": "auth != null && auth.token.email != null && root.child('admins/emails/' + auth.token.email.toLowerCase().replace('.', ',')).exists()",
+      "$phone": {
+        ".validate": "$phone.matches(/^\\+84[0-9]{9}$/)",
+        "$id": { ".validate": "newData.isBoolean() && newData.val() === true" }
+      }
+    },
+
+    "subscriptionTrialClaimed": {
+      ".read": "auth != null && auth.token.email != null && root.child('admins/emails/' + auth.token.email.toLowerCase().replace('.', ',')).exists()",
+      "$phone": {
+        ".write": "auth != null && auth.token.email != null && root.child('admins/emails/' + auth.token.email.toLowerCase().replace('.', ',')).exists() && (!data.exists() || newData.val() === true)",
+        ".validate": "$phone.matches(/^\\+84[0-9]{9}$/) && newData.isBoolean() && newData.val() === true"
+      }
+    },
+
     "$other": { ".validate": false }
   }
 }

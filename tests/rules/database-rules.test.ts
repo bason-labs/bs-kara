@@ -403,4 +403,228 @@ describe('database.rules.json', () => {
       );
     });
   });
+
+  // ─── Admin subscription rules (Commit 2 additions) ─────────────────────
+  describe('subscriptions / admin gate', () => {
+    const ADMIN_EMAIL = 'admin@example.com';
+    // RTDB keys can't contain `.`. The rules and the encodeEmailKey helper
+    // both map `.` → `,` to make the email a valid key segment.
+    const ADMIN_EMAIL_KEY = ADMIN_EMAIL.replace(/\./g, ',');
+
+    const validSubscription = (overrides: Record<string, unknown> = {}) => ({
+      userPhone: '+84901234567',
+      userId: null,
+      type: 'trial',
+      status: 'active',
+      durationDays: 14,
+      startDate: 0,
+      endDate: 14 * 86_400_000,
+      source: 'manual_admin',
+      paymentRef: null,
+      createdBy: null,
+      createdAt: 0,
+      updatedAt: 0,
+      ...overrides,
+    });
+
+    async function seedAdmin() {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await set(ref(ctx.database(), `admins/emails/${ADMIN_EMAIL_KEY}`), {
+          uid: 'admin-uid',
+          addedAt: Date.now(),
+        });
+      });
+    }
+
+    function adminDb() {
+      return testEnv
+        .authenticatedContext('admin-uid', { email: ADMIN_EMAIL })
+        .database();
+    }
+
+    function strangerDb() {
+      return testEnv
+        .authenticatedContext('other-uid', { email: 'nobody@example.com' })
+        .database();
+    }
+
+    it('admin can read subscriptions', async () => {
+      await seedAdmin();
+      await assertSucceeds(get(ref(adminDb(), 'subscriptions')));
+    });
+
+    it('non-admin (authenticated but not in admins/emails) cannot read subscriptions', async () => {
+      await seedAdmin();
+      await assertFails(get(ref(strangerDb(), 'subscriptions')));
+    });
+
+    it('unauthenticated cannot read subscriptions', async () => {
+      await seedAdmin();
+      await assertFails(get(ref(userDb(), 'subscriptions')));
+    });
+
+    it('admin can write a valid subscription record', async () => {
+      await seedAdmin();
+      await assertSucceeds(
+        set(ref(adminDb(), 'subscriptions/abc'), validSubscription()),
+      );
+    });
+
+    it('rejects subscription with wrong-type durationDays', async () => {
+      await seedAdmin();
+      await assertFails(
+        set(
+          ref(adminDb(), 'subscriptions/abc'),
+          validSubscription({ durationDays: 'thirty' }),
+        ),
+      );
+    });
+
+    it('rejects subscription missing required field', async () => {
+      await seedAdmin();
+      const missing = validSubscription();
+      delete (missing as Record<string, unknown>).startDate;
+      await assertFails(set(ref(adminDb(), 'subscriptions/abc'), missing));
+    });
+
+    it('rejects subscription with unknown extra field (via $other)', async () => {
+      await seedAdmin();
+      await assertFails(
+        set(
+          ref(adminDb(), 'subscriptions/abc'),
+          validSubscription({ bogus: 'oops' }),
+        ),
+      );
+    });
+
+    it('rejects subscription with status = expired (only active|cancelled allowed)', async () => {
+      await seedAdmin();
+      await assertFails(
+        set(
+          ref(adminDb(), 'subscriptions/abc'),
+          validSubscription({ status: 'expired' }),
+        ),
+      );
+    });
+
+    it('rejects subscription with non-VN userPhone', async () => {
+      await seedAdmin();
+      await assertFails(
+        set(
+          ref(adminDb(), 'subscriptions/abc'),
+          validSubscription({ userPhone: '0901234567' }),
+        ),
+      );
+      await assertFails(
+        set(
+          ref(adminDb(), 'subscriptions/abc'),
+          validSubscription({ userPhone: '+1234567890' }),
+        ),
+      );
+    });
+
+    it('subscriptionTrialClaimed: admin can set to true (claim)', async () => {
+      await seedAdmin();
+      await assertSucceeds(
+        set(ref(adminDb(), 'subscriptionTrialClaimed/+84901234567'), true),
+      );
+    });
+
+    it('subscriptionTrialClaimed: cannot be deleted (lifetime rule)', async () => {
+      await seedAdmin();
+      // Plant the flag with rules disabled.
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await set(
+          ref(ctx.database(), 'subscriptionTrialClaimed/+84901234567'),
+          true,
+        );
+      });
+      await assertFails(
+        set(ref(adminDb(), 'subscriptionTrialClaimed/+84901234567'), null),
+      );
+    });
+
+    it('subscriptionTrialClaimed: cannot be set to false', async () => {
+      await seedAdmin();
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await set(
+          ref(ctx.database(), 'subscriptionTrialClaimed/+84901234567'),
+          true,
+        );
+      });
+      await assertFails(
+        set(ref(adminDb(), 'subscriptionTrialClaimed/+84901234567'), false),
+      );
+    });
+
+    it('subscriptionTrialClaimed: rejects non-VN-format phone key', async () => {
+      await seedAdmin();
+      await assertFails(
+        set(ref(adminDb(), 'subscriptionTrialClaimed/0901234567'), true),
+      );
+    });
+
+    it('subscriptionsByPhone: admin can pointer-write', async () => {
+      await seedAdmin();
+      await assertSucceeds(
+        set(
+          ref(adminDb(), 'subscriptionsByPhone/+84901234567/abc'),
+          true,
+        ),
+      );
+    });
+
+    it('subscriptionsByPhone: rejects non-VN-format phone key', async () => {
+      await seedAdmin();
+      await assertFails(
+        set(ref(adminDb(), 'subscriptionsByPhone/0901234567/abc'), true),
+      );
+    });
+
+    it('subscriptionsByPhone: rejects non-true value', async () => {
+      await seedAdmin();
+      await assertFails(
+        set(
+          ref(adminDb(), 'subscriptionsByPhone/+84901234567/abc'),
+          false,
+        ),
+      );
+      await assertFails(
+        set(
+          ref(adminDb(), 'subscriptionsByPhone/+84901234567/abc'),
+          'yes',
+        ),
+      );
+    });
+
+    it('admins/emails: requires admin auth to write', async () => {
+      await seedAdmin();
+      const newEmailKey = 'newadmin@example,com';
+      // Stranger cannot add themselves to the admin list.
+      await assertFails(
+        set(ref(strangerDb(), `admins/emails/${newEmailKey}`), {
+          uid: 'new-uid',
+          addedAt: Date.now(),
+        }),
+      );
+      // Existing admin can.
+      await assertSucceeds(
+        set(ref(adminDb(), `admins/emails/${newEmailKey}`), {
+          uid: 'new-uid',
+          addedAt: Date.now(),
+        }),
+      );
+    });
+
+    it('admins/emails: rejects record missing required fields', async () => {
+      await seedAdmin();
+      const k = 'another@example,com';
+      await assertFails(
+        set(ref(adminDb(), `admins/emails/${k}`), { uid: 'x' }),
+      );
+      await assertFails(
+        set(ref(adminDb(), `admins/emails/${k}`), { addedAt: 1 }),
+      );
+    });
+  });
 });
