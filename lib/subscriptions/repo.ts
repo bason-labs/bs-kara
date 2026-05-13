@@ -233,11 +233,12 @@ export async function createSubscription(
         await db
           .ref(trialClaimedPath(args.userPhone))
           .transaction((current) => {
+            // By transaction invariant: only one caller can have committed
+            // the claim, so clearing the flag here is safe. The
+            // `current !== true` guard handles the edge case where the
+            // flag was already cleared externally (e.g. via the Firebase
+            // console for manual recovery).
             if (current !== true) return current;
-            // Best-effort rollback. Leave the flag if a concurrent caller
-            // managed to write a real subscription record for the same
-            // phone (impossible in practice without a prior claim, but
-            // guard anyway).
             return null;
           });
       } catch (rollbackErr) {
@@ -252,4 +253,94 @@ export async function createSubscription(
   }
 
   return { ok: true, id };
+}
+
+// ─── Cancel path ───────────────────────────────────────────────────────
+
+export type CancelSubscriptionError =
+  | 'not_found'
+  | 'already_cancelled'
+  | 'rtdb_write_failed';
+
+export type CancelSubscriptionResult =
+  | { ok: true }
+  | { ok: false; error: CancelSubscriptionError; details?: unknown };
+
+/**
+ * Cancel an existing subscription. ONE-WAY operation in Phase 1 —
+ * cancelled records cannot be re-activated; admins must create a new
+ * record instead.
+ *
+ * Semantics:
+ *   - Mutates ONLY `status` (→ 'cancelled') and `updatedAt`. All other
+ *     fields are immutable on existing records.
+ *   - Does NOT touch `subscriptionTrialClaimed/{phone}`. The lifetime
+ *     trial rule is preserved across cancellation: a cancelled trial
+ *     still blocks a future trial for the same phone. This is enforced
+ *     both at the rules layer (Commit 2) and here at the application
+ *     layer (belt-and-suspenders).
+ *   - Does NOT touch `subscriptionsByPhone/{phone}/{id}`. The pointer
+ *     represents "this phone has subscriptions on record", not "active
+ *     subscriptions" — future "is user subscribed?" queries filter by
+ *     derived status, not by pointer existence.
+ *   - Returns `already_cancelled` rather than silently succeeding so the
+ *     admin gets explicit confirmation that nothing happened.
+ *   - Malformed records on disk are reported as `not_found` (not
+ *     cancelled): we refuse to mutate data we can't safely parse.
+ */
+export async function cancelSubscription(
+  id: string,
+  adminUid: string,
+): Promise<CancelSubscriptionResult> {
+  if (!id) return { ok: false, error: 'not_found' };
+
+  const db = adminDb();
+  let snap;
+  try {
+    snap = await db.ref(subscriptionPath(id)).once('value');
+  } catch (err) {
+    return { ok: false, error: 'rtdb_write_failed', details: err };
+  }
+
+  if (!snap.exists()) {
+    return { ok: false, error: 'not_found' };
+  }
+
+  const parsed = parseRow(snap.val(), id);
+  if (!parsed) {
+    // parseRow already logged a warning. We refuse to cancel malformed
+    // data — surface as not_found to the caller.
+    return { ok: false, error: 'not_found' };
+  }
+
+  if (parsed.status === 'cancelled') {
+    return { ok: false, error: 'already_cancelled' };
+  }
+
+  const prevStatus = parsed.status;
+  const updatedAt = Date.now();
+
+  try {
+    await db.ref(subscriptionPath(id)).update({
+      status: 'cancelled',
+      updatedAt,
+    });
+  } catch (err) {
+    return { ok: false, error: 'rtdb_write_failed', details: err };
+  }
+
+  // Audit trail — this is the only mutation allowed on an existing
+  // record, so it MUST be loggable. Future work may swap this for a
+  // structured logger / dedicated audit collection.
+  console.log(
+    '[subscriptions.repo] cancelled',
+    JSON.stringify({
+      subscriptionId: id,
+      adminUid,
+      prevStatus,
+      timestamp: updatedAt,
+    }),
+  );
+
+  return { ok: true };
 }
