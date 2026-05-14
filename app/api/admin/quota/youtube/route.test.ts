@@ -41,6 +41,7 @@ describe('GET /api/admin/quota/youtube', () => {
     const res = await GET();
     expect(res.status).toBe(401);
     expect(res.headers.get('cache-control')).toBe('no-store');
+    expect(await res.json()).toMatchObject({ error: 'no_cookie' });
   });
 
   it('returns 30 day entries sorted oldest to newest', async () => {
@@ -52,6 +53,7 @@ describe('GET /api/admin/quota/youtube', () => {
     const body = await res.json();
     expect(body.days).toHaveLength(30);
     expect(body.days[0].date < body.days[29].date).toBe(true);
+    expect(body.dailyLimitCalls).toBe(100);
   });
 
   it('fills in calls from RTDB for matching date keys', async () => {
@@ -84,5 +86,6 @@ describe('GET /api/admin/quota/youtube', () => {
 
     const res = await GET();
     expect(res.status).toBe(500);
+    expect(await res.json()).toMatchObject({ error: 'internal' });
   });
 });
