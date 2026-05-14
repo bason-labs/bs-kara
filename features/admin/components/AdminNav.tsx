@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { adminSignOut } from '../lib/adminClient';
-import { type NavItem, NAV_ITEMS } from '../lib/navItems';
+import { NAV_ITEMS } from '../lib/navItems';
 
 export function AdminNav({ adminEmail }: { adminEmail: string }) {
   const pathname = usePathname();

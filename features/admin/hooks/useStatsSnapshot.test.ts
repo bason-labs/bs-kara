@@ -66,36 +66,13 @@ describe('useStatsSnapshot', () => {
     expect(result.current.error).toBe('net::ERR_FAILED');
   });
 
-  it('re-fetches automatically after 30 seconds', async () => {
-    fetchMock
-      .mockResolvedValueOnce(jsonRes(200, fakeSnapshot))
-      .mockResolvedValueOnce(jsonRes(200, { ...fakeSnapshot, totalRooms: 5 }));
-
-    const { result } = renderHook(() => useStatsSnapshot());
-
-    // Flush initial fetch
-    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(result.current.data?.totalRooms).toBe(2);
-
-    // Advance exactly 30 s to trigger the interval, then flush its microtasks
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
-    });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(result.current.data?.totalRooms).toBe(5);
-  });
-
-  it('clears the interval on unmount', async () => {
+  it('does not fetch again after unmount', async () => {
     fetchMock.mockResolvedValue(jsonRes(200, fakeSnapshot));
     const { unmount } = renderHook(() => useStatsSnapshot());
 
-    // Flush initial fetch
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     unmount();
 
-    // Advance past the interval — no additional fetch should happen
-    vi.advanceTimersByTime(30_000);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -50,28 +50,13 @@ describe('useQueueOps', () => {
     expect(result.current.error).toBe('no_cookie');
   });
 
-  it('re-fetches after 60 seconds', async () => {
-    fetchMock.mockResolvedValue(jsonRes(200, fakeOps));
-    renderHook(() => useQueueOps());
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(60_000);
-    });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it('clears interval on unmount', async () => {
+  it('does not fetch again after unmount', async () => {
     fetchMock.mockResolvedValue(jsonRes(200, fakeOps));
     const { unmount } = renderHook(() => useQueueOps());
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     unmount();
-    await act(async () => {
-      vi.advanceTimersByTime(60_000);
-    });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

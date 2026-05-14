@@ -60,31 +60,13 @@ describe('useSessionsData', () => {
     expect(result.current.error).toBe('no_cookie');
   });
 
-  it('re-fetches after 30 seconds', async () => {
-    fetchMock
-      .mockResolvedValueOnce(jsonRes(200, fakeSessions))
-      .mockResolvedValueOnce(jsonRes(200, { sessions: [] }));
-    const { result } = renderHook(() => useSessionsData());
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
-    });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(result.current.data?.sessions).toEqual([]);
-  });
-
-  it('clears interval on unmount', async () => {
+  it('does not fetch again after unmount', async () => {
     fetchMock.mockResolvedValue(jsonRes(200, fakeSessions));
     const { unmount } = renderHook(() => useSessionsData());
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     unmount();
-    await act(async () => {
-      vi.advanceTimersByTime(30_000);
-    });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

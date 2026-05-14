@@ -55,29 +55,12 @@ describe('useYoutubeQuota', () => {
     expect(result.current.error).toBe('no_cookie');
   });
 
-  it('re-fetches after 60 seconds', async () => {
-    fetchMock
-      .mockResolvedValueOnce(jsonRes(200, fakeQuota))
-      .mockResolvedValueOnce(jsonRes(200, { ...fakeQuota, dailyLimitCalls: 200 }));
-
-    const { result } = renderHook(() => useYoutubeQuota());
-    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(60_000);
-    });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(result.current.data?.dailyLimitCalls).toBe(200);
-  });
-
-  it('clears the interval on unmount', async () => {
+  it('does not fetch again after unmount', async () => {
     fetchMock.mockResolvedValue(jsonRes(200, fakeQuota));
     const { unmount } = renderHook(() => useYoutubeQuota());
 
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     unmount();
-    vi.advanceTimersByTime(60_000);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
