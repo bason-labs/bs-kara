@@ -15,7 +15,7 @@ export function useSessionTracking(roomId: string | null): void {
       body: JSON.stringify({ roomId }),
     })
       .then(async (res) => {
-        if (cancelled || !res.ok) return;
+        if (cancelled || !res.ok) return; // non-2xx → treat as no session; leave won't be called
         const data = (await res.json()) as { sessionId?: string };
         if (data.sessionId) sessionIdRef.current = data.sessionId;
       })

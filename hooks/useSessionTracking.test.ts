@@ -68,6 +68,7 @@ describe('useSessionTracking', () => {
   });
 
   it('does not call leave if join never resolved (no sessionId stored)', async () => {
+    // join never settles → sessionIdRef stays null → cleanup fires with no sessionId → leave NOT called
     fetchMock.mockImplementation(
       (url) =>
         new Promise((resolve) => {
@@ -93,5 +94,22 @@ describe('useSessionTracking', () => {
       await Promise.resolve();
     });
     unmount();
+  });
+
+  it('swallows leave fetch errors without throwing', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonRes(200, { sessionId: 'sess-1' }))
+      .mockRejectedValueOnce(new Error('network down'));
+
+    const { unmount } = renderHook(() => useSessionTracking('1234'));
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Should not throw even if leave fetch rejects
+    unmount();
+    await act(async () => {
+      await Promise.resolve();
+    });
   });
 });
