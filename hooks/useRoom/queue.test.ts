@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRef } from 'react';
 
+vi.mock('@/lib/ptDateKey', () => ({ ptDateKey: vi.fn().mockReturnValue('20260101') }));
+
 vi.mock('@/lib/firebase', () => ({ db: {} }));
 vi.mock('firebase/database', () => ({
   ref: vi.fn((_db: unknown, path: string) => ({ path })),
@@ -13,14 +15,17 @@ vi.mock('firebase/database', () => ({
   set: vi.fn(),
   runTransaction: vi.fn(),
   update: vi.fn(),
+  increment: vi.fn((n: number) => ({ __increment: n })),
 }));
 
-import { update as updateMock } from 'firebase/database';
+import { update as updateMock, push as pushMock, runTransaction as runTransactionMock } from 'firebase/database';
 import { useRoomQueue } from './queue';
 import { DEFAULT_STATE, type RoomState } from './types';
 import type { QueueItem, YouTubeVideo } from '@/lib/youtube/types';
 
 const updateFn = updateMock as unknown as ReturnType<typeof vi.fn>;
+const pushFn = pushMock as unknown as ReturnType<typeof vi.fn>;
+const runTransactionFn = runTransactionMock as unknown as ReturnType<typeof vi.fn>;
 
 const ROOM_ID = '1234';
 
@@ -55,7 +60,11 @@ function renderQueueHook(initial: Partial<RoomState>) {
   });
 }
 
-beforeEach(() => updateFn.mockReset());
+beforeEach(() => {
+  updateFn.mockReset().mockResolvedValue(undefined);
+  pushFn.mockReset().mockResolvedValue({ key: 'queue-xyz' });
+  runTransactionFn.mockReset().mockResolvedValue({ committed: false });
+});
 afterEach(() => vi.restoreAllMocks());
 
 describe('playSongNow', () => {
@@ -154,5 +163,71 @@ describe('playSongNow', () => {
     });
 
     expect(updateFn).not.toHaveBeenCalled();
+  });
+});
+
+describe('useRoomQueue — queue ops analytics', () => {
+  it('increments adds in analytics/queueOps when song pushed to queue', async () => {
+    // Song is pushed to queue (currentPlaying already set, so no transaction path)
+    const { result } = renderQueueHook({
+      currentPlaying: makeVideo({ id: 'v0' }),
+    });
+
+    await act(async () => {
+      await result.current.addSongToQueue(makeVideo({ id: 'v1' }));
+    });
+
+    const analyticsCalls = updateFn.mock.calls.filter(
+      (c: unknown[]) => (c[0] as { path?: string })?.path?.includes('queueOps'),
+    );
+    expect(analyticsCalls.length).toBeGreaterThanOrEqual(1);
+    expect(analyticsCalls[0][1]).toMatchObject({ adds: { __increment: 1 } });
+  });
+
+  it('increments adds when song promoted directly to currentPlaying via transaction', async () => {
+    // currentPlaying is null → transaction path runs; mock it as committed
+    runTransactionFn.mockResolvedValueOnce({ committed: true });
+    const { result } = renderQueueHook({ currentPlaying: null });
+
+    await act(async () => {
+      await result.current.addSongToQueue(makeVideo({ id: 'v1' }));
+    });
+
+    const analyticsCalls = updateFn.mock.calls.filter(
+      (c: unknown[]) => (c[0] as { path?: string })?.path?.includes('queueOps'),
+    );
+    expect(analyticsCalls.length).toBeGreaterThanOrEqual(1);
+    expect(analyticsCalls[0][1]).toMatchObject({ adds: { __increment: 1 } });
+  });
+
+  it('increments removes in analytics/queueOps when song removed from queue', async () => {
+    const { result } = renderQueueHook({});
+
+    act(() => {
+      result.current.removeSong('queue-xyz');
+    });
+
+    const analyticsCalls = updateFn.mock.calls.filter(
+      (c: unknown[]) => (c[0] as { path?: string })?.path?.includes('queueOps'),
+    );
+    expect(analyticsCalls.length).toBeGreaterThanOrEqual(1);
+    expect(analyticsCalls[0][1]).toMatchObject({ removes: { __increment: 1 } });
+  });
+
+  it('uses the correct analytics path: analytics/queueOps/{roomId}/{date}', async () => {
+    const { result } = renderQueueHook({
+      currentPlaying: makeVideo({ id: 'v0' }),
+    });
+
+    await act(async () => {
+      await result.current.addSongToQueue(makeVideo({ id: 'v1' }));
+    });
+
+    const analyticsCalls = updateFn.mock.calls.filter(
+      (c: unknown[]) => (c[0] as { path?: string })?.path?.includes('queueOps'),
+    );
+    expect((analyticsCalls[0][0] as { path: string }).path).toBe(
+      `analytics/queueOps/${ROOM_ID}/20260101`,
+    );
   });
 });

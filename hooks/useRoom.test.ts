@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/firebase', () => ({ db: {} }));
+vi.mock('@/lib/ptDateKey', () => ({ ptDateKey: vi.fn().mockReturnValue('20260101') }));
 
 const refMock = vi.fn((_db: unknown, path: string) => ({ path }));
 const onValueMock = vi.fn();
@@ -11,6 +12,7 @@ const updateMock = vi.fn().mockResolvedValue(undefined);
 const pushMock = vi.fn();
 const runTransactionMock = vi.fn();
 const getMock = vi.fn();
+const incrementMock = vi.fn((n: number) => ({ __increment: n }));
 
 vi.mock('firebase/database', () => ({
   ref: (...args: unknown[]) => refMock(...(args as [unknown, string])),
@@ -21,6 +23,7 @@ vi.mock('firebase/database', () => ({
   push: (...args: unknown[]) => pushMock(...args),
   runTransaction: (...args: unknown[]) => runTransactionMock(...args),
   get: (...args: unknown[]) => getMock(...args),
+  increment: (...args: unknown[]) => incrementMock(...(args as [number])),
   onChildAdded: vi.fn(),
   query: vi.fn(),
   orderByChild: vi.fn(),

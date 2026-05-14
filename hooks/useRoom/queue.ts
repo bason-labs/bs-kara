@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, type RefObject } from 'react';
-import { ref, push, remove, set, runTransaction, update } from 'firebase/database';
+import { ref, push, remove, set, runTransaction, update, increment } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { getRoomDataPath } from '@/lib/roomPaths';
+import { ptDateKey } from '@/lib/ptDateKey';
 import type { QueueItem, YouTubeVideo } from '@/lib/youtube/types';
 import { arrayToRecord, type GenerateMCForQueueItem, type RoomState } from './types';
 
@@ -55,6 +56,7 @@ export function useRoomQueue(
           // ENDED iframe ping or an earlier explicit pause; flip it back so
           // the new song actually plays instead of mounting paused.
           await set(ref(db, `${getRoomDataPath(roomId)}/isPlaying`), true);
+          void update(ref(db, `analytics/queueOps/${roomId}/${ptDateKey()}`), { adds: increment(1) }).catch(() => {});
           return;
         }
       }
@@ -73,6 +75,7 @@ export function useRoomQueue(
           trimmed ?? null,
         );
       }
+      void update(ref(db, `analytics/queueOps/${roomId}/${ptDateKey()}`), { adds: increment(1) }).catch(() => {});
     },
     [roomId, roomDataRef, generateMCForQueueItem],
   );
@@ -106,6 +109,7 @@ export function useRoomQueue(
     (songId: string) => {
       if (!roomId) return;
       remove(ref(db, `${getRoomDataPath(roomId)}/queue/${songId}`));
+      void update(ref(db, `analytics/queueOps/${roomId}/${ptDateKey()}`), { removes: increment(1) }).catch(() => {});
     },
     [roomId],
   );
