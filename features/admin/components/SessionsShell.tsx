@@ -1,19 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSessionsData } from '../hooks/useSessionsData';
+import { useAdminData } from '../context/AdminDataContext';
 import { SessionsTable } from './SessionsTable';
 
 export function SessionsShell() {
-  const { data, loading, error } = useSessionsData();
+  const { sessions: { data, loading, error } } = useAdminData();
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot mount flag for hydration guard
-    setMounted(true);
-  }, []);
-
-  if (!mounted || loading) {
+  if (loading) {
     return <p className="text-sm text-muted" role="status">Đang tải…</p>;
   }
 

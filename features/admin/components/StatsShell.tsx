@@ -1,10 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useStatsSnapshot } from '../hooks/useStatsSnapshot';
-import { useYoutubeQuota } from '../hooks/useYoutubeQuota';
-import { useSearchStats } from '../hooks/useSearchStats';
-import { useQueueOps } from '../hooks/useQueueOps';
+import { useAdminData } from '../context/AdminDataContext';
 import { StatCard } from './StatCard';
 import { RoomsTable } from './RoomsTable';
 import { QuotaChart } from './QuotaChart';
@@ -12,19 +8,9 @@ import { SearchStatsChart } from './SearchStatsChart';
 import { QueueOpsTable } from './QueueOpsTable';
 
 export function StatsShell() {
-  const stats = useStatsSnapshot();
-  const quota = useYoutubeQuota();
-  const searchStats = useSearchStats();
-  const queueOps = useQueueOps();
+  const { stats, quota, searchStats, queueOps } = useAdminData();
 
-  // SSR hydration guard — avoid baking server-side timestamp into markup.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot mount flag for hydration guard
-    setMounted(true);
-  }, []);
-
-  if (!mounted || stats.loading) {
+  if (stats.loading) {
     return (
       <p className="text-sm text-muted" role="status">
         Đang tải…
