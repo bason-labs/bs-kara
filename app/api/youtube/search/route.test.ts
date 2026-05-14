@@ -202,11 +202,6 @@ describe('YouTube search BFF — quota counter', () => {
   beforeEach(() => {
     __resetKeyCursorForTests();
     process.env.YOUTUBE_API_KEYS = 'key-a';
-    process.env.FIREBASE_ADMIN_PROJECT_ID = 'proj';
-    process.env.FIREBASE_ADMIN_CLIENT_EMAIL = 'sa@proj.iam.gserviceaccount.com';
-    process.env.FIREBASE_ADMIN_PRIVATE_KEY =
-      '-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----';
-    process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL = 'https://proj.firebaseio.com';
   });
 
   it('increments analytics/youtubeQuota/{date}/calls by 1 on a successful live call', async () => {
@@ -245,5 +240,18 @@ describe('YouTube search BFF — quota counter', () => {
       .replace(/-/g, '');
 
     expect(refMock).toHaveBeenCalledWith(`analytics/youtubeQuota/${ptDate}`);
+  });
+
+  it('search succeeds even when getAdminApp throws synchronously', async () => {
+    getAdminAppMock.mockImplementationOnce(() => {
+      throw new Error('firebase-admin not configured');
+    });
+    fetchMock.mockResolvedValueOnce(youtubeResponse());
+    const req = new NextRequest('http://localhost/api/youtube/search?q=bolero');
+    const res = await GET(req);
+    // Search must succeed despite quota counter failure
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(Array.isArray(body)).toBe(true);
   });
 });

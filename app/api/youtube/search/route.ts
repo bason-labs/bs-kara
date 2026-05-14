@@ -29,14 +29,17 @@ function ptDateKey(): string {
 }
 
 function recordQuotaCall(): void {
-  const db = getDatabase(getAdminApp());
-  // ref to the date node; update() writes { calls: increment } as a child
-  void db
-    .ref(`analytics/youtubeQuota/${ptDateKey()}`)
-    .update({ calls: ServerValue.increment(1) })
-    .catch((err: unknown) => {
-      console.warn('[youtube-bff] quota counter write failed:', err);
-    });
+  try {
+    const db = getDatabase(getAdminApp());
+    void db
+      .ref(`analytics/youtubeQuota/${ptDateKey()}`)
+      .update({ calls: ServerValue.increment(1) })
+      .catch((err: unknown) => {
+        console.warn('[youtube-bff] quota counter write failed:', err);
+      });
+  } catch (err) {
+    console.warn('[youtube-bff] quota counter setup failed:', err);
+  }
 }
 
 function decodeEntities(s: string): string {
