@@ -34,11 +34,20 @@ describe('POST /api/room/leave', () => {
     const res = await POST(makeReq({}));
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: 'missing_session_id' });
+    expect(res.headers.get('cache-control')).toBe('no-store');
   });
 
   it('400 when sessionId is empty string', async () => {
     const res = await POST(makeReq({ sessionId: '   ' }));
     expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: 'missing_session_id' });
+  });
+
+  it('400 when sessionId contains path-injection characters', async () => {
+    const res = await POST(makeReq({ sessionId: 'abc/../secret' }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: 'invalid_session_id' });
+    expect(res.headers.get('cache-control')).toBe('no-store');
   });
 
   it('200 and ok:true on success', async () => {
@@ -62,5 +71,6 @@ describe('POST /api/room/leave', () => {
     const res = await POST(makeReq({ sessionId: 'session-abc' }));
     expect(res.status).toBe(500);
     expect(await res.json()).toMatchObject({ error: 'internal' });
+    expect(res.headers.get('cache-control')).toBe('no-store');
   });
 });

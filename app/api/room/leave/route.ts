@@ -25,6 +25,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!sessionId) {
     return NextResponse.json({ error: 'missing_session_id' }, { status: 400, headers: NO_STORE });
   }
+  // Reject sessionIds containing Firebase path-significant characters
+  if (/[/#$.\[\]]/.test(sessionId)) {
+    return NextResponse.json({ error: 'invalid_session_id' }, { status: 400, headers: NO_STORE });
+  }
 
   try {
     await adminDb().ref(`analytics/sessions/${sessionId}/leftAt`).set(Date.now());
