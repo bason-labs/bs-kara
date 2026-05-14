@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import type { SessionRecord } from '@/app/api/admin/sessions/route';
 
-const POLL_INTERVAL_MS = 30_000;
 
 interface UseSessionsDataResult {
   data: { sessions: SessionRecord[] } | null;
@@ -47,10 +46,8 @@ export function useSessionsData(): UseSessionsDataResult {
     }
 
     doFetch();
-    const interval = setInterval(doFetch, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
-      clearInterval(interval);
     };
   }, []);
 

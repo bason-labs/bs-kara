@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import type { QueueOpsSnapshot } from '@/app/api/admin/queue-ops/route';
 
-const POLL_INTERVAL_MS = 60_000;
 
 interface UseQueueOpsResult {
   data: QueueOpsSnapshot | null;
@@ -47,10 +46,8 @@ export function useQueueOps(): UseQueueOpsResult {
     }
 
     doFetch();
-    const interval = setInterval(doFetch, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
-      clearInterval(interval);
     };
   }, []);
 

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import type { SearchStatsSnapshot } from '@/app/api/admin/search-stats/route';
 
-const POLL_INTERVAL_MS = 60_000;
 
 interface UseSearchStatsResult {
   data: SearchStatsSnapshot | null;
@@ -47,10 +46,8 @@ export function useSearchStats(): UseSearchStatsResult {
     }
 
     doFetch();
-    const interval = setInterval(doFetch, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
-      clearInterval(interval);
     };
   }, []);
 

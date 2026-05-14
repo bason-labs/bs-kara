@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import type { YoutubeQuotaSnapshot } from '@/app/api/admin/quota/youtube/route';
 
-const POLL_INTERVAL_MS = 60_000;
 
 interface UseYoutubeQuotaResult {
   data: YoutubeQuotaSnapshot | null;
@@ -47,11 +46,9 @@ export function useYoutubeQuota(): UseYoutubeQuotaResult {
     }
 
     doFetch();
-    const interval = setInterval(doFetch, POLL_INTERVAL_MS);
 
     return () => {
       cancelled = true;
-      clearInterval(interval);
     };
   }, []);
 

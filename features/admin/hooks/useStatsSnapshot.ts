@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import type { StatsSnapshot } from '@/app/api/admin/stats/route';
 
-const POLL_INTERVAL_MS = 30_000;
 
 interface UseStatsSnapshotResult {
   data: StatsSnapshot | null;
@@ -47,11 +46,9 @@ export function useStatsSnapshot(): UseStatsSnapshotResult {
     }
 
     doFetch();
-    const interval = setInterval(doFetch, POLL_INTERVAL_MS);
 
     return () => {
       cancelled = true;
-      clearInterval(interval);
     };
   }, []);
 
