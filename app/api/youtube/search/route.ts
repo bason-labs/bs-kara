@@ -37,6 +37,34 @@ function recordQuotaCall(): void {
   }
 }
 
+function recordLiveSearch(): void {
+  try {
+    const db = getDatabase(getAdminApp());
+    void db
+      .ref(`analytics/searchCounts/${ptDateKey()}`)
+      .update({ live: ServerValue.increment(1) })
+      .catch((err: unknown) => {
+        console.warn('[youtube-bff] live-search counter write failed:', err);
+      });
+  } catch (err) {
+    console.warn('[youtube-bff] live-search counter setup failed:', err);
+  }
+}
+
+function recordSearchRequest(): void {
+  try {
+    const db = getDatabase(getAdminApp());
+    void db
+      .ref(`analytics/searchCounts/${ptDateKey()}`)
+      .update({ total: ServerValue.increment(1) })
+      .catch((err: unknown) => {
+        console.warn('[youtube-bff] search-request counter write failed:', err);
+      });
+  } catch (err) {
+    console.warn('[youtube-bff] search-request counter setup failed:', err);
+  }
+}
+
 function decodeEntities(s: string): string {
   return s
     .replace(/&amp;/g, '&')
@@ -105,6 +133,7 @@ async function tryAllKeys(query: string): Promise<YouTubeVideo[]> {
 
     nextKeyIndex = i;
     recordQuotaCall(); // fire-and-forget; never blocks or throws
+    recordLiveSearch(); // fire-and-forget; never blocks or throws
     const data: { items?: YouTubeApiItem[] } = await res.json();
     return (data.items ?? []).map((item) => ({
       id: item.id.videoId,
@@ -133,6 +162,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const videos = await cachedSearch(normalized);
+    recordSearchRequest(); // fire-and-forget; never blocks or throws
     return NextResponse.json(videos);
   } catch (err) {
     if (err instanceof QuotaExhaustedError) {

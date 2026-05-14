@@ -255,3 +255,43 @@ describe('YouTube search BFF — quota counter', () => {
     expect(Array.isArray(body)).toBe(true);
   });
 });
+
+describe('YouTube search BFF — search stats counter', () => {
+  beforeEach(() => {
+    __resetKeyCursorForTests();
+    process.env.YOUTUBE_API_KEYS = 'key-a';
+  });
+
+  it('increments analytics/searchCounts/{date}/live on a live call', async () => {
+    fetchMock.mockResolvedValueOnce(youtubeResponse());
+    const req = new NextRequest('http://localhost/api/youtube/search?q=bolero');
+    await GET(req);
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ live: { __increment: 1 } }),
+    );
+  });
+
+  it('increments analytics/searchCounts/{date}/total on every successful response', async () => {
+    fetchMock.mockResolvedValueOnce(youtubeResponse());
+    const req = new NextRequest('http://localhost/api/youtube/search?q=bolero');
+    await GET(req);
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ total: { __increment: 1 } }),
+    );
+  });
+
+  it('does not increment search stats on empty query', async () => {
+    updateMock.mockClear();
+    const req = new NextRequest('http://localhost/api/youtube/search?q=');
+    const res = await GET(req);
+    expect(res.status).toBe(400);
+    const statsCall = updateMock.mock.calls.find(
+      (c) =>
+        typeof c[0] === 'object' &&
+        ('total' in (c[0] as object) || 'live' in (c[0] as object)),
+    );
+    expect(statsCall).toBeUndefined();
+  });
+});
