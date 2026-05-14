@@ -1,30 +1,48 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+// ── firebase-admin mocks (hoisted so vi.mock factories can reference them) ──
+const { updateMock, refMock, dbMock, getAdminAppMock } = vi.hoisted(() => {
+  const updateMock = vi.fn().mockResolvedValue(undefined);
+  const refMock = vi.fn().mockReturnValue({ update: updateMock });
+  const dbMock = vi.fn().mockReturnValue({ ref: refMock });
+  const getAdminAppMock = vi.fn().mockReturnValue({});
+  return { updateMock, refMock, dbMock, getAdminAppMock };
+});
+
+vi.mock('firebase-admin/database', () => ({
+  getDatabase: dbMock,
+  ServerValue: { increment: (n: number) => ({ __increment: n }) },
+}));
+vi.mock('@/features/admin/lib/firebaseAdmin', () => ({
+  getAdminApp: getAdminAppMock,
+}));
 // Bypass unstable_cache so each test sees a fresh upstream call.
 vi.mock('next/cache', () => ({
   unstable_cache: <T extends (...args: unknown[]) => unknown>(fn: T) => fn,
 }));
 
-import { GET, __resetKeyCursorForTests } from './route';
-
-function makeReq(q: string) {
-  return new NextRequest(`http://localhost/api/youtube/search?q=${encodeURIComponent(q)}`);
-}
-
 const fetchMock = vi.fn();
 
 beforeEach(() => {
   fetchMock.mockReset();
+  updateMock.mockReset().mockResolvedValue(undefined);
+  refMock.mockReset().mockReturnValue({ update: updateMock });
   vi.stubGlobal('fetch', fetchMock);
   process.env.YOUTUBE_API_KEYS = 'key-1,key-2,key-3';
-  __resetKeyCursorForTests();
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
+
+// Must import AFTER vi.mock() calls
+import { GET, __resetKeyCursorForTests } from './route';
+
+function makeReq(q: string) {
+  return new NextRequest(`http://localhost/api/youtube/search?q=${encodeURIComponent(q)}`);
+}
 
 function ytItem(id: string, title = 'X') {
   return {
@@ -37,7 +55,25 @@ function ytItem(id: string, title = 'X') {
   };
 }
 
+function youtubeResponse(
+  items: unknown[] = [
+    {
+      id: { videoId: 'v1' },
+      snippet: { title: 'T', channelTitle: 'C', thumbnails: { medium: { url: 'u' } } },
+    },
+  ],
+): Response {
+  return new Response(JSON.stringify({ items }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 describe('GET /api/youtube/search', () => {
+  beforeEach(() => {
+    __resetKeyCursorForTests();
+  });
+
   it('returns 400 when q is missing or only whitespace', async () => {
     const res = await GET(makeReq('   '));
     expect(res.status).toBe(400);
@@ -159,5 +195,55 @@ describe('GET /api/youtube/search', () => {
     const url = String(fetchMock.mock.calls[0][0]);
     // normalizeQuery strips diacritics → "le luu ly"; route appends " karaoke beat"
     expect(url).toMatch(/q=le\+luu\+ly\+karaoke\+beat/);
+  });
+});
+
+describe('YouTube search BFF — quota counter', () => {
+  beforeEach(() => {
+    __resetKeyCursorForTests();
+    process.env.YOUTUBE_API_KEYS = 'key-a';
+    process.env.FIREBASE_ADMIN_PROJECT_ID = 'proj';
+    process.env.FIREBASE_ADMIN_CLIENT_EMAIL = 'sa@proj.iam.gserviceaccount.com';
+    process.env.FIREBASE_ADMIN_PRIVATE_KEY =
+      '-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----';
+    process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL = 'https://proj.firebaseio.com';
+  });
+
+  it('increments analytics/youtubeQuota/{date}/calls by 1 on a successful live call', async () => {
+    fetchMock.mockResolvedValueOnce(youtubeResponse());
+    await GET(makeReq('bolero'));
+
+    // ref points to the date node; update() writes the `calls` child
+    expect(refMock).toHaveBeenCalledWith(
+      expect.stringMatching(/^analytics\/youtubeQuota\/\d{8}$/),
+    );
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ calls: { __increment: 1 } }),
+    );
+  });
+
+  it('does not increment quota when all keys return 403', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    fetchMock.mockResolvedValue({ ok: false, status: 403, json: async () => ({}) });
+    const res = await GET(makeReq('bolero'));
+    expect(res.status).toBe(429);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it('does not increment quota for a missing query', async () => {
+    const res = await GET(makeReq(''));
+    expect(res.status).toBe(400);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it('the date key uses PT timezone (America/Los_Angeles)', async () => {
+    fetchMock.mockResolvedValueOnce(youtubeResponse());
+    await GET(makeReq('nhac tre'));
+
+    const ptDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' })
+      .format(new Date())
+      .replace(/-/g, '');
+
+    expect(refMock).toHaveBeenCalledWith(`analytics/youtubeQuota/${ptDate}`);
   });
 });

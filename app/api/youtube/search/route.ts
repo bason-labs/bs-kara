@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 import type { YouTubeVideo } from '@/lib/youtube/types';
 import { normalizeDiacritics } from '@/lib/text/normalize';
+import { getDatabase, ServerValue } from 'firebase-admin/database';
+import { getAdminApp } from '@/features/admin/lib/firebaseAdmin';
 
 const YOUTUBE_ENDPOINT = 'https://www.googleapis.com/youtube/v3/search';
 const CACHE_REVALIDATE_SECONDS = 3600;
@@ -18,6 +20,23 @@ class QuotaExhaustedError extends Error {
 // and intentionally kept on top of the shared normaliser.
 function normalizeQuery(q: string): string {
   return normalizeDiacritics(q).replace(/\s+/g, ' ');
+}
+
+function ptDateKey(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' })
+    .format(new Date())
+    .replace(/-/g, '');
+}
+
+function recordQuotaCall(): void {
+  const db = getDatabase(getAdminApp());
+  // ref to the date node; update() writes { calls: increment } as a child
+  void db
+    .ref(`analytics/youtubeQuota/${ptDateKey()}`)
+    .update({ calls: ServerValue.increment(1) })
+    .catch((err: unknown) => {
+      console.warn('[youtube-bff] quota counter write failed:', err);
+    });
 }
 
 function decodeEntities(s: string): string {
@@ -87,6 +106,7 @@ async function tryAllKeys(query: string): Promise<YouTubeVideo[]> {
     }
 
     nextKeyIndex = i;
+    recordQuotaCall(); // fire-and-forget; never blocks or throws
     const data: { items?: YouTubeApiItem[] } = await res.json();
     return (data.items ?? []).map((item) => ({
       id: item.id.videoId,
