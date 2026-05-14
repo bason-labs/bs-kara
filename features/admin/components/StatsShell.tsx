@@ -3,13 +3,19 @@
 import { useEffect, useState } from 'react';
 import { useStatsSnapshot } from '../hooks/useStatsSnapshot';
 import { useYoutubeQuota } from '../hooks/useYoutubeQuota';
+import { useSearchStats } from '../hooks/useSearchStats';
+import { useQueueOps } from '../hooks/useQueueOps';
 import { StatCard } from './StatCard';
 import { RoomsTable } from './RoomsTable';
 import { QuotaChart } from './QuotaChart';
+import { SearchStatsChart } from './SearchStatsChart';
+import { QueueOpsTable } from './QueueOpsTable';
 
 export function StatsShell() {
   const stats = useStatsSnapshot();
   const quota = useYoutubeQuota();
+  const searchStats = useSearchStats();
+  const queueOps = useQueueOps();
 
   // SSR hydration guard — avoid baking server-side timestamp into markup.
   const [mounted, setMounted] = useState(false);
@@ -69,6 +75,30 @@ export function StatsShell() {
         )}
         {quota.data && (
           <QuotaChart days={quota.data.days} dailyLimitCalls={quota.data.dailyLimitCalls} />
+        )}
+      </section>
+
+      {/* Search statistics */}
+      <section aria-label="Thống kê tìm kiếm" className="rounded-2xl border border-border bg-surface/60 backdrop-blur-md px-5 py-4 space-y-3">
+        <div>
+          <h2 className="text-sm font-medium text-fg">Tìm kiếm YouTube</h2>
+          <p className="text-[11px] text-muted mt-0.5">30 ngày gần nhất · múi giờ PT</p>
+        </div>
+        {searchStats.loading && <p className="text-xs text-muted">Đang tải…</p>}
+        {searchStats.error && <p className="text-xs text-danger">Lỗi: {searchStats.error}</p>}
+        {searchStats.data && <SearchStatsChart days={searchStats.data.days} />}
+      </section>
+
+      {/* Queue operations */}
+      <section aria-label="Thao tác hàng chờ" className="space-y-3">
+        <h2 className="text-sm font-medium text-fg">Hàng chờ theo phòng</h2>
+        {queueOps.loading && <p className="text-xs text-muted">Đang tải…</p>}
+        {queueOps.error && <p className="text-xs text-danger">Lỗi: {queueOps.error}</p>}
+        {queueOps.data && <QueueOpsTable rooms={queueOps.data.rooms} />}
+        {queueOps.data && (
+          <p className="text-xs text-muted">
+            Tổng: {queueOps.data.totalAdds} thêm · {queueOps.data.totalRemoves} xóa
+          </p>
         )}
       </section>
     </div>

@@ -17,6 +17,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: '/admin/subscriptions', label: 'Gói đăng ký' },
   { href: '/admin/stats', label: 'Thống kê' },
+  { href: '/admin/sessions', label: 'Phiên' },
   // Future:
   // { href: '/admin/rooms',           label: 'Phòng' },
   // { href: '/admin/devices',         label: 'Thiết bị' },
