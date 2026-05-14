@@ -22,9 +22,9 @@ export default async function GatedAdminLayout({
   }
 
   return (
-    <div className="min-h-screen flex bg-bg text-fg">
+    <div className="h-screen overflow-hidden flex bg-bg text-fg">
       <AdminNav adminEmail={principal.email} />
-      <main className="flex-1 min-w-0">{children}</main>
+      <main className="flex-1 min-w-0 h-full overflow-y-auto">{children}</main>
     </div>
   );
 }
