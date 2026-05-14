@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import { claimOrGetActiveRoom } from '@/lib/activeRoom';
 import { getRoomDataPath } from '@/lib/roomPaths';
 import { getPublicOrigin } from '@/lib/publicOrigin';
+import { useSessionTracking } from '@/hooks/useSessionTracking';
 
 const TV_ROOM_STORAGE_KEY = 'karaoke_tv_room';
 
@@ -68,6 +69,8 @@ export function useTVPresence() {
       remove(presenceRef).catch(() => {});
     };
   }, [roomCode]);
+
+  useSessionTracking(roomCode);
 
   return { roomCode, joinUrl };
 }

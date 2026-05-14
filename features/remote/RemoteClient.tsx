@@ -34,6 +34,7 @@ import { useRoomGate } from '@/features/remote/hooks/useRoomGate';
 import { useRequesterDialog } from '@/features/remote/hooks/useRequesterDialog';
 import { useQueuedMap } from '@/features/remote/hooks/useQueuedMap';
 import { useFullscreenOwnership } from '@/features/remote/hooks/useFullscreenOwnership';
+import { useSessionTracking } from '@/hooks/useSessionTracking';
 
 // SettingsSheet pulls in VoicePicker + AutoRandomSection + the rest of the
 // settings tree (~28 KB minified). Lazy-load it on first gear-icon click so
@@ -62,6 +63,8 @@ function RemoteInner() {
     submitJoin,
     handleLeave,
   } = useRoomGate();
+
+  useSessionTracking(roomCode);
 
   const [tab, setTab] = useState<Tab>('search');
   const [playerOpen, setPlayerOpen] = useState(false);
