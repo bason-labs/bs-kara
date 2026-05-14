@@ -20,7 +20,6 @@ export function useYoutubeQuota(): UseYoutubeQuotaResult {
     let cancelled = false;
 
     function doFetch() {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on each poll tick
       setLoading(true);
       setError(null);
       fetch('/api/admin/quota/youtube', { headers: { 'Cache-Control': 'no-store' } })

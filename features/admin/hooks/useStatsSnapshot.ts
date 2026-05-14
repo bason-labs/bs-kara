@@ -20,7 +20,6 @@ export function useStatsSnapshot(): UseStatsSnapshotResult {
     let cancelled = false;
 
     function doFetch() {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on each poll tick
       setLoading(true);
       setError(null);
       fetch('/api/admin/stats', { headers: { 'Cache-Control': 'no-store' } })
