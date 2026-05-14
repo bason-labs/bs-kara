@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 import type { YouTubeVideo } from '@/lib/youtube/types';
 import { normalizeDiacritics } from '@/lib/text/normalize';
+import { ptDateKey } from '@/lib/ptDateKey';
 import { getDatabase, ServerValue } from 'firebase-admin/database';
 import { getAdminApp } from '@/features/admin/lib/firebaseAdmin';
 
@@ -20,12 +21,6 @@ class QuotaExhaustedError extends Error {
 // and intentionally kept on top of the shared normaliser.
 function normalizeQuery(q: string): string {
   return normalizeDiacritics(q).replace(/\s+/g, ' ');
-}
-
-function ptDateKey(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' })
-    .format(new Date())
-    .replace(/-/g, '');
 }
 
 function recordQuotaCall(): void {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDatabase } from 'firebase-admin/database';
+import { ptDateKey } from '@/lib/ptDateKey';
 import { getAdminApp } from '@/features/admin/lib/firebaseAdmin';
 import {
   requireAdmin,
@@ -22,13 +23,6 @@ export interface YoutubeQuotaSnapshot {
 
 const DAILY_LIMIT_CALLS = 100; // 10,000 units / 100 units per search
 const DAYS_TO_SHOW = 30;
-
-function ptDateKey(daysAgo: number = 0): string {
-  const d = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' })
-    .format(d)
-    .replace(/-/g, '');
-}
 
 function adminDb() {
   return getDatabase(getAdminApp());
