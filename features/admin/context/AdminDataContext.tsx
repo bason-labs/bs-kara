@@ -6,6 +6,7 @@ import { useYoutubeQuota } from '../hooks/useYoutubeQuota';
 import { useSearchStats } from '../hooks/useSearchStats';
 import { useQueueOps } from '../hooks/useQueueOps';
 import { useSessionsData } from '../hooks/useSessionsData';
+import { useSubscriptions } from '../hooks/useSubscriptions';
 
 interface AdminDataContextValue {
   stats: ReturnType<typeof useStatsSnapshot>;
@@ -13,6 +14,7 @@ interface AdminDataContextValue {
   searchStats: ReturnType<typeof useSearchStats>;
   queueOps: ReturnType<typeof useQueueOps>;
   sessions: ReturnType<typeof useSessionsData>;
+  subscriptions: ReturnType<typeof useSubscriptions>;
 }
 
 const AdminDataContext = createContext<AdminDataContextValue | null>(null);
@@ -23,9 +25,10 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
   const searchStats = useSearchStats();
   const queueOps = useQueueOps();
   const sessions = useSessionsData();
+  const subscriptions = useSubscriptions();
 
   return (
-    <AdminDataContext.Provider value={{ stats, quota, searchStats, queueOps, sessions }}>
+    <AdminDataContext.Provider value={{ stats, quota, searchStats, queueOps, sessions, subscriptions }}>
       {children}
     </AdminDataContext.Provider>
   );
