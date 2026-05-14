@@ -270,6 +270,13 @@ describe('YouTube search BFF — search stats counter', () => {
     expect(updateMock).toHaveBeenCalledWith(
       expect.objectContaining({ live: { __increment: 1 } }),
     );
+    // quota + live + total = 3 update calls for a live request
+    expect(updateMock).toHaveBeenCalledTimes(3);
+    // Verify the correct RTDB path was targeted
+    const searchCountsCalls = refMock.mock.calls.filter(
+      (c: unknown[]) => typeof c[0] === 'string' && (c[0] as string).includes('searchCounts'),
+    );
+    expect(searchCountsCalls.length).toBeGreaterThanOrEqual(1);
   });
 
   it('increments analytics/searchCounts/{date}/total on every successful response', async () => {
@@ -280,10 +287,10 @@ describe('YouTube search BFF — search stats counter', () => {
     expect(updateMock).toHaveBeenCalledWith(
       expect.objectContaining({ total: { __increment: 1 } }),
     );
+    expect(updateMock.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
   it('does not increment search stats on empty query', async () => {
-    updateMock.mockClear();
     const req = new NextRequest('http://localhost/api/youtube/search?q=');
     const res = await GET(req);
     expect(res.status).toBe(400);
@@ -293,5 +300,20 @@ describe('YouTube search BFF — search stats counter', () => {
         ('total' in (c[0] as object) || 'live' in (c[0] as object)),
     );
     expect(statsCall).toBeUndefined();
+  });
+
+  it('total only incremented on cache hits (unit test limitation: unstable_cache is a passthrough)', async () => {
+    // In production: cache hit → only total incremented, live stays zero.
+    // In unit tests: unstable_cache is mocked as a passthrough (fn => fn), so
+    // tryAllKeys always runs → both live and total increment. This test documents
+    // that total is always incremented; the live-skipping behavior is verified
+    // by integration/E2E only.
+    fetchMock.mockResolvedValueOnce(youtubeResponse());
+    const req = new NextRequest('http://localhost/api/youtube/search?q=bolero');
+    await GET(req);
+    const totalCall = updateMock.mock.calls.find(
+      (c) => typeof c[0] === 'object' && 'total' in (c[0] as object),
+    );
+    expect(totalCall).toBeDefined();
   });
 });
