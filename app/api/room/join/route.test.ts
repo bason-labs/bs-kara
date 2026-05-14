@@ -26,6 +26,8 @@ describe('POST /api/room/join', () => {
   beforeEach(() => {
     pushMock.mockReset().mockResolvedValue({ key: 'session-abc' });
     sessionRefMock.mockReset().mockReturnValue({ push: pushMock });
+    dbMock.mockReset().mockReturnValue({ ref: sessionRefMock });
+    getAdminAppMock.mockReset().mockReturnValue({});
   });
 
   it('400 when roomId is missing', async () => {

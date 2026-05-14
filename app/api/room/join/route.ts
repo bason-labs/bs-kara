@@ -42,10 +42,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       joinedAt: Date.now(),
       leftAt: null,
     });
-    return NextResponse.json(
-      { sessionId: sessionRef.key },
-      { status: 200, headers: NO_STORE },
-    );
+    const sessionId = sessionRef.key;
+    if (!sessionId) {
+      console.error('[api/room/join] push() returned null key');
+      return NextResponse.json({ error: 'internal' }, { status: 500, headers: NO_STORE });
+    }
+    return NextResponse.json({ sessionId }, { status: 200, headers: NO_STORE });
   } catch (err) {
     console.error('[api/room/join] RTDB write failed:', err);
     return NextResponse.json({ error: 'internal' }, { status: 500, headers: NO_STORE });
