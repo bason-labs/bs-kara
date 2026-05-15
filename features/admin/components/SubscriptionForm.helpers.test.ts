@@ -32,6 +32,16 @@ describe('buildCalendarDays', () => {
     expect(cells.length).toBe(42);
     expect(cells.filter((c) => c.currentMonth).length).toBe(29);
   });
+
+  it('handles a month starting on Sunday (6 leading days from previous month)', () => {
+    // January 2023: 1st is a Sunday → offset = 6 → starts Mon Dec 26 2022
+    const cells = buildCalendarDays(2023, 0);
+    expect(cells[0].date.getDate()).toBe(26);
+    expect(cells[0].date.getMonth()).toBe(11); // December = 11
+    expect(cells[0].currentMonth).toBe(false);
+    expect(cells[6].date.getDate()).toBe(1); // Jan 1 is at index 6
+    expect(cells[6].currentMonth).toBe(true);
+  });
 });
 
 describe('formatDisplay', () => {
