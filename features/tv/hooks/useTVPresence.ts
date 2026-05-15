@@ -21,6 +21,7 @@ export function useTVPresence() {
   useEffect(() => {
     const fixed = process.env.NEXT_PUBLIC_FIXED_ROOM_ID;
     if (fixed) {
+      // Post-mount only — reading localStorage during render causes SSR mismatch.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setRoomCode(fixed);
       setPhase('active');
@@ -37,6 +38,7 @@ export function useTVPresence() {
   useEffect(() => {
     if (!roomCode) return;
     const origin = getPublicOrigin() ?? window.location.origin;
+    // Post-mount: getPublicOrigin() reads window.location which isn't available during SSR.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setJoinUrl(`${origin}/?room=${roomCode}`);
   }, [roomCode]);

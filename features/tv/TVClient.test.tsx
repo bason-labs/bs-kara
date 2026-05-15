@@ -66,6 +66,16 @@ vi.mock('@/hooks/useAutoHide', () => ({
   useAutoHide: () => ({ visible: true, bump: vi.fn() }),
 }));
 
+vi.mock('@/features/tv/hooks/useTVPresence', () => ({
+  useTVPresence: vi.fn(() => ({
+    phase: 'active' as const,
+    roomCode: '1234',
+    joinUrl: 'http://localhost:3000/?room=1234',
+    activateRoomByCode: vi.fn(),
+    resolveRoomCode: vi.fn(),
+  })),
+}));
+
 vi.mock('@/lib/activeRoom', () => ({
   claimOrGetActiveRoom: vi.fn().mockResolvedValue('1234'),
 }));
