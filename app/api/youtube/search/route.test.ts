@@ -6,6 +6,13 @@ vi.mock('next/cache', () => ({
   unstable_cache: <T extends (...args: unknown[]) => unknown>(fn: T) => fn,
 }));
 
+// Analytics writes are fire-and-forget side-effects; stub them out so tests
+// don't need a real Firebase Admin instance.
+vi.mock('@/lib/analytics/serverAnalytics', () => ({
+  recordSearchLive: vi.fn(),
+  recordSearchTotal: vi.fn(),
+}));
+
 import { GET, __resetKeyCursorForTests } from './route';
 
 function makeReq(q: string) {

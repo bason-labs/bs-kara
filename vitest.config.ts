@@ -7,6 +7,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./', import.meta.url)),
+      // server-only is a Next.js guard that throws at runtime when imported
+      // from the client. Under Vitest there is no Next.js runtime, so we
+      // stub it to a no-op so server-only files can be unit-tested.
+      'server-only': fileURLToPath(new URL('./tests/stubs/server-only.ts', import.meta.url)),
     },
   },
   test: {

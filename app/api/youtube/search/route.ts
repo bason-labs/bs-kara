@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 import type { YouTubeVideo } from '@/lib/youtube/types';
 import { normalizeDiacritics } from '@/lib/text/normalize';
+import { recordSearchLive, recordSearchTotal } from '@/lib/analytics/serverAnalytics';
 
 const YOUTUBE_ENDPOINT = 'https://www.googleapis.com/youtube/v3/search';
 const CACHE_REVALIDATE_SECONDS = 3600;
@@ -87,6 +88,7 @@ async function tryAllKeys(query: string): Promise<YouTubeVideo[]> {
     }
 
     nextKeyIndex = i;
+    recordSearchLive();
     const data: { items?: YouTubeApiItem[] } = await res.json();
     return (data.items ?? []).map((item) => ({
       id: item.id.videoId,
@@ -115,6 +117,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const videos = await cachedSearch(normalized);
+    recordSearchTotal();
     return NextResponse.json(videos);
   } catch (err) {
     if (err instanceof QuotaExhaustedError) {
