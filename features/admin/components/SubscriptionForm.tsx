@@ -229,7 +229,7 @@ function Stepper({ value, onChange, min = 1, max = 365, label }: StepperProps) {
   }
 
   return (
-    <div className="inline-flex items-center border border-border rounded-xl overflow-hidden bg-white/[0.04] min-w-[140px] w-fit self-start">
+    <div className="flex w-full items-center border border-border rounded-xl overflow-hidden bg-white/[0.04]">
       <button
         type="button"
         onClick={dec}
@@ -398,14 +398,14 @@ export function SubscriptionForm() {
         <legend className="text-[9px] uppercase tracking-[0.18em] text-muted font-medium">
           Loại gói
         </legend>
-        <div className="inline-flex self-start rounded-lg border border-border bg-bg/40 p-0.5 text-xs w-fit">
+        <div className="flex w-full rounded-lg border border-border bg-bg/40 p-0.5 text-xs">
           {(['trial', 'paid'] as const).map((opt) => (
             <button
               key={opt}
               type="button"
               onClick={() => handleTypeChange(opt)}
               className={
-                'px-4 py-1.5 rounded-full transition-colors ' +
+                'flex-1 text-center py-1.5 rounded-full transition-colors ' +
                 (type === opt
                   ? 'bg-bg text-fg'
                   : 'text-muted hover:text-fg')
