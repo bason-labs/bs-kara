@@ -32,6 +32,9 @@
     "use-debounce": "^10.1.1",
     "yt-search": "^2.13.1"
   },
+  "overrides": {
+    "tar": "^7.0.0"
+  },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",
     "@playwright/test": "^1.59.1",
