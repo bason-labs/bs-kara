@@ -5,19 +5,15 @@ test.describe('TV room lookup', () => {
     page,
   }) => {
     await page.goto('/tv');
-    // The old waiting overlay copy should NOT be visible — the lookup form
-    // is the new first step.
-    await expect(page.getByText(/Nhấn vào bất kỳ đâu/i)).not.toBeVisible({
-      timeout: 5_000,
-    });
-    // The lookup form input must be present.
-    // The hint text is a paragraph; the actual input has a different placeholder.
+    // First confirm the page has rendered with the lookup form visible.
     await expect(
       page.getByText(/Nhập số điện thoại hoặc mã phòng/i),
     ).toBeVisible({ timeout: 10_000 });
     await expect(
       page.getByPlaceholder(/VD: 0912345678/i),
     ).toBeVisible({ timeout: 10_000 });
+    // Now it is safe to assert the old waiting overlay is absent.
+    await expect(page.getByText(/Nhấn vào bất kỳ đâu/i)).not.toBeVisible();
   });
 
   test('typing in the lookup input and clicking Kích hoạt attempts validation', async ({
