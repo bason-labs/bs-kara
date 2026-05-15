@@ -28,7 +28,7 @@ export default function TVClient() {
   const [isInitialized, setIsInitialized] = useState(false);
   const initialize = useCallback(() => setIsInitialized(true), []);
 
-  const { phase, roomCode, joinUrl, activateRoomByCode, resolveRoomCode } = useTVPresence();
+  const { phase, roomCode, joinUrl, activateRoomByCode, resolveRoomCode, setGuestsAllowed } = useTVPresence();
 
   const {
     roomData,
@@ -175,6 +175,8 @@ export default function TVClient() {
         joinUrl={joinUrl}
         isInitialized={isInitialized}
         onActivate={initialize}
+        guestsAllowed={roomData.guestsAllowed}
+        onToggleGuests={setGuestsAllowed}
       />
 
       {endNotice && (
