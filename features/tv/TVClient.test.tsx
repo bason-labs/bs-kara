@@ -302,35 +302,22 @@ describe('TVClient — MC gate / video autoplay', () => {
   // The TV used to be a passive display — only a fullscreen toggle.
   // Without transport controls the host had to walk to a phone to skip
   // or pause, which broke the "TV is the player" mental model.
-  // Regression: pressing Control/Meta/Alt/Tab (e.g. Ctrl+Tab to switch
-  // browser tabs) previously fired initialize() because the keydown listener
-  // had no filter. Only non-modifier keys should start the session.
-  describe('keydown initialization filter', () => {
-    it('does not initialize when a modifier-only key is pressed', async () => {
+  // Regression: any keydown (including Ctrl+Tab for tab switching) must NOT
+  // initialize the room. Only an explicit click on the overlay does.
+  describe('keydown does not initialize', () => {
+    it('does not initialize on any keydown event', async () => {
       render(<TVClient />);
       const waiting = screen.getByRole('button', { name: /waiting room/i });
 
-      for (const key of ['Control', 'Alt', 'Shift', 'Meta', 'Tab', 'Escape']) {
+      for (const key of ['Control', 'Alt', 'Shift', 'Meta', 'Tab', 'Enter', ' ', 'ArrowDown']) {
         await act(async () => {
           window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
         });
       }
 
-      // Overlay still active — pointer-events-none only appears post-init
+      // Overlay still active — only a click should initialize
       expect(waiting.className).not.toContain('pointer-events-none');
       expect(screen.queryByTestId('video-player')).not.toBeInTheDocument();
-    });
-
-    it('initializes when a non-modifier key is pressed', async () => {
-      render(<TVClient />);
-      const waiting = screen.getByRole('button', { name: /waiting room/i });
-
-      await act(async () => {
-        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-      });
-
-      expect(waiting.className).toContain('pointer-events-none');
-      expect(screen.getByTestId('video-player')).toBeInTheDocument();
     });
   });
 

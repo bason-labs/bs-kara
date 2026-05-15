@@ -71,23 +71,6 @@ export default function TVClient() {
     endNotice,
   } = useEndParty(resetRoom);
 
-  // Global keydown listener for TV remote / keyboard interaction.
-  // Modifier-only keys (Control, Alt, Meta, Shift, Tab, Escape) are
-  // filtered out so that tab-switching shortcuts (Ctrl+Tab, Cmd+Tab)
-  // don't fire initialize() before the browser changes tabs.
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (['Control', 'Alt', 'Shift', 'Meta', 'Tab', 'Escape', 'CapsLock'].includes(e.key)) return;
-      initialize();
-    },
-    [initialize],
-  );
-
-  useEffect(() => {
-    if (isInitialized) return;
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isInitialized, handleKeyDown]);
 
   // Auto-promote the first queued song when nothing is playing
   useEffect(() => {
