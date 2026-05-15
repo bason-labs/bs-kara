@@ -70,6 +70,11 @@ export function formatDisplay(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+const MONTH_NAMES = [
+  'Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6',
+  'Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12',
+];
+
 interface DatePickerProps {
   value: string; // 'YYYY-MM-DD'
   onChange: (v: string) => void;
@@ -93,6 +98,14 @@ function DatePicker({ value, onChange }: DatePickerProps) {
     return () => document.removeEventListener('mousedown', handleOutside);
   }, [open]);
 
+  useEffect(() => {
+    if (!open && value) {
+      const d = new Date(value + 'T00:00:00');
+      setViewYear(d.getFullYear());
+      setViewMonth(d.getMonth());
+    }
+  }, [value, open]);
+
   function prevMonth() {
     if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11); }
     else setViewMonth((m) => m - 1);
@@ -109,10 +122,6 @@ function DatePicker({ value, onChange }: DatePickerProps) {
     setOpen(false);
   }
 
-  const MONTH_NAMES = [
-    'Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6',
-    'Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12',
-  ];
   const days = buildCalendarDays(viewYear, viewMonth);
 
   return (
@@ -135,6 +144,7 @@ function DatePicker({ value, onChange }: DatePickerProps) {
             <button
               type="button"
               onClick={prevMonth}
+              aria-label="Tháng trước"
               className="p-1 rounded-md text-muted hover:bg-[rgba(0,139,139,0.12)] hover:text-accent transition-colors"
             >
               <ChevronLeft size={14} />
@@ -145,6 +155,7 @@ function DatePicker({ value, onChange }: DatePickerProps) {
             <button
               type="button"
               onClick={nextMonth}
+              aria-label="Tháng sau"
               className="p-1 rounded-md text-muted hover:bg-[rgba(0,139,139,0.12)] hover:text-accent transition-colors"
             >
               <ChevronRight size={14} />
@@ -168,8 +179,9 @@ function DatePicker({ value, onChange }: DatePickerProps) {
               const selected = iso === value;
               return (
                 <button
-                  key={i}
+                  key={iso}
                   type="button"
+                  disabled={!currentMonth}
                   onClick={() => currentMonth && selectDay(date)}
                   className={
                     'text-[11px] py-1.5 rounded-md text-center transition-colors ' +
@@ -177,7 +189,7 @@ function DatePicker({ value, onChange }: DatePickerProps) {
                       ? 'font-bold border border-[rgba(0,139,139,0.5)] bg-[rgba(0,139,139,0.3)]'
                       : currentMonth
                         ? 'text-muted hover:bg-[rgba(0,139,139,0.12)] hover:text-fg cursor-pointer'
-                        : 'text-muted/20 cursor-default')
+                        : 'text-muted/20 cursor-default disabled:pointer-events-none')
                   }
                   style={selected ? { color: '#7df9ff' } : undefined}
                 >
