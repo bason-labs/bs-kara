@@ -19,6 +19,7 @@ import { TransportControls } from '@/components/TransportControls';
 import { useTVPresence } from '@/features/tv/hooks/useTVPresence';
 import { useEndParty } from '@/features/tv/hooks/useEndParty';
 import { BackdropLayers } from '@/features/tv/components/BackdropLayers';
+import { TVRoomLookup } from '@/features/tv/components/TVRoomLookup';
 import { WaitingOverlay } from '@/features/tv/components/WaitingOverlay';
 import { QueuePanel } from '@/features/tv/components/QueuePanel';
 
@@ -27,7 +28,7 @@ export default function TVClient() {
   const [isInitialized, setIsInitialized] = useState(false);
   const initialize = useCallback(() => setIsInitialized(true), []);
 
-  const { roomCode, joinUrl } = useTVPresence();
+  const { phase, roomCode, joinUrl, activateRoomByCode, resolveRoomCode } = useTVPresence();
 
   const {
     roomData,
@@ -155,6 +156,15 @@ export default function TVClient() {
       videoContainerRef.current?.requestFullscreen?.().catch(() => {});
     }
   }, []);
+
+  if (phase === 'lookup') {
+    return (
+      <TVRoomLookup
+        resolveRoomCode={resolveRoomCode}
+        onActivate={activateRoomByCode}
+      />
+    );
+  }
 
   return (
     <main className="relative h-[100dvh] w-full flex overflow-hidden bg-black text-white">
