@@ -68,10 +68,19 @@ export function useTVPresence() {
 
   // Called by TVRoomLookup after successful validation.
   const activateRoomByCode = useCallback(async (code: string) => {
+    await set(ref(db, `${getRoomDataPath(code)}/guestsAllowed`), false).catch(() => {});
     localStorage.setItem(TV_ROOM_STORAGE_KEY, code);
     setRoomCode(code);
     setPhase('active');
   }, []);
+
+  const setGuestsAllowed = useCallback(
+    (enabled: boolean) => {
+      if (!roomCode) return;
+      set(ref(db, `${getRoomDataPath(roomCode)}/guestsAllowed`), enabled).catch(() => {});
+    },
+    [roomCode],
+  );
 
   // Used by TVRoomLookup to validate the operator's input.
   // Accepts either a room code (4-7 digits) or a phone number.
@@ -91,5 +100,5 @@ export function useTVPresence() {
     return null;
   }, []);
 
-  return { phase, roomCode, joinUrl, activateRoomByCode, resolveRoomCode };
+  return { phase, roomCode, joinUrl, activateRoomByCode, resolveRoomCode, setGuestsAllowed };
 }
