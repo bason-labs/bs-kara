@@ -1,4 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('@/lib/firebase', () => ({ db: {}, auth: {} }));
+vi.mock('firebase/database', () => ({
+  ref: vi.fn(),
+  get: vi.fn(),
+  set: vi.fn(),
+  remove: vi.fn(),
+  onValue: vi.fn(),
+}));
+vi.mock('firebase/auth', () => ({ getAuth: vi.fn() }));
+vi.mock('next/navigation', () => ({
+  useRouter: vi.fn(() => ({ push: vi.fn() })),
+  useSearchParams: vi.fn(() => ({ get: vi.fn() })),
+}));
+
 import { buildCalendarDays, formatDisplay } from './SubscriptionForm';
 
 describe('buildCalendarDays', () => {
