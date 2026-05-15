@@ -56,9 +56,9 @@ function RemoteInner() {
   const {
     rawRoomCode,
     roomCode,
-    activeRoom,
-    pointerLoaded,
     isCoarsePointer,
+    joinError,
+    isJoining,
     submitJoin,
     handleLeave,
   } = useRoomGate();
@@ -381,9 +381,9 @@ function RemoteInner() {
             <div className="w-full h-[260px] rounded-3xl border border-border bg-surface/70 backdrop-blur-md shadow-glow" />
           ) : (
             <JoinForm
-              activeRoom={activeRoom}
-              pointerLoaded={pointerLoaded}
               onJoin={submitJoin}
+              joinError={joinError}
+              isJoining={isJoining}
             />
           )}
         </div>

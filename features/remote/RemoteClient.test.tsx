@@ -93,9 +93,9 @@ vi.mock('@/features/remote/hooks/useRoomGate', () => ({
   useRoomGate: () => ({
     rawRoomCode: '1234',
     roomCode: '1234',
-    activeRoom: '1234',
-    pointerLoaded: true,
     isCoarsePointer: true,
+    joinError: null,
+    isJoining: false,
     submitJoin: vi.fn(),
     handleLeave: vi.fn(),
   }),
