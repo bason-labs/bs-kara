@@ -8,17 +8,11 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(),
 }));
 
-vi.mock('@/lib/registeredUsers', () => ({
-  lookupUserByCode: vi.fn(),
-}));
-
 import { useRouter, useSearchParams } from 'next/navigation';
-import { lookupUserByCode } from '@/lib/registeredUsers';
 import { useRoomGate } from './useRoomGate';
 
 const useRouterMock = useRouter as unknown as ReturnType<typeof vi.fn>;
 const useSearchParamsMock = useSearchParams as unknown as ReturnType<typeof vi.fn>;
-const lookupMock = lookupUserByCode as unknown as ReturnType<typeof vi.fn>;
 
 let pushSpy: ReturnType<typeof vi.fn>;
 let assignSpy: ReturnType<typeof vi.fn>;
@@ -30,6 +24,16 @@ function setUrlRoom(room: string | null) {
   });
 }
 
+function stubFetch(response: { allowed: boolean; reason: string }) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => response,
+    }),
+  );
+}
+
 async function flushAsync() {
   await new Promise<void>((r) => setTimeout(r, 0));
 }
@@ -38,7 +42,6 @@ beforeEach(() => {
   pushSpy = vi.fn();
   useRouterMock.mockReturnValue({ push: pushSpy });
   setUrlRoom(null);
-  lookupMock.mockReset();
 
   assignSpy = vi.fn();
   originalLocation = window.location;
@@ -55,54 +58,64 @@ afterEach(() => {
     writable: true,
     configurable: true,
   });
+  vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 
 describe('useRoomGate', () => {
-  it('does not attempt any lookup on a fresh load with no room in URL', async () => {
+  it('does not call fetch on a fresh load with no room in URL', async () => {
     setUrlRoom(null);
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
     renderHook(() => useRoomGate());
     await act(async () => { await flushAsync(); });
-    expect(lookupMock).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
     expect(pushSpy).not.toHaveBeenCalled();
   });
 
-  it('submitJoin navigates when code is a valid registered room', async () => {
-    lookupMock.mockResolvedValue({ roomCode: '5678', suspended: false });
+  it('submitJoin navigates when API returns allowed:true', async () => {
+    stubFetch({ allowed: true, reason: 'ok' });
     const { result } = renderHook(() => useRoomGate());
-    await act(async () => {
-      await result.current.submitJoin('5678');
-    });
+    await act(async () => { await result.current.submitJoin('5678'); });
     expect(pushSpy).toHaveBeenCalledWith('/?room=5678');
     expect(result.current.joinError).toBeNull();
   });
 
-  it('submitJoin sets joinError when code is not registered', async () => {
-    lookupMock.mockResolvedValue(null);
+  it('submitJoin sets joinError when API returns room_not_found', async () => {
+    stubFetch({ allowed: false, reason: 'room_not_found' });
     const { result } = renderHook(() => useRoomGate());
-    await act(async () => {
-      await result.current.submitJoin('9999');
-    });
+    await act(async () => { await result.current.submitJoin('9999'); });
     expect(pushSpy).not.toHaveBeenCalled();
-    expect(result.current.joinError).toBe('notFound');
+    expect(result.current.joinError).toBe('room_not_found');
   });
 
-  it('submitJoin sets joinError when room is suspended', async () => {
-    lookupMock.mockResolvedValue({ roomCode: '5678', suspended: true });
+  it('submitJoin sets joinError when API returns subscription_expired', async () => {
+    stubFetch({ allowed: false, reason: 'subscription_expired' });
     const { result } = renderHook(() => useRoomGate());
-    await act(async () => {
-      await result.current.submitJoin('5678');
-    });
+    await act(async () => { await result.current.submitJoin('1234'); });
     expect(pushSpy).not.toHaveBeenCalled();
-    expect(result.current.joinError).toBe('suspended');
+    expect(result.current.joinError).toBe('subscription_expired');
+  });
+
+  it('submitJoin sets joinError when API returns guests_not_allowed', async () => {
+    stubFetch({ allowed: false, reason: 'guests_not_allowed' });
+    const { result } = renderHook(() => useRoomGate());
+    await act(async () => { await result.current.submitJoin('5678'); });
+    expect(pushSpy).not.toHaveBeenCalled();
+    expect(result.current.joinError).toBe('guests_not_allowed');
+  });
+
+  it('submitJoin sets joinError to error on fetch failure', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
+    const { result } = renderHook(() => useRoomGate());
+    await act(async () => { await result.current.submitJoin('1234'); });
+    expect(pushSpy).not.toHaveBeenCalled();
+    expect(result.current.joinError).toBe('error');
   });
 
   it('submitJoin ignores inputs that are not 4–7 digits', async () => {
     const { result } = renderHook(() => useRoomGate());
-    await act(async () => {
-      await result.current.submitJoin('abc');
-    });
-    expect(lookupMock).not.toHaveBeenCalled();
+    await act(async () => { await result.current.submitJoin('abc'); });
     expect(pushSpy).not.toHaveBeenCalled();
   });
 
