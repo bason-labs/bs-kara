@@ -99,14 +99,6 @@ function DatePicker({ value, onChange }: DatePickerProps) {
     return () => document.removeEventListener('mousedown', handleOutside);
   }, [open]);
 
-  useEffect(() => {
-    if (!open && value) {
-      const d = new Date(value + 'T00:00:00');
-      setViewYear(d.getFullYear());
-      setViewMonth(d.getMonth());
-    }
-  }, [value, open]);
-
   function prevMonth() {
     if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11); }
     else setViewMonth((m) => m - 1);
@@ -129,7 +121,14 @@ function DatePicker({ value, onChange }: DatePickerProps) {
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (!open && value) {
+            const d = new Date(value + 'T00:00:00');
+            setViewYear(d.getFullYear());
+            setViewMonth(d.getMonth());
+          }
+          setOpen((o) => !o);
+        }}
         className={
           'w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm text-fg bg-white/[0.04] transition-colors ' +
           (open ? 'border-[rgba(0,139,139,0.45)]' : 'border-border')
@@ -172,7 +171,7 @@ function DatePicker({ value, onChange }: DatePickerProps) {
           </div>
 
           <div className="grid grid-cols-7">
-            {days.map(({ date, currentMonth }, i) => {
+            {days.map(({ date, currentMonth }) => {
               const iso =
                 `${date.getFullYear()}-` +
                 `${String(date.getMonth() + 1).padStart(2, '0')}-` +
