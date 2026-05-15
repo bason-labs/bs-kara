@@ -105,6 +105,22 @@ describe('SubscriptionRecordSchema', () => {
     ).toBe(true);
   });
 
+  // Regression: Firebase RTDB silently drops null values on write. Fields
+  // like userId, paymentRef, and createdBy come back as MISSING (undefined)
+  // when read from the snapshot. The schema must accept undefined and
+  // normalise it to null so listSubscriptions() doesn't silently drop
+  // every row and the subscriptions list appears empty.
+  it('accepts missing (undefined) nullable fields from Firebase and coerces them to null', () => {
+    const { userId: _u, paymentRef: _p, createdBy: _c, ...rest } = validRecord();
+    const parsed = SubscriptionRecordSchema.safeParse(rest);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.userId).toBeNull();
+      expect(parsed.data.paymentRef).toBeNull();
+      expect(parsed.data.createdBy).toBeNull();
+    }
+  });
+
   it('rejects invalid status (e.g. "expired" cannot be stored)', () => {
     const r = { ...validRecord(), status: 'expired' } as unknown;
     expect(SubscriptionRecordSchema.safeParse(r).success).toBe(false);

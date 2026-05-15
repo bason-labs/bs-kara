@@ -49,7 +49,10 @@ const RecordBase = z
   .object({
     id: z.string().min(1),
     userPhone: phoneE164VN,
-    userId: z.string().min(1).nullable(),
+    // Firebase RTDB silently drops null values on write, so these fields
+    // come back as undefined (missing) when read. .nullish() = .nullable() +
+    // .optional() so both null and missing-key are accepted.
+    userId: z.string().min(1).nullish().transform((v) => v ?? null),
     type: z.enum(SUBSCRIPTION_TYPES),
     status: z.enum(SUBSCRIPTION_STATUSES),
     durationDays: z
@@ -60,8 +63,8 @@ const RecordBase = z
     startDate: z.number().int().nonnegative(),
     endDate: z.number().int().nonnegative(),
     source: z.enum(SUBSCRIPTION_SOURCES),
-    paymentRef: z.string().max(PAYMENT_REF_MAX).nullable(),
-    createdBy: z.string().min(1).nullable(),
+    paymentRef: z.string().max(PAYMENT_REF_MAX).nullish().transform((v) => v ?? null),
+    createdBy: z.string().min(1).nullish().transform((v) => v ?? null),
     createdAt: z.number().int().nonnegative(),
     updatedAt: z.number().int().nonnegative(),
   })
