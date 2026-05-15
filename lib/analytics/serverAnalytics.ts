@@ -28,10 +28,3 @@ export function recordSearchLive(): void {
     });
 }
 
-export function recordQueueOp(roomId: string, action: 'add' | 'remove'): void {
-  const date = ptDateKey();
-  const field = action === 'add' ? 'adds' : 'removes';
-  void adminDb()
-    .ref(`analytics/queueOps/${roomId}/${date}/${field}`)
-    .set(ServerValue.increment(1));
-}

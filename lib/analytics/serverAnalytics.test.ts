@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const updateMock = vi.fn().mockResolvedValue(undefined);
-const setMock = vi.fn().mockResolvedValue(undefined);
-const refMock = vi.fn(() => ({ update: updateMock, set: setMock }));
+const refMock = vi.fn(() => ({ update: updateMock }));
 
 vi.mock('@/features/admin/lib/firebaseAdmin', () => ({
   getAdminApp: vi.fn(() => ({})),
@@ -18,12 +17,11 @@ vi.mock('@/lib/ptDateKey', () => ({
   ptDateKey: vi.fn(() => '20260515'),
 }));
 
-import { recordSearchTotal, recordSearchLive, recordQueueOp } from './serverAnalytics';
+import { recordSearchTotal, recordSearchLive } from './serverAnalytics';
 
 describe('serverAnalytics', () => {
   beforeEach(() => {
     updateMock.mockClear();
-    setMock.mockClear();
     refMock.mockClear();
   });
 
@@ -52,15 +50,4 @@ describe('serverAnalytics', () => {
     expect(arg['analytics/searchCounts/20260515/total']).toBeUndefined();
   });
 
-  it('recordQueueOp add writes to the adds field for the given room', () => {
-    recordQueueOp('5678', 'add');
-    expect(refMock).toHaveBeenCalledWith('analytics/queueOps/5678/20260515/adds');
-    expect(setMock).toHaveBeenCalledWith(expect.anything());
-  });
-
-  it('recordQueueOp remove writes to the removes field for the given room', () => {
-    recordQueueOp('5678', 'remove');
-    expect(refMock).toHaveBeenCalledWith('analytics/queueOps/5678/20260515/removes');
-    expect(setMock).toHaveBeenCalledWith(expect.anything());
-  });
 });

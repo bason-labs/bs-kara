@@ -4,14 +4,12 @@ import { createContext, useContext, type ReactNode } from 'react';
 import { useStatsSnapshot } from '../hooks/useStatsSnapshot';
 import { useYoutubeQuota } from '../hooks/useYoutubeQuota';
 import { useSearchStats } from '../hooks/useSearchStats';
-import { useQueueOps } from '../hooks/useQueueOps';
 import { useSubscriptions } from '../hooks/useSubscriptions';
 
 interface AdminDataContextValue {
   stats: ReturnType<typeof useStatsSnapshot>;
   quota: ReturnType<typeof useYoutubeQuota>;
   searchStats: ReturnType<typeof useSearchStats>;
-  queueOps: ReturnType<typeof useQueueOps>;
   subscriptions: ReturnType<typeof useSubscriptions>;
 }
 
@@ -21,11 +19,10 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
   const stats = useStatsSnapshot();
   const quota = useYoutubeQuota();
   const searchStats = useSearchStats();
-  const queueOps = useQueueOps();
   const subscriptions = useSubscriptions();
 
   return (
-    <AdminDataContext.Provider value={{ stats, quota, searchStats, queueOps, subscriptions }}>
+    <AdminDataContext.Provider value={{ stats, quota, searchStats, subscriptions }}>
       {children}
     </AdminDataContext.Provider>
   );

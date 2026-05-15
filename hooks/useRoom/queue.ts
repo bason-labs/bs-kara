@@ -7,14 +7,6 @@ import { getRoomDataPath } from '@/lib/roomPaths';
 import type { QueueItem, YouTubeVideo } from '@/lib/youtube/types';
 import { arrayToRecord, type GenerateMCForQueueItem, type RoomState } from './types';
 
-function pingQueueOp(roomId: string, action: 'add' | 'remove'): void {
-  void fetch('/api/analytics/queue-op', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roomId, action }),
-  });
-}
-
 // All queue / now-playing mutations. Reads fresh state via roomDataRef so
 // rapid callers don't race a stale closure.
 export function useRoomQueue(
@@ -63,7 +55,6 @@ export function useRoomQueue(
           // ENDED iframe ping or an earlier explicit pause; flip it back so
           // the new song actually plays instead of mounting paused.
           await set(ref(db, `${getRoomDataPath(roomId)}/isPlaying`), true);
-          pingQueueOp(roomId, 'add');
           return;
         }
       }
@@ -82,7 +73,6 @@ export function useRoomQueue(
           trimmed ?? null,
         );
       }
-      pingQueueOp(roomId, 'add');
     },
     [roomId, roomDataRef, generateMCForQueueItem],
   );
@@ -116,7 +106,6 @@ export function useRoomQueue(
     (songId: string) => {
       if (!roomId) return;
       remove(ref(db, `${getRoomDataPath(roomId)}/queue/${songId}`));
-      pingQueueOp(roomId, 'remove');
     },
     [roomId],
   );
