@@ -2,28 +2,25 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { subscribeActiveRoom } from '@/lib/activeRoom';
+import { lookupUserByCode } from '@/lib/registeredUsers';
 
-const ROOM_CODE_PATTERN = /^\d{4}$/;
+const ROOM_CODE_PATTERN = /^\d{4,7}$/;
 
-// Owns the URL ↔ room-code contract: validates ?room= and subscribes to the
-// global active-room pointer so JoinForm can offer a "join the open party"
-// shortcut. Room code lives in the URL only — refreshing keeps the user in
-// the room because the URL persists, and Leave is irreversible without an
-// explicit re-join action. Joining always requires an explicit user gesture
-// (scanning the TV's QR, tapping the shortcut, or entering the OTP) — there
-// is no device-class auto-claim. Earlier versions auto-claimed on coarse-
-// pointer devices, which made tapping Leave on a phone visually do nothing
-// because the same effect re-claimed the still-live TV room within
-// milliseconds.
+// Owns the URL ↔ room-code contract: validates ?room= against the
+// registeredUsers index via lookupUserByCode. Exposes submitJoin for the OTP
+// form and handleLeave for the Leave Room action. Room code lives in the URL
+// only — refreshing keeps the user in the room because the URL persists, and
+// Leave is irreversible without an explicit re-join action. Joining always
+// requires an explicit user gesture (scanning the TV's QR, tapping a shortcut,
+// or entering the OTP) — there is no device-class auto-claim.
 export function useRoomGate() {
   const searchParams = useSearchParams();
   const router = useRouter();
+
   const rawRoomCode = searchParams.get('room');
   // The OTP form gates manual entry, but the `?room=` query param bypasses
-  // it. Anything that isn't a 4-digit code is treated as no room (and the
-  // URL is cleaned up in the effect below) so we don't subscribe to a
-  // garbage Firebase path or render the shell with bogus data.
+  // it. Anything that isn't a 4–7 digit code is treated as no room so we
+  // don't attempt a lookup on garbage input.
   const roomCode =
     rawRoomCode && ROOM_CODE_PATTERN.test(rawRoomCode) ? rawRoomCode : null;
 
@@ -37,30 +34,33 @@ export function useRoomGate() {
     setIsCoarsePointer(window.matchMedia('(pointer: coarse)').matches);
   }, []);
 
-  const [activeRoom, setActiveRoom] = useState<string | null>(null);
-  const [pointerLoaded, setPointerLoaded] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
 
-  // Subscription powers JoinForm's "Tham gia phòng đang mở" shortcut button
-  // — it lights up as soon as the TV (or another phone) claims a room.
-  useEffect(() => {
-    return subscribeActiveRoom((code) => {
-      setActiveRoom(code);
-      setPointerLoaded(true);
-    });
-  }, []);
-
-  // Joining is gated by the active-room pointer: a code is only accepted if
-  // it matches the room currently in `meta/activeRoom`. This prevents users
-  // from typing a random 4-digit code and silently landing in an empty,
-  // never-created room.
   const submitJoin = useCallback(
-    (code: string) => {
+    async (code: string) => {
       const trimmed = code.trim();
-      if (trimmed.length !== 4) return;
-      if (!activeRoom || trimmed !== activeRoom) return;
-      router.push(`/?room=${trimmed}`);
+      if (!ROOM_CODE_PATTERN.test(trimmed)) return;
+      setJoinError(null);
+      setIsJoining(true);
+      try {
+        const user = await lookupUserByCode(trimmed);
+        if (!user) {
+          setJoinError('notFound');
+          return;
+        }
+        if (user.suspended) {
+          setJoinError('suspended');
+          return;
+        }
+        router.push(`/?room=${trimmed}`);
+      } catch {
+        setJoinError('error');
+      } finally {
+        setIsJoining(false);
+      }
     },
-    [router, activeRoom],
+    [router],
   );
 
   const handleLeave = useCallback(() => {
@@ -76,9 +76,9 @@ export function useRoomGate() {
   return {
     rawRoomCode,
     roomCode,
-    activeRoom,
-    pointerLoaded,
     isCoarsePointer,
+    joinError,
+    isJoining,
     submitJoin,
     handleLeave,
   };
