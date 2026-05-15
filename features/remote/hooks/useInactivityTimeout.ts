@@ -55,6 +55,7 @@ export function useInactivityTimeout(roomCode: string | null) {
       }
     };
 
+    check(); // catch stale sessions immediately without waiting for first interval
     const id = setInterval(check, CHECK_INTERVAL_MS);
     return () => clearInterval(id);
   }, [roomCode]);

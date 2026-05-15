@@ -82,6 +82,14 @@ describe('useInactivityTimeout', () => {
     expect(result.current.timedOut).toBe(true);
   });
 
+  it('shows timedOut immediately on mount when session is already expired', async () => {
+    // Pre-populate storage with a stale timestamp so the on-mount check fires
+    localStorage.setItem(STORAGE_KEY, String(Date.now() - 61 * 60 * 1000));
+    const { result } = renderHook(() => useInactivityTimeout('1234'));
+    await act(async () => {}); // flush effects
+    expect(result.current.timedOut).toBe(true);
+  });
+
   it('is inactive when roomCode is null', async () => {
     const { result } = renderHook(() => useInactivityTimeout(null));
     localStorage.setItem(STORAGE_KEY, String(Date.now() - 61 * 60 * 1000));

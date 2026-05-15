@@ -33,6 +33,7 @@ export function SessionExpiredOverlay({
       role="alertdialog"
       aria-modal="true"
       aria-label={title}
+      onPointerDown={(e) => e.stopPropagation()}
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-bg/95 backdrop-blur-md text-fg text-center px-6"
     >
       <p className="text-lg font-semibold mb-2">{title}</p>
