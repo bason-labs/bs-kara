@@ -195,6 +195,17 @@ Key changes vs current:
 - `gap-5` → `gap-6` between fields (more breathing room)
 - `gap-2` → `gap-1.5` between label and its control (tighter label-to-input, more space between fields)
 
+### Toggle group width fix
+
+The `Loại gói` toggle currently stretches full width because `inline-flex` children inside a `flex flex-col` parent still get `align-items: stretch` by default. Fix: add `self-start` to the toggle wrapper so it shrinks to fit content:
+
+```tsx
+<div className="inline-flex self-start rounded-lg border border-border overflow-hidden">
+  <button ...>Dùng thử</button>
+  <button ...>Trả phí</button>
+</div>
+```
+
 ---
 
 ## 7. Page Header (`new/page.tsx`)
