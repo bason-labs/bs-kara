@@ -93,11 +93,22 @@ vi.mock('@/features/remote/hooks/useRoomGate', () => ({
   useRoomGate: () => ({
     rawRoomCode: '1234',
     roomCode: '1234',
-    activeRoom: '1234',
-    pointerLoaded: true,
     isCoarsePointer: true,
+    joinError: null,
+    isJoining: false,
     submitJoin: vi.fn(),
     handleLeave: vi.fn(),
+  }),
+}));
+
+// useInactivityTimeout pulls in Firebase; stub it so the test harness
+// never hits the real database layer.
+vi.mock('@/features/remote/hooks/useInactivityTimeout', () => ({
+  useInactivityTimeout: () => ({
+    timedOut: false,
+    rejoinReason: null,
+    resetActivity: vi.fn(),
+    rejoin: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 

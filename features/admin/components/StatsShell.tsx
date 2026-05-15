@@ -5,10 +5,9 @@ import { StatCard } from './StatCard';
 import { RoomsTable } from './RoomsTable';
 import { QuotaChart } from './QuotaChart';
 import { SearchStatsChart } from './SearchStatsChart';
-import { QueueOpsTable } from './QueueOpsTable';
 
 export function StatsShell() {
-  const { stats, quota, searchStats, queueOps } = useAdminData();
+  const { stats, quota, searchStats } = useAdminData();
 
   if (stats.loading) {
     return (
@@ -77,18 +76,6 @@ export function StatsShell() {
         {searchStats.data && <SearchStatsChart days={searchStats.data.days} />}
       </section>
 
-      {/* Queue operations */}
-      <section aria-label="Thao tác hàng chờ" className="space-y-3">
-        <h2 className="text-sm font-medium text-fg">Hàng chờ theo phòng</h2>
-        {queueOps.loading && <p className="text-xs text-muted">Đang tải…</p>}
-        {queueOps.error && <p className="text-xs text-danger">Lỗi: {queueOps.error}</p>}
-        {queueOps.data && <QueueOpsTable rooms={queueOps.data.rooms} />}
-        {queueOps.data && (
-          <p className="text-xs text-muted">
-            Tổng: {queueOps.data.totalAdds} thêm · {queueOps.data.totalRemoves} xóa
-          </p>
-        )}
-      </section>
     </div>
   );
 }

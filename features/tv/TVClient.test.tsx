@@ -66,8 +66,15 @@ vi.mock('@/hooks/useAutoHide', () => ({
   useAutoHide: () => ({ visible: true, bump: vi.fn() }),
 }));
 
-vi.mock('@/lib/activeRoom', () => ({
-  claimOrGetActiveRoom: vi.fn().mockResolvedValue('1234'),
+vi.mock('@/features/tv/hooks/useTVPresence', () => ({
+  useTVPresence: vi.fn(() => ({
+    phase: 'active' as const,
+    roomCode: '1234',
+    joinUrl: 'http://localhost:3000/?room=1234',
+    activateRoomByCode: vi.fn(),
+    resolveRoomCode: vi.fn(),
+    setGuestsAllowed: vi.fn(),
+  })),
 }));
 
 vi.mock('@/lib/firebase', () => ({ db: {} }));
@@ -295,6 +302,25 @@ describe('TVClient — MC gate / video autoplay', () => {
   // The TV used to be a passive display — only a fullscreen toggle.
   // Without transport controls the host had to walk to a phone to skip
   // or pause, which broke the "TV is the player" mental model.
+  // Regression: any keydown (including Ctrl+Tab for tab switching) must NOT
+  // initialize the room. Only an explicit click on the overlay does.
+  describe('keydown does not initialize', () => {
+    it('does not initialize on any keydown event', async () => {
+      render(<TVClient />);
+      const waiting = screen.getByRole('button', { name: /waiting room/i });
+
+      for (const key of ['Control', 'Alt', 'Shift', 'Meta', 'Tab', 'Enter', ' ', 'ArrowDown']) {
+        await act(async () => {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+        });
+      }
+
+      // Overlay still active — only a click should initialize
+      expect(waiting.className).not.toContain('pointer-events-none');
+      expect(screen.queryByTestId('video-player')).not.toBeInTheDocument();
+    });
+  });
+
   describe('transport controls', () => {
     async function renderActivated() {
       const utils = render(<TVClient />);

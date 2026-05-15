@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { registerUser, lookupUserByPhone } from '@/lib/registeredUsers';
 
 export interface CreateSubscriptionFormInput {
   userPhone: string; // raw, as typed
@@ -13,7 +14,7 @@ export interface CreateSubscriptionFormInput {
   startDate: number | null;
 }
 
-export type CreateSubscriptionSuccess = { ok: true; id: string };
+export type CreateSubscriptionSuccess = { ok: true; id: string; roomCode: string | null };
 export type CreateSubscriptionFailure = {
   ok: false;
   error: string;
@@ -84,8 +85,23 @@ export function useCreateSubscription(): UseCreateSubscriptionResult {
           parsed && typeof parsed === 'object' && 'id' in parsed
             ? String((parsed as { id: unknown }).id)
             : '';
+        let roomCode: string | null = null;
+        try {
+          const reg = await registerUser({ phone: input.userPhone });
+          roomCode = reg.roomCode;
+        } catch (err) {
+          if (err instanceof Error && err.message.includes('already registered')) {
+            try {
+              const existing = await lookupUserByPhone(input.userPhone);
+              roomCode = existing?.roomCode ?? null;
+            } catch {
+              // lookup failed — room code stays null
+            }
+          }
+          // other errors: subscription still created, just no room code
+        }
         setSubmitting(false);
-        return { ok: true, id };
+        return { ok: true, id, roomCode };
       }
 
       const errBody = (parsed ?? {}) as {

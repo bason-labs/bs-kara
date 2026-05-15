@@ -1,7 +1,6 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
@@ -276,7 +275,6 @@ function InlineError({ message }: InlineErrorProps) {
 }
 
 export function SubscriptionForm() {
-  const router = useRouter();
   const { submit, submitting, error, fieldErrors } = useCreateSubscription();
 
   const trialDefault = useMemo(() => getTrialDefaultDays(), []);
@@ -289,6 +287,7 @@ export function SubscriptionForm() {
   const [paymentRef, setPaymentRef] = useState('');
   const [startDate, setStartDate] = useState<string>(todayLocalISO());
   const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
+  const [success, setSuccess] = useState<{ id: string; roomCode: string | null } | null>(null);
 
   function handleTypeChange(next: SubscriptionType) {
     setType(next);
@@ -332,6 +331,7 @@ export function SubscriptionForm() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (submitting) return;
+    setSuccess(null);
 
     const errs = validateLocal();
     setLocalErrors(errs);
@@ -347,8 +347,15 @@ export function SubscriptionForm() {
 
     const outcome = await submit(payload);
     if (outcome.ok) {
-      router.push('/admin/subscriptions');
-      router.refresh();
+      setSuccess({ id: outcome.id, roomCode: outcome.roomCode });
+      // Reset form for next entry
+      setUserPhone('');
+      setPhoneNormalised(null);
+      setPaymentRef('');
+      setType('trial');
+      setDurationDays(String(trialDefault));
+      setStartDate(todayLocalISO());
+      setLocalErrors({});
     }
     // On failure the hook has already populated error/fieldErrors. The
     // render below picks them up — nothing else to do here.
@@ -362,6 +369,30 @@ export function SubscriptionForm() {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-xl flex flex-col gap-6">
+      {success && (
+        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300 space-y-1">
+          <p className="font-semibold">Đã tạo gói đăng ký thành công.</p>
+          {success.roomCode ? (
+            <p>
+              Mã phòng:{' '}
+              <span className="font-mono font-bold text-base tracking-widest">
+                {success.roomCode}
+              </span>
+            </p>
+          ) : (
+            <p className="text-xs text-muted">Chưa thể gán mã phòng.</p>
+          )}
+          <div className="flex gap-4 pt-1 text-xs">
+            <Link href={`/admin/subscriptions/${success.id}`} className="underline hover:no-underline">
+              Xem chi tiết
+            </Link>
+            <Link href="/admin/subscriptions" className="underline hover:no-underline">
+              Danh sách
+            </Link>
+          </div>
+        </div>
+      )}
+
       {error && (
         <p
           className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"

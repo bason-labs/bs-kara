@@ -1,73 +1,104 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { onDisconnect, ref, remove, set } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import { claimOrGetActiveRoom } from '@/lib/activeRoom';
-import { getRoomDataPath } from '@/lib/roomPaths';
+import { lookupUserByCode, lookupUserByPhone } from '@/lib/registeredUsers';
+import { getActiveRoomPresencePath, getRoomDataPath } from '@/lib/roomPaths';
 import { getPublicOrigin } from '@/lib/publicOrigin';
 
 const TV_ROOM_STORAGE_KEY = 'karaoke_tv_room';
+const CODE_PATTERN = /^\d{4,7}$/;
 
-// Owns the TV's room-claim handshake plus the `isTvActive` Firebase
-// presence flag. Returns the active roomCode (null until claimed) and the
-// /?room=<code> URL used by the QR code.
-//
-// Presence note: we `remove` rather than `set(false)` on cleanup or
-// disconnect. If the room was just nuked (End Party), `set` would re-create
-// the node as `{ isTvActive: false }`, leaving a zombie room. `remove` is
-// a no-op when the path is gone, and otherwise drops the field — phones
-// treat the missing field as "TV not active" anyway.
+export type TVPhase = 'lookup' | 'active';
+
 export function useTVPresence() {
+  const [phase, setPhase] = useState<TVPhase>('lookup');
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
 
-  // Claim (or attach to) the active room on mount. Re-runs if roomCode is
-  // ever cleared back to null elsewhere — the original effect was written
-  // with that future possibility in mind.
+  // Re-attach to a previously-activated room stored in localStorage.
   useEffect(() => {
-    if (roomCode) return;
-    let cancelled = false;
-    (async () => {
-      const fixed = process.env.NEXT_PUBLIC_FIXED_ROOM_ID;
-      if (fixed) {
-        if (!cancelled) setRoomCode(fixed);
-        return;
-      }
-      // Defer to the shared active-room pointer so a phone can start a party
-      // before the TV is on, and the TV will attach to whatever's already live.
-      const id = await claimOrGetActiveRoom();
-      if (cancelled) return;
-      localStorage.setItem(TV_ROOM_STORAGE_KEY, id);
-      setRoomCode(id);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [roomCode]);
+    const fixed = process.env.NEXT_PUBLIC_FIXED_ROOM_ID;
+    if (fixed) {
+      // Post-mount only — reading localStorage during render causes SSR mismatch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRoomCode(fixed);
+      setPhase('active');
+      return;
+    }
+    const stored = localStorage.getItem(TV_ROOM_STORAGE_KEY);
+    if (stored) {
+      setRoomCode(stored);
+      setPhase('active');
+    }
+  }, []);
 
-  // Computed in an effect (not at render time) because getPublicOrigin()
-  // reads window.location.origin in the browser branch — running it during
-  // render produces a hydration mismatch (SSR sees null, client sees a URL).
-  // Same idiomatic mount-once pattern as `setIsCoarsePointer` in useRoomGate.
+  // Compute joinUrl once roomCode is known (post-mount to avoid SSR mismatch).
   useEffect(() => {
     if (!roomCode) return;
     const origin = getPublicOrigin() ?? window.location.origin;
+    // Post-mount: getPublicOrigin() reads window.location which isn't available during SSR.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setJoinUrl(`${origin}/?room=${roomCode}`);
   }, [roomCode]);
 
+  // isTvActive + meta/activeRooms presence: write on activate, remove on cleanup/disconnect.
+  // Inline rather than using activateRoom() because React useEffect cleanup must be sync.
   useEffect(() => {
-    if (!roomCode) return;
-    const presenceRef = ref(db, `${getRoomDataPath(roomCode)}/isTvActive`);
-    set(presenceRef, true).catch(() => {});
-    const disconnect = onDisconnect(presenceRef);
-    disconnect.remove().catch(() => {});
-    return () => {
-      disconnect.cancel().catch(() => {});
-      remove(presenceRef).catch(() => {});
-    };
-  }, [roomCode]);
+    if (!roomCode || phase !== 'active') return;
 
-  return { roomCode, joinUrl };
+    const isTvRef = ref(db, `${getRoomDataPath(roomCode)}/isTvActive`);
+    set(isTvRef, true).catch(() => {});
+    const tvDisc = onDisconnect(isTvRef);
+    tvDisc.remove().catch(() => {});
+
+    const activeRef = ref(db, getActiveRoomPresencePath(roomCode));
+    set(activeRef, true).catch(() => {});
+    const activeDisc = onDisconnect(activeRef);
+    activeDisc.remove().catch(() => {});
+
+    return () => {
+      tvDisc.cancel().catch(() => {});
+      remove(isTvRef).catch(() => {});
+      activeDisc.cancel().catch(() => {});
+      remove(activeRef).catch(() => {});
+    };
+  }, [roomCode, phase]);
+
+  // Called by TVRoomLookup after successful validation.
+  const activateRoomByCode = useCallback(async (code: string) => {
+    await set(ref(db, `${getRoomDataPath(code)}/guestsAllowed`), false).catch(() => {});
+    localStorage.setItem(TV_ROOM_STORAGE_KEY, code);
+    setRoomCode(code);
+    setPhase('active');
+  }, []);
+
+  const setGuestsAllowed = useCallback(
+    (enabled: boolean) => {
+      if (!roomCode) return;
+      set(ref(db, `${getRoomDataPath(roomCode)}/guestsAllowed`), enabled).catch(() => {});
+    },
+    [roomCode],
+  );
+
+  // Used by TVRoomLookup to validate the operator's input.
+  // Accepts either a room code (4-7 digits) or a phone number.
+  const resolveRoomCode = useCallback(async (input: string): Promise<string | null> => {
+    const trimmed = input.trim();
+    if (CODE_PATTERN.test(trimmed)) {
+      const byCode = await lookupUserByCode(trimmed);
+      if (byCode && !byCode.suspended) return byCode.roomCode;
+    }
+    // Try as phone number (normalizePhone handles the format conversion internally).
+    try {
+      const byPhone = await lookupUserByPhone(trimmed);
+      if (byPhone && !byPhone.suspended) return byPhone.roomCode;
+    } catch {
+      // not a valid phone input — fall through
+    }
+    return null;
+  }, []);
+
+  return { phase, roomCode, joinUrl, activateRoomByCode, resolveRoomCode, setGuestsAllowed };
 }

@@ -19,6 +19,7 @@ import { TransportControls } from '@/components/TransportControls';
 import { useTVPresence } from '@/features/tv/hooks/useTVPresence';
 import { useEndParty } from '@/features/tv/hooks/useEndParty';
 import { BackdropLayers } from '@/features/tv/components/BackdropLayers';
+import { TVRoomLookup } from '@/features/tv/components/TVRoomLookup';
 import { WaitingOverlay } from '@/features/tv/components/WaitingOverlay';
 import { QueuePanel } from '@/features/tv/components/QueuePanel';
 
@@ -27,7 +28,7 @@ export default function TVClient() {
   const [isInitialized, setIsInitialized] = useState(false);
   const initialize = useCallback(() => setIsInitialized(true), []);
 
-  const { roomCode, joinUrl } = useTVPresence();
+  const { phase, roomCode, joinUrl, activateRoomByCode, resolveRoomCode, setGuestsAllowed } = useTVPresence();
 
   const {
     roomData,
@@ -70,12 +71,6 @@ export default function TVClient() {
     endNotice,
   } = useEndParty(resetRoom);
 
-  // Global keydown listener for TV remote / keyboard interaction
-  useEffect(() => {
-    if (isInitialized) return;
-    window.addEventListener('keydown', initialize);
-    return () => window.removeEventListener('keydown', initialize);
-  }, [isInitialized, initialize]);
 
   // Auto-promote the first queued song when nothing is playing
   useEffect(() => {
@@ -156,6 +151,15 @@ export default function TVClient() {
     }
   }, []);
 
+  if (phase === 'lookup') {
+    return (
+      <TVRoomLookup
+        resolveRoomCode={resolveRoomCode}
+        onActivate={activateRoomByCode}
+      />
+    );
+  }
+
   return (
     <main className="relative h-[100dvh] w-full flex overflow-hidden bg-black text-white">
       <BackdropLayers videoId={roomData.currentPlaying?.id} />
@@ -165,6 +169,8 @@ export default function TVClient() {
         joinUrl={joinUrl}
         isInitialized={isInitialized}
         onActivate={initialize}
+        guestsAllowed={roomData.guestsAllowed}
+        onToggleGuests={setGuestsAllowed}
       />
 
       {endNotice && (

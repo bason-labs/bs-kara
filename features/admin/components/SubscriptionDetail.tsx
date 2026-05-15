@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -8,6 +8,7 @@ import {
   type SubscriptionDetailData,
 } from '../hooks/useSubscriptionDetail';
 import { useCancelSubscription } from '../hooks/useCancelSubscription';
+import { lookupUserByPhone } from '@/lib/registeredUsers';
 import type {
   DerivedStatus,
   SubscriptionRecord,
@@ -72,6 +73,13 @@ function SubscriptionDetailView({
   const router = useRouter();
   const { cancel, cancelling, error: cancelError } = useCancelSubscription();
   const [confirmingError, setConfirmingError] = useState<string | null>(null);
+  const [roomCode, setRoomCode] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    lookupUserByPhone(record.userPhone)
+      .then((u) => setRoomCode(u?.roomCode ?? null))
+      .catch(() => setRoomCode(null));
+  }, [record.userPhone]);
 
   const canCancel = derivedStatus === 'active';
 
@@ -132,6 +140,15 @@ function SubscriptionDetailView({
         </Row>
         <Row label="Số điện thoại">
           <span className="font-mono">{record.userPhone}</span>
+        </Row>
+        <Row label="Mã phòng">
+          {roomCode === undefined ? (
+            <span className="text-muted">...</span>
+          ) : roomCode ? (
+            <span className="font-mono font-bold">{roomCode}</span>
+          ) : (
+            '—'
+          )}
         </Row>
         <Row label="User ID">{record.userId ?? '—'}</Row>
         <Row label="Loại">{TYPE_LABEL[record.type]}</Row>

@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { CreditCard, BarChart2, Monitor } from 'lucide-react';
+import { CreditCard, BarChart2 } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -10,5 +10,4 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { href: '/admin/subscriptions', label: 'Đăng ký', icon: CreditCard },
   { href: '/admin/stats',         label: 'Thống kê', icon: BarChart2  },
-  { href: '/admin/sessions',      label: 'Phiên',    icon: Monitor    },
 ];

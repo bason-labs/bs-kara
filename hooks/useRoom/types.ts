@@ -44,6 +44,9 @@ export interface RoomState {
   // Timestamp written by `resetRoom` (End Party). Phones watch this so they
   // can surface a "party ended" notice while staying connected to the room.
   lastEndedAt: number | null;
+  // Owner-controlled toggle. false by default — guests cannot join until
+  // the TV host flips this on from the waiting overlay.
+  guestsAllowed: boolean;
 }
 
 export const DEFAULT_STATE: RoomState = {
@@ -65,6 +68,7 @@ export const DEFAULT_STATE: RoomState = {
   isTvActive: false,
   fullscreenOwner: null,
   lastEndedAt: null,
+  guestsAllowed: false,
 };
 
 // Firebase Realtime Database stores arrays as objects keyed by index. This
