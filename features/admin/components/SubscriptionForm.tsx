@@ -394,10 +394,10 @@ export function SubscriptionForm() {
         <InlineError message={errFor('userPhone')} />
       </label>
 
-      <fieldset className="flex flex-col gap-2 text-sm">
-        <legend className="text-[9px] uppercase tracking-[0.18em] text-muted font-medium">
+      <div className="flex flex-col gap-1.5 text-sm">
+        <span className="text-[9px] uppercase tracking-[0.18em] text-muted font-medium">
           Loại gói
-        </legend>
+        </span>
         <div className="flex w-full rounded-lg border border-border bg-bg/40 p-0.5 text-xs">
           {(['trial', 'paid'] as const).map((opt) => (
             <button
@@ -405,7 +405,7 @@ export function SubscriptionForm() {
               type="button"
               onClick={() => handleTypeChange(opt)}
               className={
-                'flex-1 text-center py-1.5 rounded-full transition-colors ' +
+                'flex-1 text-center py-2 rounded-full transition-colors ' +
                 (type === opt
                   ? 'bg-bg text-fg'
                   : 'text-muted hover:text-fg')
@@ -416,7 +416,7 @@ export function SubscriptionForm() {
             </button>
           ))}
         </div>
-      </fieldset>
+      </div>
 
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="text-[9px] uppercase tracking-[0.18em] text-muted font-medium">
