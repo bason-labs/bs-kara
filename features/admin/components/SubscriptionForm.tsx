@@ -74,9 +74,10 @@ interface StepperProps {
   onChange: (v: string) => void;
   min?: number;
   max?: number;
+  label?: string;
 }
 
-function Stepper({ value, onChange, min = 1, max = 365 }: StepperProps) {
+function Stepper({ value, onChange, min = 1, max = 365, label }: StepperProps) {
   const n = parseInt(value, 10);
   const atMin = isNaN(n) || n <= min;
   const atMax = !isNaN(n) && n >= max;
@@ -110,6 +111,7 @@ function Stepper({ value, onChange, min = 1, max = 365 }: StepperProps) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onBlur={handleBlur}
+        aria-label={label}
         className="flex-1 text-center bg-transparent text-fg text-sm outline-none py-2.5 min-w-[40px]"
       />
       <div className="w-px h-5 bg-border flex-shrink-0" />
@@ -285,7 +287,7 @@ export function SubscriptionForm() {
         <span className="text-[9px] uppercase tracking-[0.18em] text-muted font-medium">
           Số ngày
         </span>
-        <Stepper value={durationDays} onChange={setDurationDays} min={1} max={365} />
+        <Stepper value={durationDays} onChange={setDurationDays} min={1} max={365} label="Số ngày" />
         <InlineError message={errFor('durationDays')} />
       </label>
 
