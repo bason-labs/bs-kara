@@ -11,6 +11,8 @@ import { byPhoneRoot, subscriptionPath } from '@/lib/subscriptions/paths';
 
 export const dynamic = 'force-dynamic';
 
+const NO_STORE = { 'Cache-Control': 'no-store' };
+
 export type RoomAccessReason =
   | 'ok'
   | 'room_not_found'
@@ -27,7 +29,10 @@ function adminDb() {
 }
 
 function deny(reason: RoomAccessReason, status = 200): NextResponse {
-  return NextResponse.json({ allowed: false, reason } satisfies RoomAccessResponse, { status });
+  return NextResponse.json(
+    { allowed: false, reason } satisfies RoomAccessResponse,
+    { status, headers: NO_STORE },
+  );
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
@@ -36,43 +41,65 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return deny('room_not_found', 400);
   }
 
-  const db = adminDb();
-
-  // 1. Resolve room code → normalizedPhone
-  const indexSnap = await db.ref(getRoomCodeIndexEntryPath(roomCode)).once('value');
-  if (!indexSnap.exists()) return deny('room_not_found');
-  const normalizedPhone = indexSnap.val() as string;
-
-  // 2. Verify user is not suspended
-  const userSnap = await db.ref(getRegisteredUserPath(normalizedPhone)).once('value');
-  if (!userSnap.exists()) return deny('room_not_found');
-  const userData = userSnap.val() as { suspended?: boolean };
-  if (userData.suspended === true) return deny('room_not_found');
-
-  // 3. Check for an active, non-expired subscription
-  // registeredUsers stores '84XXXXXXXXX'; subscriptionsByPhone uses '+84XXXXXXXXX'
-  const phoneE164 = '+' + normalizedPhone;
-  const subIndexSnap = await db.ref(byPhoneRoot(phoneE164)).once('value');
-  let hasActiveSubscription = false;
-  if (subIndexSnap.exists()) {
-    const ids = Object.keys(subIndexSnap.val() as Record<string, unknown>);
-    const now = Date.now();
-    const subSnaps = await Promise.all(
-      ids.map((id) => db.ref(subscriptionPath(id)).once('value')),
+  let db: ReturnType<typeof adminDb>;
+  try {
+    db = adminDb();
+  } catch (err) {
+    console.error('[api/room-access] admin SDK init failed:', err);
+    return NextResponse.json(
+      { allowed: false, reason: 'room_not_found' } satisfies RoomAccessResponse,
+      { status: 503 },
     );
-    hasActiveSubscription = subSnaps.some((snap) => {
-      if (!snap.exists()) return false;
-      const s = snap.val() as { status?: string; endDate?: number };
-      return s.status === 'active' && typeof s.endDate === 'number' && s.endDate >= now;
-    });
   }
-  if (!hasActiveSubscription) return deny('subscription_expired');
 
-  // 4. Check guestsAllowed toggle
-  const guestsSnap = await db
-    .ref(`${getRoomDataPath(roomCode)}/guestsAllowed`)
-    .once('value');
-  if (guestsSnap.val() !== true) return deny('guests_not_allowed');
+  try {
+    // 1. Resolve room code → normalizedPhone
+    const indexSnap = await db.ref(getRoomCodeIndexEntryPath(roomCode)).once('value');
+    if (!indexSnap.exists()) return deny('room_not_found');
+    const rawPhone = indexSnap.val();
+    if (typeof rawPhone !== 'string') return deny('room_not_found');
+    const normalizedPhone = rawPhone;
 
-  return NextResponse.json({ allowed: true, reason: 'ok' } satisfies RoomAccessResponse);
+    // 2. Verify user is not suspended
+    const userSnap = await db.ref(getRegisteredUserPath(normalizedPhone)).once('value');
+    if (!userSnap.exists()) return deny('room_not_found');
+    const userData = userSnap.val() as { suspended?: boolean };
+    if (userData.suspended === true) return deny('room_not_found');
+
+    // 3. Check for an active, non-expired subscription
+    // registeredUsers stores '84XXXXXXXXX'; subscriptionsByPhone uses '+84XXXXXXXXX'
+    const phoneE164 = '+' + normalizedPhone;
+    const subIndexSnap = await db.ref(byPhoneRoot(phoneE164)).once('value');
+    let hasActiveSubscription = false;
+    if (subIndexSnap.exists()) {
+      const ids = Object.keys(subIndexSnap.val() as Record<string, unknown>);
+      const now = Date.now();
+      const subSnaps = await Promise.all(
+        ids.map((id) => db.ref(subscriptionPath(id)).once('value')),
+      );
+      hasActiveSubscription = subSnaps.some((snap) => {
+        if (!snap.exists()) return false;
+        const s = snap.val() as { status?: string; endDate?: number };
+        return s.status === 'active' && typeof s.endDate === 'number' && s.endDate >= now;
+      });
+    }
+    if (!hasActiveSubscription) return deny('subscription_expired');
+
+    // 4. Check guestsAllowed toggle
+    const guestsSnap = await db
+      .ref(`${getRoomDataPath(roomCode)}/guestsAllowed`)
+      .once('value');
+    if (guestsSnap.val() !== true) return deny('guests_not_allowed');
+
+    return NextResponse.json(
+      { allowed: true, reason: 'ok' } satisfies RoomAccessResponse,
+      { headers: NO_STORE },
+    );
+  } catch (err) {
+    console.error('[api/room-access] RTDB read failed:', err);
+    return NextResponse.json(
+      { allowed: false, reason: 'room_not_found' } satisfies RoomAccessResponse,
+      { status: 503 },
+    );
+  }
 }
