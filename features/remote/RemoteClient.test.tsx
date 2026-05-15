@@ -101,6 +101,17 @@ vi.mock('@/features/remote/hooks/useRoomGate', () => ({
   }),
 }));
 
+// useInactivityTimeout pulls in Firebase; stub it so the test harness
+// never hits the real database layer.
+vi.mock('@/features/remote/hooks/useInactivityTimeout', () => ({
+  useInactivityTimeout: () => ({
+    timedOut: false,
+    rejoinReason: null,
+    resetActivity: vi.fn(),
+    rejoin: vi.fn().mockResolvedValue(undefined),
+  }),
+}));
+
 // Avoid pulling the real requester-dialog flow into the harness; the tests
 // here are about the play/pause path.
 vi.mock('@/features/remote/hooks/useRequesterDialog', () => ({

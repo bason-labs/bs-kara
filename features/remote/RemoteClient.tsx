@@ -34,6 +34,8 @@ import { useRoomGate } from '@/features/remote/hooks/useRoomGate';
 import { useRequesterDialog } from '@/features/remote/hooks/useRequesterDialog';
 import { useQueuedMap } from '@/features/remote/hooks/useQueuedMap';
 import { useFullscreenOwnership } from '@/features/remote/hooks/useFullscreenOwnership';
+import { useInactivityTimeout } from '@/features/remote/hooks/useInactivityTimeout';
+import { SessionExpiredOverlay } from '@/features/remote/components/SessionExpiredOverlay';
 
 // SettingsSheet pulls in VoicePicker + AutoRandomSection + the rest of the
 // settings tree (~28 KB minified). Lazy-load it on first gear-icon click so
@@ -62,6 +64,8 @@ function RemoteInner() {
     submitJoin,
     handleLeave,
   } = useRoomGate();
+
+  const { timedOut, rejoinReason, resetActivity, rejoin } = useInactivityTimeout(roomCode);
 
   const [tab, setTab] = useState<Tab>('search');
   const [playerOpen, setPlayerOpen] = useState(false);
@@ -219,6 +223,14 @@ function RemoteInner() {
   useEffect(() => {
     lastEndedSeenRef.current = undefined;
   }, [roomCode]);
+
+  // Playback events count as activity — reset the inactivity timer when
+  // the playing state or the current song changes.
+  useEffect(() => {
+    if (!roomCode) return;
+    resetActivity();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomCode, roomData.isPlaying, roomData.currentPlaying?.id]);
 
   const {
     handleAddToQueue,
@@ -398,7 +410,10 @@ function RemoteInner() {
   ];
 
   return (
-    <main className="relative h-[100dvh] w-full flex flex-col overflow-hidden bg-bg text-fg">
+    <main
+      className="relative h-[100dvh] w-full flex flex-col overflow-hidden bg-bg text-fg"
+      onPointerDown={resetActivity}
+    >
       {noticeBanner}
       <h1 className="sr-only">{t('home.appHeading')}</h1>
 
@@ -638,6 +653,12 @@ function RemoteInner() {
           nextSongTitle={roomData.queue[0]?.title ?? null}
         />
       )}
+
+      <SessionExpiredOverlay
+        timedOut={timedOut}
+        rejoinReason={rejoinReason}
+        onRejoin={() => { void rejoin(); }}
+      />
 
       {/* Mobile bottom tab bar */}
       <nav
