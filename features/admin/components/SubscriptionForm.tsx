@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   useCreateSubscription,
@@ -361,7 +362,7 @@ export function SubscriptionForm() {
     fieldErrors[k] ?? localErrors[k];
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-xl flex flex-col gap-5">
+    <form onSubmit={handleSubmit} className="w-full max-w-xl flex flex-col gap-6">
       {error && (
         <p
           className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
@@ -371,8 +372,8 @@ export function SubscriptionForm() {
         </p>
       )}
 
-      <label className="flex flex-col gap-2 text-sm">
-        <span className="text-xs uppercase tracking-[0.2em] text-muted">
+      <label className="flex flex-col gap-1.5 text-sm">
+        <span className="text-[9px] uppercase tracking-[0.18em] text-muted font-medium">
           Số điện thoại
         </span>
         <input
@@ -395,10 +396,10 @@ export function SubscriptionForm() {
       </label>
 
       <fieldset className="flex flex-col gap-2 text-sm">
-        <legend className="text-xs uppercase tracking-[0.2em] text-muted">
+        <legend className="text-[9px] uppercase tracking-[0.18em] text-muted font-medium">
           Loại gói
         </legend>
-        <div className="inline-flex rounded-full border border-border bg-bg/40 p-0.5 text-xs w-fit">
+        <div className="inline-flex self-start rounded-lg border border-border bg-bg/40 p-0.5 text-xs w-fit">
           {(['trial', 'paid'] as const).map((opt) => (
             <button
               key={opt}
@@ -427,8 +428,8 @@ export function SubscriptionForm() {
       </label>
 
       {type === 'paid' && (
-        <label className="flex flex-col gap-2 text-sm">
-          <span className="text-xs uppercase tracking-[0.2em] text-muted">
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="text-[9px] uppercase tracking-[0.18em] text-muted font-medium">
             Mã thanh toán
           </span>
           <input
@@ -451,13 +452,21 @@ export function SubscriptionForm() {
         <InlineError message={errFor('startDate')} />
       </label>
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="self-start px-6 py-3 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
-      >
-        {submitting ? 'Đang tạo...' : 'Tạo gói đăng ký'}
-      </button>
+      <div className="flex items-center gap-3 pt-1">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="bg-gradient-brand rounded-lg px-4 py-2.5 text-sm font-semibold text-fg shadow-glow disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+        >
+          {submitting ? 'Đang tạo...' : 'Tạo gói đăng ký'}
+        </button>
+        <Link
+          href="/admin/subscriptions"
+          className="rounded-lg border border-border px-4 py-2.5 text-sm text-muted hover:text-fg transition-colors"
+        >
+          Huỷ
+        </Link>
+      </div>
     </form>
   );
 }
