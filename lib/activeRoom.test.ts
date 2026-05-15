@@ -1,98 +1,106 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('./firebase', () => ({ db: {} }));
-vi.mock('firebase/database', () => ({
-  ref: vi.fn((_db: unknown, path: string) => ({ path })),
-  runTransaction: vi.fn(),
-  get: vi.fn(),
-  onValue: vi.fn(),
-}));
+vi.mock('@/lib/firebase', () => ({ db: {} }));
 
-import { onValue, runTransaction } from 'firebase/database';
-import {
-  claimOrGetActiveRoom,
-  clearActiveRoomIfMatches,
-  subscribeActiveRoom,
-} from './activeRoom';
+vi.mock('firebase/database', () => {
+  const removeMock = vi.fn().mockResolvedValue(undefined);
+  const cancelMock = vi.fn().mockResolvedValue(undefined);
+  const onDisconnectMock = vi.fn(() => ({ remove: removeMock, cancel: cancelMock }));
+  const setMock = vi.fn().mockResolvedValue(undefined);
+  const removeFnMock = vi.fn().mockResolvedValue(undefined);
+  const onValueMock = vi.fn(() => () => {});
 
-const runTx = runTransaction as unknown as ReturnType<typeof vi.fn>;
-const onValueMock = onValue as unknown as ReturnType<typeof vi.fn>;
+  return {
+    ref: vi.fn((_db: unknown, path: string) => ({ path })),
+    set: setMock,
+    remove: removeFnMock,
+    onDisconnect: onDisconnectMock,
+    onValue: onValueMock,
+    // Store refs so we can access them in tests
+    __mocks__: {
+      setMock,
+      removeFnMock,
+      removeMock,
+      cancelMock,
+      onDisconnectMock,
+      onValueMock,
+    },
+  };
+});
+
+import { activateRoom, deactivateRoom, subscribeActiveRooms } from './activeRoom';
+import * as firebaseDb from 'firebase/database';
+
+interface FirebaseDbMocks {
+  setMock: ReturnType<typeof vi.fn>;
+  removeFnMock: ReturnType<typeof vi.fn>;
+  removeMock: ReturnType<typeof vi.fn>;
+  cancelMock: ReturnType<typeof vi.fn>;
+  onDisconnectMock: ReturnType<typeof vi.fn>;
+  onValueMock: ReturnType<typeof vi.fn>;
+}
+
+const firebaseDbMocks = (firebaseDb as unknown as { __mocks__: FirebaseDbMocks }).__mocks__;
 
 beforeEach(() => {
-  runTx.mockReset();
-  onValueMock.mockReset();
+  firebaseDbMocks.setMock.mockReset().mockResolvedValue(undefined);
+  firebaseDbMocks.removeFnMock.mockReset().mockResolvedValue(undefined);
+  firebaseDbMocks.removeMock.mockReset().mockResolvedValue(undefined);
+  firebaseDbMocks.cancelMock.mockReset().mockResolvedValue(undefined);
+  firebaseDbMocks.onDisconnectMock.mockReset().mockReturnValue({
+    remove: firebaseDbMocks.removeMock,
+    cancel: firebaseDbMocks.cancelMock,
+  });
+  firebaseDbMocks.onValueMock.mockReset().mockReturnValue(() => {});
 });
 
 afterEach(() => vi.restoreAllMocks());
 
-describe('claimOrGetActiveRoom', () => {
-  it('returns whichever code the transaction commits', async () => {
-    runTx.mockResolvedValue({ snapshot: { val: () => '4242' } });
-    const code = await claimOrGetActiveRoom();
-    expect(code).toBe('4242');
-    expect(runTx).toHaveBeenCalledTimes(1);
+describe('activateRoom', () => {
+  it('sets meta/activeRooms/{code} to true and registers onDisconnect remove', async () => {
+    const cleanup = await activateRoom('5678');
+    expect(firebaseDbMocks.setMock).toHaveBeenCalledWith({ path: 'meta/activeRooms/5678' }, true);
+    expect(firebaseDbMocks.onDisconnectMock).toHaveBeenCalledWith({
+      path: 'meta/activeRooms/5678',
+    });
+    expect(firebaseDbMocks.removeMock).toHaveBeenCalled();
+    expect(typeof cleanup).toBe('function');
   });
 
-  it('passes the generated candidate when no current value exists', async () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0); // → 1000
-    runTx.mockImplementation(async (_ref: unknown, updater: (cur: unknown) => unknown) => {
-      const result = updater(null);
-      return { snapshot: { val: () => result } };
-    });
-    const code = await claimOrGetActiveRoom();
-    expect(code).toBe('1000');
-  });
-
-  it('keeps the existing value when the path already has one', async () => {
-    runTx.mockImplementation(async (_ref: unknown, updater: (cur: unknown) => unknown) => {
-      const result = updater('9999');
-      // Updater returning undefined aborts → snapshot keeps original.
-      const next = result === undefined ? '9999' : result;
-      return { snapshot: { val: () => next } };
-    });
-    const code = await claimOrGetActiveRoom();
-    expect(code).toBe('9999');
+  it('cleanup cancels onDisconnect and removes the presence node', async () => {
+    const cleanup = await activateRoom('5678');
+    await cleanup();
+    expect(firebaseDbMocks.cancelMock).toHaveBeenCalled();
+    expect(firebaseDbMocks.removeFnMock).toHaveBeenCalledWith({ path: 'meta/activeRooms/5678' });
   });
 });
 
-describe('clearActiveRoomIfMatches', () => {
-  it('returns null from the updater when the current value matches', async () => {
-    let received: unknown;
-    runTx.mockImplementation(async (_ref: unknown, updater: (cur: unknown) => unknown) => {
-      received = updater('1234');
-      return { snapshot: { val: () => null } };
-    });
-    await clearActiveRoomIfMatches('1234');
-    expect(received).toBeNull();
-  });
-
-  it('aborts (returns undefined) when the current value differs', async () => {
-    let received: unknown = 'untouched';
-    runTx.mockImplementation(async (_ref: unknown, updater: (cur: unknown) => unknown) => {
-      received = updater('9999');
-      return { snapshot: { val: () => '9999' } };
-    });
-    await clearActiveRoomIfMatches('1234');
-    expect(received).toBeUndefined();
+describe('deactivateRoom', () => {
+  it('removes meta/activeRooms/{code}', async () => {
+    await deactivateRoom('9012');
+    expect(firebaseDbMocks.removeFnMock).toHaveBeenCalledWith({ path: 'meta/activeRooms/9012' });
   });
 });
 
-describe('subscribeActiveRoom', () => {
-  it('forwards snapshot existence/value into the callback', () => {
-    const cb = vi.fn();
-    onValueMock.mockImplementation((_ref: unknown, listener: (snap: unknown) => void) => {
-      listener({ exists: () => true, val: () => '4242' });
-      listener({ exists: () => false, val: () => null });
+describe('subscribeActiveRooms', () => {
+  it('calls cb with empty array when snapshot has no data', () => {
+    firebaseDbMocks.onValueMock.mockImplementation((_ref: unknown, cb: (snap: unknown) => void) => {
+      cb({ exists: () => false, val: () => null });
       return () => {};
     });
-    subscribeActiveRoom(cb);
-    expect(cb).toHaveBeenNthCalledWith(1, '4242');
-    expect(cb).toHaveBeenNthCalledWith(2, null);
+    const cb = vi.fn();
+    subscribeActiveRooms(cb);
+    expect(cb).toHaveBeenCalledWith([]);
   });
 
-  it('returns the unsubscribe function from onValue', () => {
-    const unsub = vi.fn();
-    onValueMock.mockReturnValue(unsub);
-    expect(subscribeActiveRoom(() => {})).toBe(unsub);
+  it('calls cb with array of keys when snapshot has data', () => {
+    firebaseDbMocks.onValueMock.mockImplementation((_ref: unknown, cb: (snap: unknown) => void) => {
+      cb({ exists: () => true, val: () => ({ '5678': true, '9012': true }) });
+      return () => {};
+    });
+    const cb = vi.fn();
+    subscribeActiveRooms(cb);
+    expect(cb).toHaveBeenCalledWith(expect.arrayContaining(['5678', '9012']));
   });
 });
