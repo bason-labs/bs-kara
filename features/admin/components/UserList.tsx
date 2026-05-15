@@ -10,8 +10,10 @@ interface UserListProps {
 
 export function UserList({ users, onRefresh }: UserListProps) {
   const [loadingPhone, setLoadingPhone] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function toggleSuspend(user: RegisteredUser) {
+    setError(null);
     setLoadingPhone(user.normalizedPhone);
     try {
       if (user.suspended) {
@@ -20,6 +22,8 @@ export function UserList({ users, onRefresh }: UserListProps) {
         await suspendUser(user.normalizedPhone);
       }
       onRefresh();
+    } catch {
+      setError('Đã xảy ra lỗi. Vui lòng thử lại.');
     } finally {
       setLoadingPhone(null);
     }
@@ -31,6 +35,7 @@ export function UserList({ users, onRefresh }: UserListProps) {
 
   return (
     <div className="overflow-x-auto">
+      {error && <p className="text-danger text-xs mb-2" role="alert">{error}</p>}
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="text-muted text-xs uppercase tracking-wider">

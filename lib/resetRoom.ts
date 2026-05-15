@@ -10,6 +10,7 @@ export async function resetRoom(code: string): Promise<void> {
     remove(ref(db, `${base}/history`)),
     remove(ref(db, `${base}/playedHistory`)),
     remove(ref(db, `${base}/isPlaying`)),
+    remove(ref(db, `${base}/lastAnnouncedSongId`)),
     set(ref(db, `${base}/lastEndedAt`), Date.now()),
   ]);
 }

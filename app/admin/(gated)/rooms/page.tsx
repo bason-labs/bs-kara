@@ -9,12 +9,16 @@ import { ActiveRoomsList } from '@/features/admin/components/ActiveRoomsList';
 export default function RoomsPage() {
   const [users, setUsers] = useState<RegisteredUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const all = await getAllUsers();
       setUsers(all.sort((a, b) => b.createdAt - a.createdAt));
+    } catch {
+      setError('Không thể tải danh sách người dùng. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -43,7 +47,9 @@ export default function RoomsPage() {
         <h2 className="font-semibold text-sm uppercase tracking-wider text-muted">
           Tất cả người dùng {!loading && `(${users.length})`}
         </h2>
-        {loading ? (
+        {error ? (
+          <p className="text-danger text-sm">{error}</p>
+        ) : loading ? (
           <p className="text-muted text-sm">Đang tải...</p>
         ) : (
           <UserList users={users} onRefresh={loadUsers} />

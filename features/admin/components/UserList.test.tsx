@@ -54,7 +54,7 @@ describe('UserList', () => {
     expect(screen.getByText('2222')).toBeInTheDocument();
     // Suspended user: status badge + action button both say "Tạm ngưng" and "Kích hoạt"
     // Use getAllByText to handle the duplicate "Tạm ngưng" text (badge + one action button)
-    expect(screen.getAllByText('Tạm ngưng').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Tạm ngưng').length).toBe(2);
     expect(screen.getByRole('button', { name: 'Kích hoạt' })).toBeInTheDocument();
   });
 
@@ -82,5 +82,19 @@ describe('UserList', () => {
       expect(unsuspendMock).toHaveBeenCalledWith('84912345678');
       expect(onRefresh).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('does not silently swallow errors when suspendUser rejects', async () => {
+    suspendMock.mockRejectedValue(new Error('network error'));
+    const onRefresh = vi.fn();
+    const user = userEvent.setup();
+    render(<UserList users={[makeUser({ suspended: false })]} onRefresh={onRefresh} />);
+
+    await user.click(screen.getByRole('button', { name: 'Tạm ngưng' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Đã xảy ra lỗi. Vui lòng thử lại.');
+    });
+    expect(onRefresh).not.toHaveBeenCalled();
   });
 });
