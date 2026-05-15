@@ -1,7 +1,8 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   useCreateSubscription,
   type CreateSubscriptionFormInput,
@@ -67,6 +68,128 @@ export function formatDisplay(iso: string): string {
   if (!iso) return '';
   const [y, m, d] = iso.split('-');
   return `${d}/${m}/${y}`;
+}
+
+interface DatePickerProps {
+  value: string; // 'YYYY-MM-DD'
+  onChange: (v: string) => void;
+}
+
+function DatePicker({ value, onChange }: DatePickerProps) {
+  const parsed = value ? new Date(value + 'T00:00:00') : new Date();
+  const [open, setOpen] = useState(false);
+  const [viewYear, setViewYear] = useState(parsed.getFullYear());
+  const [viewMonth, setViewMonth] = useState(parsed.getMonth());
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [open]);
+
+  function prevMonth() {
+    if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11); }
+    else setViewMonth((m) => m - 1);
+  }
+  function nextMonth() {
+    if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0); }
+    else setViewMonth((m) => m + 1);
+  }
+  function selectDay(date: Date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    onChange(`${y}-${m}-${d}`);
+    setOpen(false);
+  }
+
+  const MONTH_NAMES = [
+    'Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6',
+    'Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12',
+  ];
+  const days = buildCalendarDays(viewYear, viewMonth);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={
+          'w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm text-fg bg-white/[0.04] transition-colors ' +
+          (open ? 'border-[rgba(0,139,139,0.45)]' : 'border-border')
+        }
+      >
+        <span>{formatDisplay(value) || 'Chọn ngày'}</span>
+        <Calendar size={14} className="text-muted flex-shrink-0" />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 mt-1 bg-[#071212] border border-border rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] p-4 w-60">
+          <div className="flex items-center justify-between mb-3">
+            <button
+              type="button"
+              onClick={prevMonth}
+              className="p-1 rounded-md text-muted hover:bg-[rgba(0,139,139,0.12)] hover:text-accent transition-colors"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <span className="text-xs font-semibold text-fg">
+              {MONTH_NAMES[viewMonth]} · {viewYear}
+            </span>
+            <button
+              type="button"
+              onClick={nextMonth}
+              className="p-1 rounded-md text-muted hover:bg-[rgba(0,139,139,0.12)] hover:text-accent transition-colors"
+            >
+              <ChevronRight size={14} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 mb-1">
+            {['T2','T3','T4','T5','T6','T7','CN'].map((h) => (
+              <div key={h} className="text-[8px] text-muted text-center py-0.5 font-semibold">
+                {h}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7">
+            {days.map(({ date, currentMonth }, i) => {
+              const iso =
+                `${date.getFullYear()}-` +
+                `${String(date.getMonth() + 1).padStart(2, '0')}-` +
+                `${String(date.getDate()).padStart(2, '0')}`;
+              const selected = iso === value;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => currentMonth && selectDay(date)}
+                  className={
+                    'text-[11px] py-1.5 rounded-md text-center transition-colors ' +
+                    (selected
+                      ? 'font-bold border border-[rgba(0,139,139,0.5)] bg-[rgba(0,139,139,0.3)]'
+                      : currentMonth
+                        ? 'text-muted hover:bg-[rgba(0,139,139,0.12)] hover:text-fg cursor-pointer'
+                        : 'text-muted/20 cursor-default')
+                  }
+                  style={selected ? { color: '#7df9ff' } : undefined}
+                >
+                  {date.getDate()}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface StepperProps {
@@ -308,17 +431,11 @@ export function SubscriptionForm() {
         </label>
       )}
 
-      <label className="flex flex-col gap-2 text-sm">
-        <span className="text-xs uppercase tracking-[0.2em] text-muted">
+      <label className="flex flex-col gap-1.5 text-sm">
+        <span className="text-[9px] uppercase tracking-[0.18em] text-muted font-medium">
           Ngày bắt đầu
         </span>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          required
-          className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg/40 text-fg outline-none focus:border-fg/40"
-        />
+        <DatePicker value={startDate} onChange={setStartDate} />
         <InlineError message={errFor('startDate')} />
       </label>
 
