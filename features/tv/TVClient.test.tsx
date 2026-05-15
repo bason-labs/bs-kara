@@ -76,10 +76,6 @@ vi.mock('@/features/tv/hooks/useTVPresence', () => ({
   })),
 }));
 
-vi.mock('@/lib/activeRoom', () => ({
-  claimOrGetActiveRoom: vi.fn().mockResolvedValue('1234'),
-}));
-
 vi.mock('@/lib/firebase', () => ({ db: {} }));
 
 vi.mock('firebase/database', () => ({
