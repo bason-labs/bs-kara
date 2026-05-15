@@ -69,6 +69,63 @@ export function formatDisplay(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+interface StepperProps {
+  value: string;
+  onChange: (v: string) => void;
+  min?: number;
+  max?: number;
+}
+
+function Stepper({ value, onChange, min = 1, max = 365 }: StepperProps) {
+  const n = parseInt(value, 10);
+  const atMin = isNaN(n) || n <= min;
+  const atMax = !isNaN(n) && n >= max;
+
+  function dec() {
+    onChange(String(isNaN(n) ? min : Math.max(min, n - 1)));
+  }
+  function inc() {
+    onChange(String(isNaN(n) ? min : Math.min(max, n + 1)));
+  }
+  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+    const parsed = parseInt(e.target.value, 10);
+    onChange(String(isNaN(parsed) ? min : Math.min(max, Math.max(min, parsed))));
+  }
+
+  return (
+    <div className="inline-flex items-center border border-border rounded-xl overflow-hidden bg-white/[0.04] min-w-[140px] w-fit self-start">
+      <button
+        type="button"
+        onClick={dec}
+        disabled={atMin}
+        aria-label="Giảm"
+        className="w-[38px] h-[38px] flex items-center justify-center text-muted hover:bg-[rgba(0,139,139,0.12)] hover:text-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        −
+      </button>
+      <div className="w-px h-5 bg-border flex-shrink-0" />
+      <input
+        type="text"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={handleBlur}
+        className="flex-1 text-center bg-transparent text-fg text-sm outline-none py-2.5 min-w-[40px]"
+      />
+      <div className="w-px h-5 bg-border flex-shrink-0" />
+      <button
+        type="button"
+        onClick={inc}
+        disabled={atMax}
+        aria-label="Tăng"
+        className="w-[38px] h-[38px] flex items-center justify-center text-muted hover:bg-[rgba(0,139,139,0.12)] hover:text-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
 interface InlineErrorProps {
   message: string | undefined;
 }
@@ -224,20 +281,11 @@ export function SubscriptionForm() {
         </div>
       </fieldset>
 
-      <label className="flex flex-col gap-2 text-sm">
-        <span className="text-xs uppercase tracking-[0.2em] text-muted">
+      <label className="flex flex-col gap-1.5 text-sm">
+        <span className="text-[9px] uppercase tracking-[0.18em] text-muted font-medium">
           Số ngày
         </span>
-        <input
-          type="number"
-          min={1}
-          max={365}
-          step={1}
-          value={durationDays}
-          onChange={(e) => setDurationDays(e.target.value)}
-          required
-          className="w-full px-4 py-2.5 rounded-xl border border-border bg-bg/40 text-fg outline-none focus:border-fg/40"
-        />
+        <Stepper value={durationDays} onChange={setDurationDays} min={1} max={365} />
         <InlineError message={errFor('durationDays')} />
       </label>
 
