@@ -41,6 +41,34 @@ function dateInputToEpochMs(value: string): number {
   return new Date(value + 'T00:00:00Z').getTime();
 }
 
+// Returns a 42-cell (6-week) Monday-first grid for the given month.
+// month is 0-indexed (JS convention). Pure — safe to unit-test.
+export function buildCalendarDays(
+  year: number,
+  month: number,
+): { date: Date; currentMonth: boolean }[] {
+  const firstOfMonth = new Date(year, month, 1);
+  const dow = firstOfMonth.getDay(); // 0=Sun … 6=Sat
+  // Monday-first offset: Mon→0, Tue→1 … Sun→6
+  const startOffset = dow === 0 ? 6 : dow - 1;
+  const startDate = new Date(year, month, 1 - startOffset);
+  return Array.from({ length: 42 }, (_, i) => {
+    const date = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate() + i,
+    );
+    return { date, currentMonth: date.getMonth() === month };
+  });
+}
+
+// Converts 'YYYY-MM-DD' → 'dd/MM/yyyy' for display. Pure.
+export function formatDisplay(iso: string): string {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
 interface InlineErrorProps {
   message: string | undefined;
 }
