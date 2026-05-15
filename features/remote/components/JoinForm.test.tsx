@@ -62,6 +62,39 @@ describe('JoinForm', () => {
     expect(btn).toBeDisabled();
   });
 
+  it('enables the button and calls onJoin with the correct value on submit after typing 4 digits', async () => {
+    const user = userEvent.setup();
+    const onJoin = vi.fn();
+    render(<JoinForm onJoin={onJoin} joinError={null} isJoining={false} />);
+
+    const inputs = screen.getAllByRole('textbox');
+    await user.type(inputs[0], '1');
+    await user.type(inputs[1], '2');
+    await user.type(inputs[2], '3');
+    await user.type(inputs[3], '4');
+
+    const btn = screen.getByRole('button', { name: 'home.joinButton' });
+    expect(btn).toBeEnabled();
+
+    await user.click(btn);
+    expect(onJoin).toHaveBeenCalledWith('1234');
+  });
+
+  it('does not call onJoin via onComplete when isJoining is true', async () => {
+    const user = userEvent.setup();
+    const onJoin = vi.fn();
+    render(<JoinForm onJoin={onJoin} joinError={null} isJoining={true} />);
+
+    const inputs = screen.getAllByRole('textbox');
+    await user.type(inputs[0], '1');
+    await user.type(inputs[1], '2');
+    await user.type(inputs[2], '3');
+    await user.type(inputs[3], '4');
+
+    // onComplete fires as the 4th digit is entered but isJoining guard must block it
+    expect(onJoin).not.toHaveBeenCalled();
+  });
+
   it('does NOT render a join active room shortcut button', () => {
     render(<JoinForm onJoin={vi.fn()} joinError={null} isJoining={false} />);
     // The old shortcut had text containing 'joinActiveRoom'

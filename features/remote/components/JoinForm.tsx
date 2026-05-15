@@ -46,7 +46,7 @@ export function JoinForm({ onJoin, joinError, isJoining }: JoinFormProps) {
       <OTPInput
         value={inputCode}
         onChange={setInputCode}
-        onComplete={onJoin}
+        onComplete={(v) => { if (!isJoining) onJoin(v); }}
         ariaLabel={t('home.roomCodeLabel')}
       />
 
