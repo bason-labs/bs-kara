@@ -5,5 +5,5 @@ import type { ReactNode } from 'react';
 // public `/admin/login` page (a sibling of (gated)) stays reachable. URL
 // paths are unaffected — (gated) is a route group, not a URL segment.
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  return <div className="min-h-screen bg-bg text-fg">{children}</div>;
+  return <div data-theme="dark" className="min-h-screen bg-bg text-fg">{children}</div>;
 }
