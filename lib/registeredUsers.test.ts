@@ -17,10 +17,13 @@ import {
   deriveBaseCode,
   resolveUniqueCode,
   registerUser,
+  lookupUserByPhone,
   lookupUserByCode,
   isValidRoomCode,
   suspendUser,
   unsuspendUser,
+  updateDisplayName,
+  reassignRoomCode,
   getAllUsers,
 } from './registeredUsers';
 
@@ -54,6 +57,12 @@ describe('normalizePhone', () => {
   });
   it('prefixes 84 when no leading 0 or 84', () => {
     expect(normalizePhone('912345678')).toBe('84912345678');
+  });
+  it('handles 0084 international prefix', () => {
+    expect(normalizePhone('0084912345678')).toBe('84912345678');
+  });
+  it('throws on garbage input shorter than 9 digits', () => {
+    expect(() => normalizePhone('123')).toThrow('Invalid phone number');
   });
 });
 
@@ -98,6 +107,7 @@ describe('registerUser', () => {
     const [, updates] = updateMock.mock.calls[0] as [unknown, Record<string, unknown>];
     expect(Object.keys(updates)).toContain('registeredUsers/84912345678');
     expect(Object.keys(updates)).toContain('roomCodeIndex/5678');
+    expect(Object.keys(updates)).toContain('rooms/5678/createdAt');
   });
 
   it('throws when phone is already registered', async () => {
@@ -178,5 +188,53 @@ describe('getAllUsers', () => {
     const users = await getAllUsers();
     expect(users).toHaveLength(2);
     expect(users[0]).toMatchObject({ normalizedPhone: '84912345678', roomCode: '5678' });
+  });
+});
+
+describe('lookupUserByPhone', () => {
+  it('returns null when phone is not registered', async () => {
+    getMock.mockResolvedValue(makeSnap(false));
+    expect(await lookupUserByPhone('0999999999')).toBeNull();
+  });
+
+  it('returns hydrated user when phone is registered', async () => {
+    getMock.mockResolvedValue(makeSnap(true, {
+      roomCode: '9999',
+      suspended: false,
+      createdAt: 5000,
+    }));
+    const user = await lookupUserByPhone('0999999999');
+    expect(user).toMatchObject({ normalizedPhone: '84999999999', roomCode: '9999' });
+  });
+});
+
+describe('updateDisplayName', () => {
+  it('sets displayName on the user record', async () => {
+    await updateDisplayName('0912345678', 'Nguyen Van A');
+    expect(setMock).toHaveBeenCalledWith(
+      { path: 'registeredUsers/84912345678/displayName' },
+      'Nguyen Van A',
+    );
+  });
+});
+
+describe('reassignRoomCode', () => {
+  it('updates roomCode field, new index entry, and nulls old index entry atomically', async () => {
+    getMock
+      .mockResolvedValueOnce(makeSnap(true, { roomCode: '5678', suspended: false, createdAt: 1000 })) // lookupUserByPhone
+      .mockResolvedValueOnce(makeSnap(false)); // newCode index check — free
+    await reassignRoomCode('0912345678', '9999');
+    expect(updateMock).toHaveBeenCalledOnce();
+    const [, updates] = updateMock.mock.calls[0] as [unknown, Record<string, unknown>];
+    expect(updates['registeredUsers/84912345678/roomCode']).toBe('9999');
+    expect(updates['roomCodeIndex/9999']).toBe('84912345678');
+    expect(updates['roomCodeIndex/5678']).toBeNull();
+  });
+
+  it('throws when newCode is already taken by another user', async () => {
+    getMock
+      .mockResolvedValueOnce(makeSnap(true, { roomCode: '5678', suspended: false, createdAt: 1000 })) // lookupUserByPhone
+      .mockResolvedValueOnce(makeSnap(true, '84987654321')); // newCode already taken by different user
+    await expect(reassignRoomCode('0912345678', '9999')).rejects.toThrow('already taken');
   });
 });

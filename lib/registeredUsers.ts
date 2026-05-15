@@ -17,6 +17,8 @@ export interface RegisteredUser {
 
 export function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '');
+  if (digits.length < 9) throw new Error(`Invalid phone number: "${raw}"`);
+  if (digits.startsWith('0084')) return digits.slice(2);
   if (digits.startsWith('84')) return digits;
   if (digits.startsWith('0')) return '84' + digits.slice(1);
   return '84' + digits;
@@ -26,14 +28,17 @@ export function deriveBaseCode(normalizedPhone: string): string {
   return normalizedPhone.slice(-4);
 }
 
+const MAX_SUFFIX = 999;
+
 export async function resolveUniqueCode(base: string): Promise<string> {
   const taken = await get(ref(db, getRoomCodeIndexEntryPath(base)));
   if (!taken.exists()) return base;
-  for (let suffix = 1; ; suffix++) {
+  for (let suffix = 1; suffix <= MAX_SUFFIX; suffix++) {
     const candidate = `${base}${suffix}`;
     const snap = await get(ref(db, getRoomCodeIndexEntryPath(candidate)));
     if (!snap.exists()) return candidate;
   }
+  throw new Error(`Could not find a unique room code for base "${base}" after ${MAX_SUFFIX} attempts`);
 }
 
 export async function registerUser({
@@ -44,6 +49,7 @@ export async function registerUser({
   displayName?: string;
 }): Promise<{ roomCode: string; normalizedPhone: string }> {
   const normalizedPhone = normalizePhone(phone);
+  // Note: non-transactional check; concurrent duplicate registrations are prevented by Firebase Security Rules.
   const existing = await get(ref(db, getRegisteredUserPath(normalizedPhone)));
   if (existing.exists()) throw new Error('Phone number already registered');
 
@@ -114,8 +120,14 @@ export async function reassignRoomCode(
   newCode: string,
 ): Promise<void> {
   const normalizedPhone = normalizePhone(phone);
-  const user = await lookupUserByPhone(phone);
+  const [user, newCodeSnap] = await Promise.all([
+    lookupUserByPhone(phone),
+    get(ref(db, getRoomCodeIndexEntryPath(newCode))),
+  ]);
   if (!user) throw new Error('User not found');
+  if (newCodeSnap.exists() && newCodeSnap.val() !== normalizedPhone) {
+    throw new Error(`Room code ${newCode} is already taken`);
+  }
   const updates: Record<string, unknown> = {
     [`${getRegisteredUserPath(normalizedPhone)}/roomCode`]: newCode,
     [getRoomCodeIndexEntryPath(newCode)]: normalizedPhone,
