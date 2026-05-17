@@ -20,6 +20,14 @@
   },
   "tv": {
     "heading": "BS Kara",
+    "lookup": {
+      "hint": "Enter phone number or room code",
+      "placeholder": "e.g. 0912345678 or 5678",
+      "activate": "Activate room",
+      "checking": "Checking...",
+      "notFound": "Room not found or suspended.",
+      "error": "Something went wrong, please try again."
+    },
     "roomLabel": "Room",
     "qrHint": "Scan\nto join",
     "startPrompt": "Click anywhere or press any key to start the party…",
@@ -165,10 +173,13 @@
     },
     "themeHint": "Pick a light, dark, or system-matching theme.",
     "roomCodeLabel": "Current room code",
+    "openTv": "Open TV",
     "dragDropLabel": "Drag-to-reorder",
     "dragDropHint": "Let users drag songs to change the queue order.",
     "requesterPromptLabel": "Ask for singer name",
     "requesterPromptHint": "When off, songs go straight into the queue without asking who's singing.",
+    "guestCanRemoveLabel": "Allow guests to remove songs",
+    "guestCanRemoveHint": "Guests in the room can remove songs from the queue.",
     "aiMcLabel": "AI MC intro",
     "aiMcHint": "Before each song, an AI MC reads a short Vietnamese intro through the TV speakers.",
     "mcVoiceLabel": "MC voice",
@@ -222,5 +233,34 @@
     "tierLabel": "Tier",
     "toggleLabel": "AI Scoring",
     "toggleHelp": "Show a score for each song in the last 8 seconds, based on room reactions"
+  },
+  "auth": {
+    "title": "Create your karaoke room",
+    "subtitle": "Register to get your own room",
+    "phoneLabel": "Phone number",
+    "phonePlaceholder": "0XX XXX XXXX",
+    "sendOtp": "Send OTP",
+    "sendingOtp": "Sending…",
+    "otpLabel": "Verification code",
+    "otpHint": "Enter the 6-digit code sent to {{phone}}",
+    "verify": "Verify",
+    "verifying": "Verifying…",
+    "resendIn": "Resend in {{seconds}}s",
+    "resend": "Resend code",
+    "displayNameLabel": "Display name",
+    "displayNamePlaceholder": "Your name",
+    "displayNameHint": "This name appears when you add songs.",
+    "continue": "Continue",
+    "skip": "Skip",
+    "back": "Back",
+    "loginOrRegister": "Log in / Create room",
+    "goToMyRoom": "Go to my room",
+    "orDivider": "or",
+    "errors": {
+      "invalidPhone": "Please enter a valid Vietnamese phone number (0XXXXXXXXX)",
+      "sendFailed": "Failed to send code. Please try again.",
+      "otpFailed": "Incorrect or expired code. Please try again.",
+      "noSubscription": "Room not activated — contact admin to get access."
+    }
   }
 }

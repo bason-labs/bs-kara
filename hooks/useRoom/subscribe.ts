@@ -64,6 +64,8 @@ export function useRoomSubscribe(roomId: string | null) {
         fullscreenOwner?: string | null;
         lastEndedAt?: number | null;
         guestsAllowed?: boolean;
+        hostUid?: string | null;
+        guestCanRemove?: boolean;
       } | null;
 
       if (!data) {
@@ -142,6 +144,11 @@ export function useRoomSubscribe(roomId: string | null) {
         lastEndedAt:
           typeof data.lastEndedAt === 'number' ? data.lastEndedAt : null,
         guestsAllowed: data.guestsAllowed === true,
+        hostUid:
+          typeof data.hostUid === 'string' && data.hostUid
+            ? data.hostUid
+            : null,
+        guestCanRemove: data.guestCanRemove === true,
       });
       setIsLoading(false);
     });

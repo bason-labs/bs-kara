@@ -20,6 +20,14 @@
   },
   "tv": {
     "heading": "BS Kara",
+    "lookup": {
+      "hint": "Nhập số điện thoại hoặc mã phòng",
+      "placeholder": "VD: 0912345678 hoặc 5678",
+      "activate": "Kích hoạt phòng",
+      "checking": "Đang kiểm tra...",
+      "notFound": "Không tìm thấy phòng hoặc phòng đang bị tạm ngưng.",
+      "error": "Đã xảy ra lỗi, vui lòng thử lại."
+    },
     "roomLabel": "Phòng",
     "qrHint": "Quét\nđể tham gia",
     "startPrompt": "Nhấn vào bất kỳ đâu hoặc bấm phím để bắt đầu…",
@@ -165,10 +173,13 @@
     },
     "themeHint": "Chọn giao diện sáng, tối hoặc theo hệ thống.",
     "roomCodeLabel": "Mã phòng hiện tại",
+    "openTv": "Mở TV",
     "dragDropLabel": "Kéo thả sắp xếp",
     "dragDropHint": "Cho phép kéo thả để thay đổi thứ tự bài hát trong hàng chờ.",
     "requesterPromptLabel": "Hỏi tên ca sĩ",
     "requesterPromptHint": "Khi tắt, bài hát sẽ được thêm ngay vào hàng chờ mà không hỏi tên người hát.",
+    "guestCanRemoveLabel": "Cho phép khách xóa bài",
+    "guestCanRemoveHint": "Khách tham gia có thể xóa bài trong hàng chờ.",
     "aiMcLabel": "Bật/Tắt MC",
     "aiMcHint": "Trước mỗi bài, MC sẽ đọc lời giới thiệu ngắn bằng tiếng Việt qua loa TV.",
     "mcVoiceLabel": "Giọng MC",
@@ -222,5 +233,34 @@
     "tierLabel": "Hạng",
     "toggleLabel": "AI chấm điểm",
     "toggleHelp": "Hiển thị điểm cho mỗi bài hát ở 8 giây cuối, dựa trên reactions từ phòng"
+  },
+  "auth": {
+    "title": "Tạo phòng karaoke",
+    "subtitle": "Đăng ký để có phòng riêng của bạn",
+    "phoneLabel": "Số điện thoại",
+    "phonePlaceholder": "0XX XXX XXXX",
+    "sendOtp": "Gửi mã OTP",
+    "sendingOtp": "Đang gửi…",
+    "otpLabel": "Mã xác nhận",
+    "otpHint": "Nhập mã 6 số đã gửi đến {{phone}}",
+    "verify": "Xác nhận",
+    "verifying": "Đang xác nhận…",
+    "resendIn": "Gửi lại sau {{seconds}}s",
+    "resend": "Gửi lại mã",
+    "displayNameLabel": "Tên hiển thị",
+    "displayNamePlaceholder": "Tên của bạn",
+    "displayNameHint": "Tên này sẽ hiển thị khi bạn thêm bài.",
+    "continue": "Tiếp tục",
+    "skip": "Bỏ qua",
+    "back": "Quay lại",
+    "loginOrRegister": "Đăng nhập / Tạo phòng",
+    "goToMyRoom": "Vào phòng của tôi",
+    "orDivider": "hoặc",
+    "errors": {
+      "invalidPhone": "Vui lòng nhập số điện thoại Việt Nam hợp lệ (0XXXXXXXXX)",
+      "sendFailed": "Không thể gửi mã. Vui lòng thử lại.",
+      "otpFailed": "Mã không đúng hoặc đã hết hạn. Vui lòng thử lại.",
+      "noSubscription": "Phòng chưa kích hoạt — liên hệ admin để được cấp quyền."
+    }
   }
 }

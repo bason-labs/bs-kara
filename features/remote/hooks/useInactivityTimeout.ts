@@ -33,7 +33,7 @@ export function useInactivityTimeout(roomCode: string | null) {
 
   const resetActivity = useCallback(() => {
     if (!roomCode) return;
-    localStorage.setItem(STORAGE_KEY, String(Date.now()));
+    sessionStorage.setItem(STORAGE_KEY, String(Date.now()));
     setTimedOut(false);
     setRejoinReason(null);
   }, [roomCode]);
@@ -42,12 +42,12 @@ export function useInactivityTimeout(roomCode: string | null) {
   useEffect(() => {
     if (!roomCode) return;
 
-    if (!localStorage.getItem(STORAGE_KEY)) {
-      localStorage.setItem(STORAGE_KEY, String(Date.now()));
+    if (!sessionStorage.getItem(STORAGE_KEY)) {
+      sessionStorage.setItem(STORAGE_KEY, String(Date.now()));
     }
 
     const check = () => {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = sessionStorage.getItem(STORAGE_KEY);
       const lastActive = raw ? Number(raw) : Date.now();
       const elapsed = Date.now() - lastActive;
       if (elapsed > timeoutMinutesRef.current * 60 * 1000) {

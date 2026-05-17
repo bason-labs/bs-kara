@@ -10,6 +10,8 @@ interface QueueSectionProps {
   onDragDropToggle: (enabled: boolean) => void;
   requesterPromptEnabled: boolean;
   onRequesterPromptToggle: (enabled: boolean) => void;
+  guestCanRemove: boolean;
+  onGuestCanRemoveToggle: (enabled: boolean) => void;
 }
 
 export function QueueSection({
@@ -17,6 +19,8 @@ export function QueueSection({
   onDragDropToggle,
   requesterPromptEnabled,
   onRequesterPromptToggle,
+  guestCanRemove,
+  onGuestCanRemoveToggle,
 }: QueueSectionProps) {
   const { t } = useTranslation();
   return (
@@ -38,6 +42,12 @@ export function QueueSection({
         hint={t('settings.requesterPromptHint')}
         enabled={requesterPromptEnabled}
         onToggle={onRequesterPromptToggle}
+      />
+      <ToggleRow
+        label={t('settings.guestCanRemoveLabel')}
+        hint={t('settings.guestCanRemoveHint')}
+        enabled={guestCanRemove}
+        onToggle={onGuestCanRemoveToggle}
       />
     </section>
   );

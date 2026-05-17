@@ -17,18 +17,29 @@ export function useTVPresence() {
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
 
-  // Re-attach to a previously-activated room stored in localStorage.
+  // Priority: env-var override → ?room= URL param (fresh activation) → sessionStorage (re-attach).
+  // All reads are post-mount to avoid SSR mismatch.
   useEffect(() => {
     const fixed = process.env.NEXT_PUBLIC_FIXED_ROOM_ID;
     if (fixed) {
-      // Post-mount only — reading localStorage during render causes SSR mismatch.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setRoomCode(fixed);
       setPhase('active');
       return;
     }
-    const stored = localStorage.getItem(TV_ROOM_STORAGE_KEY);
+    const urlParam = new URLSearchParams(window.location.search).get('room');
+    if (urlParam && CODE_PATTERN.test(urlParam)) {
+      // Treat URL param as a fresh activation: write guestsAllowed=false same as manual lookup.
+      set(ref(db, `${getRoomDataPath(urlParam)}/guestsAllowed`), false).catch(() => {});
+      sessionStorage.setItem(TV_ROOM_STORAGE_KEY, urlParam);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRoomCode(urlParam);
+      setPhase('active');
+      return;
+    }
+    const stored = sessionStorage.getItem(TV_ROOM_STORAGE_KEY);
     if (stored) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRoomCode(stored);
       setPhase('active');
     }
@@ -69,7 +80,7 @@ export function useTVPresence() {
   // Called by TVRoomLookup after successful validation.
   const activateRoomByCode = useCallback(async (code: string) => {
     await set(ref(db, `${getRoomDataPath(code)}/guestsAllowed`), false).catch(() => {});
-    localStorage.setItem(TV_ROOM_STORAGE_KEY, code);
+    sessionStorage.setItem(TV_ROOM_STORAGE_KEY, code);
     setRoomCode(code);
     setPhase('active');
   }, []);

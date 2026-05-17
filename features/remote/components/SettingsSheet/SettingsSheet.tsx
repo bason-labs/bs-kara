@@ -28,6 +28,9 @@ interface SettingsSheetProps {
   onMcVoiceChange: (voice: string) => void;
   aiScoringEnabled: boolean;
   onAiScoringToggle: (enabled: boolean) => void;
+  isHost: boolean;
+  guestCanRemove: boolean;
+  onGuestCanRemoveToggle: (enabled: boolean) => void;
 }
 
 export function SettingsSheet({
@@ -48,6 +51,9 @@ export function SettingsSheet({
   onMcVoiceChange,
   aiScoringEnabled,
   onAiScoringToggle,
+  isHost,
+  guestCanRemove,
+  onGuestCanRemoveToggle,
 }: SettingsSheetProps) {
   const { t } = useTranslation();
   // Mirrors RequesterDialog / ConfirmDialog: when the parent lazy-mounts
@@ -140,33 +146,41 @@ export function SettingsSheet({
           {/* Body */}
           <div className="flex-1 overflow-y-auto overscroll-contain">
             <div className="px-5 py-5 space-y-6">
-              <AutoRandomSection
-                enabled={autoRandomEnabled}
-                filters={filters}
-                onToggle={onAutoRandomToggle}
-                onFiltersChange={onFiltersChange}
-              />
+              {isHost && (
+                <AutoRandomSection
+                  enabled={autoRandomEnabled}
+                  filters={filters}
+                  onToggle={onAutoRandomToggle}
+                  onFiltersChange={onFiltersChange}
+                />
+              )}
 
-              <QueueSection
-                dragDropEnabled={dragDropEnabled}
-                onDragDropToggle={onDragDropToggle}
-                requesterPromptEnabled={requesterPromptEnabled}
-                onRequesterPromptToggle={onRequesterPromptToggle}
-              />
+              {isHost && (
+                <QueueSection
+                  dragDropEnabled={dragDropEnabled}
+                  onDragDropToggle={onDragDropToggle}
+                  requesterPromptEnabled={requesterPromptEnabled}
+                  onRequesterPromptToggle={onRequesterPromptToggle}
+                  guestCanRemove={guestCanRemove}
+                  onGuestCanRemoveToggle={onGuestCanRemoveToggle}
+                />
+              )}
 
-              <AIMcSection
-                enabled={mcEnabled}
-                onToggle={onMCToggle}
-                mcVoice={mcVoice}
-                onMcVoiceChange={onMcVoiceChange}
-                aiScoringEnabled={aiScoringEnabled}
-                onAiScoringToggle={onAiScoringToggle}
-                panelOpen={open}
-              />
+              {isHost && (
+                <AIMcSection
+                  enabled={mcEnabled}
+                  onToggle={onMCToggle}
+                  mcVoice={mcVoice}
+                  onMcVoiceChange={onMcVoiceChange}
+                  aiScoringEnabled={aiScoringEnabled}
+                  onAiScoringToggle={onAiScoringToggle}
+                  panelOpen={open}
+                />
+              )}
 
               <ThemeSection />
 
-              <RoomSection code={roomCode} />
+              <RoomSection code={roomCode} isHost={isHost} />
             </div>
           </div>
         </div>

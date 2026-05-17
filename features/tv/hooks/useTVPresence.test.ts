@@ -33,7 +33,48 @@ beforeEach(() => {
   setMock.mockClear();
   refMock.mockClear();
   (firebaseDb.remove as ReturnType<typeof vi.fn>).mockClear();
-  localStorage.clear();
+  sessionStorage.clear();
+});
+
+describe('useTVPresence — URL param activation', () => {
+  it('activates directly from ?room= URL param and writes guestsAllowed=false', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, search: '?room=5678' },
+      writable: true,
+    });
+    const { result } = renderHook(() => useTVPresence());
+    await act(async () => {});
+    expect(result.current.phase).toBe('active');
+    expect(result.current.roomCode).toBe('5678');
+    const paths = refMock.mock.calls.map((c) => c[1] as string | undefined);
+    expect(paths).toContain('rooms/5678/guestsAllowed');
+    const idx = refMock.mock.calls.findIndex((c) => c[1] === 'rooms/5678/guestsAllowed');
+    expect(setMock.mock.calls[idx]?.[1]).toBe(false);
+    window.location.search = '';
+  });
+
+  it('falls back to sessionStorage when no URL param', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, search: '' },
+      writable: true,
+    });
+    sessionStorage.setItem('karaoke_tv_room', '9999');
+    const { result } = renderHook(() => useTVPresence());
+    await act(async () => {});
+    expect(result.current.phase).toBe('active');
+    expect(result.current.roomCode).toBe('9999');
+  });
+
+  it('shows lookup form when neither URL param nor sessionStorage present', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, search: '' },
+      writable: true,
+    });
+    const { result } = renderHook(() => useTVPresence());
+    await act(async () => {});
+    expect(result.current.phase).toBe('lookup');
+    expect(result.current.roomCode).toBeNull();
+  });
 });
 
 describe('useTVPresence — guestsAllowed', () => {

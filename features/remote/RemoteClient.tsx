@@ -10,6 +10,7 @@ import {
   type CSSProperties,
 } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { LogOut, Search, ListMusic, Disc3, Settings } from 'lucide-react';
 import { useRoom } from '@/hooks/useRoom';
@@ -35,6 +36,8 @@ import { useRequesterDialog } from '@/features/remote/hooks/useRequesterDialog';
 import { useQueuedMap } from '@/features/remote/hooks/useQueuedMap';
 import { useFullscreenOwnership } from '@/features/remote/hooks/useFullscreenOwnership';
 import { useInactivityTimeout } from '@/features/remote/hooks/useInactivityTimeout';
+import { useCurrentHost } from '@/features/remote/hooks/useCurrentHost';
+import { useHostAuth } from '@/features/remote/hooks/useHostAuth';
 import { SessionExpiredOverlay } from '@/features/remote/components/SessionExpiredOverlay';
 
 // SettingsSheet pulls in VoicePicker + AutoRandomSection + the rest of the
@@ -66,6 +69,7 @@ function RemoteInner() {
   } = useRoomGate();
 
   const { timedOut, rejoinReason, resetActivity, rejoin } = useInactivityTimeout(roomCode);
+  const { profile: hostProfile } = useCurrentHost();
 
   const [tab, setTab] = useState<Tab>('search');
   const [playerOpen, setPlayerOpen] = useState(false);
@@ -125,12 +129,15 @@ function RemoteInner() {
     setMCEnabled,
     setAiScoringEnabled,
     setMcVoice,
+    setGuestCanRemove,
     tryClaimAnnouncementLock,
     removeCurrentPlaying,
     addToPlayedHistory,
     setCurrentPlayingDirectly,
     playSongNow,
   } = useRoom(roomCode);
+
+  const { isHost } = useHostAuth(roomData.hostUid);
 
   // "Play Now" pending state: holds the video the user wants to promote
   // until they confirm. We carry the queueId separately because the queue
@@ -386,17 +393,44 @@ function RemoteInner() {
           <p className="text-sm sm:text-base text-muted mb-8">{t('home.tagline')}</p>
 
           {isCoarsePointer === null ? (
-            // Pointer detection runs post-mount; show a sized skeleton so
-            // the layout doesn't jump while the JoinForm decides what to
-            // render. Both mobile and desktop land on JoinForm next —
-            // joining a room always requires an explicit user gesture.
             <div className="w-full h-[260px] rounded-3xl border border-border bg-surface/70 backdrop-blur-md shadow-glow" />
           ) : (
-            <JoinForm
-              onJoin={submitJoin}
-              joinError={joinError}
-              isJoining={isJoining}
-            />
+            <div className="w-full flex flex-col gap-4">
+              {/* Host path */}
+              {hostProfile ? (
+                <button
+                  type="button"
+                  onClick={() => submitJoin(hostProfile.roomCode)}
+                  disabled={isJoining}
+                  className="w-full py-3.5 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98] disabled:opacity-40"
+                >
+                  {isJoining ? '…' : t('auth.goToMyRoom')}
+                </button>
+              ) : (
+                <Link
+                  href="/register"
+                  className="w-full py-3.5 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98] text-center block"
+                >
+                  {t('auth.loginOrRegister')}
+                </Link>
+              )}
+
+              {/* Divider */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted uppercase tracking-widest">
+                  {t('auth.orDivider')}
+                </span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              {/* Guest path — JoinForm provides its own card */}
+              <JoinForm
+                onJoin={submitJoin}
+                joinError={joinError}
+                isJoining={isJoining}
+              />
+            </div>
           )}
         </div>
       </main>
@@ -576,6 +610,8 @@ function RemoteInner() {
               onPlayNow={handleRequestPlayNowFromQueue}
               currentPlayingId={currentPlayingId}
               dragDropEnabled={roomData.dragDropEnabled}
+              isHost={isHost}
+              guestCanRemove={roomData.guestCanRemove}
             />
           </div>
           {/* Optimistic emoji overlay. Sits above the player content, below
@@ -710,6 +746,9 @@ function RemoteInner() {
           onMcVoiceChange={setMcVoice}
           aiScoringEnabled={roomData.aiScoringEnabled}
           onAiScoringToggle={setAiScoringEnabled}
+          isHost={isHost}
+          guestCanRemove={roomData.guestCanRemove}
+          onGuestCanRemoveToggle={setGuestCanRemove}
         />
       )}
 

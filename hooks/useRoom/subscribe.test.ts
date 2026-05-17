@@ -22,6 +22,34 @@ beforeEach(() => {
   onValueMock.mockReturnValue(() => {});
 });
 
+describe('useRoomSubscribe — hostUid', () => {
+  it('defaults hostUid to null when field is missing', () => {
+    const { result } = renderHook(() => useRoomSubscribe('1234'));
+    triggerSnapshot({ isPlaying: true });
+    expect(result.current.roomData.hostUid).toBeNull();
+  });
+
+  it('maps hostUid from the snapshot', () => {
+    const { result } = renderHook(() => useRoomSubscribe('1234'));
+    triggerSnapshot({ hostUid: 'uid-abc' });
+    expect(result.current.roomData.hostUid).toBe('uid-abc');
+  });
+});
+
+describe('useRoomSubscribe — guestCanRemove', () => {
+  it('defaults guestCanRemove to false when field is missing', () => {
+    const { result } = renderHook(() => useRoomSubscribe('1234'));
+    triggerSnapshot({ isPlaying: true });
+    expect(result.current.roomData.guestCanRemove).toBe(false);
+  });
+
+  it('maps guestCanRemove: true from the snapshot', () => {
+    const { result } = renderHook(() => useRoomSubscribe('1234'));
+    triggerSnapshot({ guestCanRemove: true });
+    expect(result.current.roomData.guestCanRemove).toBe(true);
+  });
+});
+
 describe('useRoomSubscribe — guestsAllowed', () => {
   it('defaults guestsAllowed to false when field is missing', () => {
     const { result } = renderHook(() => useRoomSubscribe('1234'));

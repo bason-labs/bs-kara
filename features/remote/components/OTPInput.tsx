@@ -17,6 +17,7 @@ interface OTPInputProps {
   autoFocus?: boolean;
   ariaLabel?: string;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 export function OTPInput({
@@ -27,6 +28,7 @@ export function OTPInput({
   autoFocus = true,
   ariaLabel,
   disabled = false,
+  compact = false,
 }: OTPInputProps) {
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -137,7 +139,10 @@ export function OTPInput({
             onChange={(e) => handleChange(i, e)}
             onKeyDown={(e) => handleKeyDown(i, e)}
             onPaste={(e) => handlePaste(i, e)}
-            className={`tabular w-14 h-16 sm:w-16 sm:h-20 text-center text-3xl sm:text-4xl font-bold rounded-2xl bg-surface border transition-all
+            className={`tabular text-center font-bold rounded-2xl bg-surface border transition-all
+              ${compact
+                ? 'w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl'
+                : 'w-14 h-16 sm:w-16 sm:h-20 text-3xl sm:text-4xl'}
               text-fg caret-glow
               ${filled ? 'border-brand text-gradient-brand' : 'border-border'}
               ${isActive ? 'shadow-glow border-glow' : ''}

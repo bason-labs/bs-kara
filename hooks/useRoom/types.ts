@@ -47,6 +47,11 @@ export interface RoomState {
   // Owner-controlled toggle. false by default — guests cannot join until
   // the TV host flips this on from the waiting overlay.
   guestsAllowed: boolean;
+  // Firebase Auth UID of the registered host who owns this room.
+  // null for legacy rooms created before host auth was introduced.
+  hostUid: string | null;
+  // Host-controlled permission: when true, guests may remove songs from the queue.
+  guestCanRemove: boolean;
 }
 
 export const DEFAULT_STATE: RoomState = {
@@ -69,6 +74,8 @@ export const DEFAULT_STATE: RoomState = {
   fullscreenOwner: null,
   lastEndedAt: null,
   guestsAllowed: false,
+  hostUid: null,
+  guestCanRemove: false,
 };
 
 // Firebase Realtime Database stores arrays as objects keyed by index. This

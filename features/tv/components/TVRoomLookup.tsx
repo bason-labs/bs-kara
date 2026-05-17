@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface TVRoomLookupProps {
   resolveRoomCode: (input: string) => Promise<string | null>;
@@ -8,6 +9,7 @@ interface TVRoomLookupProps {
 }
 
 export function TVRoomLookup({ resolveRoomCode, onActivate }: TVRoomLookupProps) {
+  const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -21,12 +23,12 @@ export function TVRoomLookup({ resolveRoomCode, onActivate }: TVRoomLookupProps)
     try {
       const code = await resolveRoomCode(trimmed);
       if (!code) {
-        setError('Không tìm thấy phòng hoặc phòng đang bị tạm ngưng.');
+        setError(t('tv.lookup.notFound'));
         return;
       }
       await onActivate(code);
     } catch {
-      setError('Đã xảy ra lỗi, vui lòng thử lại.');
+      setError(t('tv.lookup.error'));
     } finally {
       setLoading(false);
     }
@@ -35,7 +37,7 @@ export function TVRoomLookup({ resolveRoomCode, onActivate }: TVRoomLookupProps)
   return (
     <main className="relative min-h-screen w-full flex flex-col items-center justify-center bg-bg text-fg px-6">
       <h1 className="text-gradient-brand text-5xl font-bold mb-2">KARA</h1>
-      <p className="text-muted text-sm mb-10">Nhập số điện thoại hoặc mã phòng</p>
+      <p className="text-muted text-sm mb-10">{t('tv.lookup.hint')}</p>
 
       <form
         onSubmit={handleSubmit}
@@ -45,7 +47,7 @@ export function TVRoomLookup({ resolveRoomCode, onActivate }: TVRoomLookupProps)
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="VD: 0912345678 hoặc 5678"
+          placeholder={t('tv.lookup.placeholder')}
           className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-fg text-center text-lg tracking-widest placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand"
           autoFocus
           disabled={loading}
@@ -60,7 +62,7 @@ export function TVRoomLookup({ resolveRoomCode, onActivate }: TVRoomLookupProps)
           disabled={loading || !input.trim()}
           className="w-full py-3.5 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {loading ? 'Đang kiểm tra...' : 'Kích hoạt phòng'}
+          {loading ? t('tv.lookup.checking') : t('tv.lookup.activate')}
         </button>
       </form>
     </main>
