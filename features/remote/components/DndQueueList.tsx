@@ -22,6 +22,7 @@ export interface DndQueueListProps {
   onEditRequester?: (item: QueueItem) => void;
   onPlayNow?: (item: QueueItem) => void;
   currentPlayingId?: string | null;
+  canRemove?: boolean;
 }
 
 // The drag-and-drop branch lives in its own file so @hello-pangea/dnd
@@ -36,6 +37,7 @@ export function DndQueueList({
   onEditRequester,
   onPlayNow,
   currentPlayingId,
+  canRemove = true,
 }: DndQueueListProps) {
   const { t } = useTranslation();
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
@@ -104,17 +106,19 @@ export function DndQueueList({
                       />
                     )}
 
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPendingRemoveId(item.queueId);
-                      }}
-                      aria-label={t('queue.removeAriaLabel')}
-                      className="shrink-0 p-2 lg:p-1.5 rounded-md text-muted hover:text-danger hover:bg-surface transition-colors"
-                    >
-                      <Trash2 className="w-[18px] h-[18px] lg:w-[15px] lg:h-[15px]" />
-                    </button>
+                    {canRemove && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPendingRemoveId(item.queueId);
+                        }}
+                        aria-label={t('queue.removeAriaLabel')}
+                        className="shrink-0 p-2 lg:p-1.5 rounded-md text-muted hover:text-danger hover:bg-surface transition-colors"
+                      >
+                        <Trash2 className="w-[18px] h-[18px] lg:w-[15px] lg:h-[15px]" />
+                      </button>
+                    )}
                   </div>
                 )}
               </Draggable>

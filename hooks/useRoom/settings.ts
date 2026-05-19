@@ -92,6 +92,14 @@ export function useRoomSettings(
     [roomId],
   );
 
+  const setGuestCanRemove = useCallback(
+    (enabled: boolean) => {
+      if (!roomId) return;
+      set(ref(db, `${getRoomDataPath(roomId)}/guestCanRemove`), enabled);
+    },
+    [roomId],
+  );
+
   const sendEmoji = useCallback(
     (emoji: string) => {
       if (!roomId) return;
@@ -109,6 +117,7 @@ export function useRoomSettings(
     setMCEnabled,
     setAiScoringEnabled,
     setMcVoice,
+    setGuestCanRemove,
     sendEmoji,
   };
 }

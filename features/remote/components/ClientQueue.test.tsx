@@ -28,6 +28,7 @@ describe('ClientQueue', () => {
         items={[item({ queueId: 'q1', title: 'A' }), item({ queueId: 'q2', title: 'B' })]}
         onReorder={() => {}}
         onRemove={() => {}}
+        isHost={true}
       />,
     );
     expect(screen.getByText('A')).toBeInTheDocument();
@@ -45,6 +46,7 @@ describe('ClientQueue', () => {
         items={[item({ queueId: 'q1' })]}
         onReorder={() => {}}
         onRemove={onRemove}
+        isHost={true}
       />,
     );
     await user.click(screen.getByRole('button', { name: 'queue.removeAriaLabel' }));
@@ -87,5 +89,46 @@ describe('ClientQueue', () => {
     );
     // Static path doesn't add the Reorder song aria label.
     expect(screen.queryByLabelText('Reorder song')).toBeNull();
+  });
+});
+
+describe('ClientQueue — role gating', () => {
+  it('shows remove button when isHost is true regardless of guestCanRemove', () => {
+    render(
+      <ClientQueue
+        items={[item()]}
+        onReorder={() => {}}
+        onRemove={() => {}}
+        isHost={true}
+        guestCanRemove={false}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'queue.removeAriaLabel' })).toBeInTheDocument();
+  });
+
+  it('shows remove button when guestCanRemove is true', () => {
+    render(
+      <ClientQueue
+        items={[item()]}
+        onReorder={() => {}}
+        onRemove={() => {}}
+        isHost={false}
+        guestCanRemove={true}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'queue.removeAriaLabel' })).toBeInTheDocument();
+  });
+
+  it('hides remove button when isHost is false and guestCanRemove is false', () => {
+    render(
+      <ClientQueue
+        items={[item()]}
+        onReorder={() => {}}
+        onRemove={() => {}}
+        isHost={false}
+        guestCanRemove={false}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'queue.removeAriaLabel' })).not.toBeInTheDocument();
   });
 });

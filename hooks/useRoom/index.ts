@@ -47,5 +47,6 @@ export function useRoom(roomId: string | null) {
     removeCurrentPlaying: queue.removeCurrentPlaying,
     setCurrentPlayingDirectly: queue.setCurrentPlayingDirectly,
     playSongNow: queue.playSongNow,
+    setGuestCanRemove: settings.setGuestCanRemove,
   };
 }

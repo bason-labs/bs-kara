@@ -15,7 +15,7 @@ const STORAGE_KEY = 'karaoke_last_active';
 
 beforeEach(() => {
   vi.useFakeTimers();
-  localStorage.clear();
+  sessionStorage.clear();
   getDbMock.mockResolvedValue({ exists: () => false, val: () => null });
   vi.stubGlobal('fetch', vi.fn());
 });
@@ -34,14 +34,14 @@ describe('useInactivityTimeout', () => {
 
   it('timedOut becomes true after default 60 min of inactivity', async () => {
     const { result } = renderHook(() => useInactivityTimeout('1234'));
-    localStorage.setItem(STORAGE_KEY, String(Date.now() - 61 * 60 * 1000));
+    sessionStorage.setItem(STORAGE_KEY, String(Date.now() - 61 * 60 * 1000));
     await act(async () => { vi.advanceTimersByTime(61_000); });
     expect(result.current.timedOut).toBe(true);
   });
 
   it('resetActivity resets timedOut to false', async () => {
     const { result } = renderHook(() => useInactivityTimeout('1234'));
-    localStorage.setItem(STORAGE_KEY, String(Date.now() - 61 * 60 * 1000));
+    sessionStorage.setItem(STORAGE_KEY, String(Date.now() - 61 * 60 * 1000));
     await act(async () => { vi.advanceTimersByTime(61_000); });
     expect(result.current.timedOut).toBe(true);
     act(() => { result.current.resetActivity(); });
@@ -50,7 +50,7 @@ describe('useInactivityTimeout', () => {
 
   it('does not time out within the timeout window', async () => {
     const { result } = renderHook(() => useInactivityTimeout('1234'));
-    localStorage.setItem(STORAGE_KEY, String(Date.now() - 30 * 60 * 1000));
+    sessionStorage.setItem(STORAGE_KEY, String(Date.now() - 30 * 60 * 1000));
     await act(async () => { vi.advanceTimersByTime(61_000); });
     expect(result.current.timedOut).toBe(false);
   });
@@ -61,7 +61,7 @@ describe('useInactivityTimeout', () => {
       json: async () => ({ allowed: true, reason: 'ok' }),
     });
     const { result } = renderHook(() => useInactivityTimeout('1234'));
-    localStorage.setItem(STORAGE_KEY, String(Date.now() - 61 * 60 * 1000));
+    sessionStorage.setItem(STORAGE_KEY, String(Date.now() - 61 * 60 * 1000));
     await act(async () => { vi.advanceTimersByTime(61_000); });
     let rejoinResult: { ok: boolean; reason: string } | undefined;
     await act(async () => { rejoinResult = await result.current.rejoin(); });
@@ -84,7 +84,7 @@ describe('useInactivityTimeout', () => {
 
   it('shows timedOut immediately on mount when session is already expired', async () => {
     // Pre-populate storage with a stale timestamp so the on-mount check fires
-    localStorage.setItem(STORAGE_KEY, String(Date.now() - 61 * 60 * 1000));
+    sessionStorage.setItem(STORAGE_KEY, String(Date.now() - 61 * 60 * 1000));
     const { result } = renderHook(() => useInactivityTimeout('1234'));
     await act(async () => {}); // flush effects
     expect(result.current.timedOut).toBe(true);
@@ -92,7 +92,7 @@ describe('useInactivityTimeout', () => {
 
   it('is inactive when roomCode is null', async () => {
     const { result } = renderHook(() => useInactivityTimeout(null));
-    localStorage.setItem(STORAGE_KEY, String(Date.now() - 61 * 60 * 1000));
+    sessionStorage.setItem(STORAGE_KEY, String(Date.now() - 61 * 60 * 1000));
     await act(async () => { vi.advanceTimersByTime(61_000); });
     expect(result.current.timedOut).toBe(false);
   });

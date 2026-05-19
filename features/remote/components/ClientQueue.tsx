@@ -36,6 +36,8 @@ interface ClientQueueProps {
   // Room-wide setting. When false we render the static list (same path used
   // during SSR/pre-hydration), so songs can still be removed but not dragged.
   dragDropEnabled?: boolean;
+  isHost?: boolean;
+  guestCanRemove?: boolean;
 }
 
 export function ClientQueue({
@@ -47,10 +49,13 @@ export function ClientQueue({
   onPlayNow,
   currentPlayingId,
   dragDropEnabled = true,
+  isHost = false,
+  guestCanRemove = false,
 }: ClientQueueProps) {
   const { t } = useTranslation();
   const mounted = useSyncExternalStore(subscribeNoop, getClientMounted, getServerMounted);
   const dndActive = mounted && dragDropEnabled;
+  const canRemove = isHost || guestCanRemove;
 
   // Lazy-load the DnD subtree (~165 KB minified for @hello-pangea/dnd) only
   // after dndActive becomes true. The static list below renders the queue
@@ -114,6 +119,7 @@ export function ClientQueue({
                 onEditRequester={onEditRequester}
                 onPlayNow={onPlayNow}
                 currentPlayingId={currentPlayingId}
+                canRemove={canRemove}
               />
             ) : (
               <div className="space-y-2.5">
@@ -149,17 +155,19 @@ export function ClientQueue({
                       />
                     )}
 
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemove(item.queueId);
-                      }}
-                      aria-label={t('queue.removeAriaLabel')}
-                      className="shrink-0 p-2 lg:p-1.5 rounded-md text-muted hover:text-danger hover:bg-surface-2 transition-colors"
-                    >
-                      <Trash2 className="w-[18px] h-[18px] lg:w-[15px] lg:h-[15px]" />
-                    </button>
+                    {canRemove && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemove(item.queueId);
+                        }}
+                        aria-label={t('queue.removeAriaLabel')}
+                        className="shrink-0 p-2 lg:p-1.5 rounded-md text-muted hover:text-danger hover:bg-surface-2 transition-colors"
+                      >
+                        <Trash2 className="w-[18px] h-[18px] lg:w-[15px] lg:h-[15px]" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

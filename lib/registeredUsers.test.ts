@@ -114,6 +114,34 @@ describe('registerUser', () => {
     getMock.mockResolvedValueOnce(makeSnap(true)); // phone already exists
     await expect(registerUser({ phone: '0912345678' })).rejects.toThrow('already registered');
   });
+
+  it('writes hostUid to the room node when uid is provided', async () => {
+    getMock
+      .mockResolvedValueOnce(makeSnap(false))
+      .mockResolvedValueOnce(makeSnap(false));
+    updateMock.mockResolvedValueOnce(undefined);
+
+    await registerUser({ phone: '0912345678', uid: 'firebase-uid-123' });
+
+    const [, updates] = updateMock.mock.calls[0] as [unknown, Record<string, unknown>];
+    const hasHostUid = Object.entries(updates).some(
+      ([key, val]) => key.endsWith('/hostUid') && val === 'firebase-uid-123',
+    );
+    expect(hasHostUid).toBe(true);
+  });
+
+  it('does not write hostUid when uid is omitted', async () => {
+    getMock
+      .mockResolvedValueOnce(makeSnap(false))
+      .mockResolvedValueOnce(makeSnap(false));
+    updateMock.mockResolvedValueOnce(undefined);
+
+    await registerUser({ phone: '0912345678' });
+
+    const [, updates] = updateMock.mock.calls[0] as [unknown, Record<string, unknown>];
+    const hasHostUid = Object.keys(updates).some((k) => k.endsWith('/hostUid'));
+    expect(hasHostUid).toBe(false);
+  });
 });
 
 describe('lookupUserByCode', () => {

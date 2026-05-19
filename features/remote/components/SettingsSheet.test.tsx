@@ -41,6 +41,9 @@ function renderSheet(over: Partial<React.ComponentProps<typeof SettingsSheet>> =
     onMcVoiceChange: vi.fn(),
     aiScoringEnabled: false,
     onAiScoringToggle: vi.fn(),
+    isHost: true,
+    guestCanRemove: false,
+    onGuestCanRemoveToggle: vi.fn(),
     ...over,
   };
   render(

@@ -44,9 +44,11 @@ export async function resolveUniqueCode(base: string): Promise<string> {
 export async function registerUser({
   phone,
   displayName,
+  uid,
 }: {
   phone: string;
   displayName?: string;
+  uid?: string;
 }): Promise<{ roomCode: string; normalizedPhone: string }> {
   const normalizedPhone = normalizePhone(phone);
   // Note: non-transactional check; concurrent duplicate registrations are prevented by Firebase Security Rules.
@@ -67,6 +69,7 @@ export async function registerUser({
     [getRegisteredUserPath(normalizedPhone)]: storedUser,
     [getRoomCodeIndexEntryPath(roomCode)]: normalizedPhone,
     [`${getRoomDataPath(roomCode)}/createdAt`]: storedUser.createdAt,
+    ...(uid ? { [`${getRoomDataPath(roomCode)}/hostUid`]: uid } : {}),
   };
   await update(ref(db), updates);
   return { roomCode, normalizedPhone };
