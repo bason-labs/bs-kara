@@ -22,7 +22,7 @@ export default defineConfig({
   webServer: {
     // E2E specs assert on UI shells and routes that don't require a live
     // Firebase backend. The unit/component suites cover the data-layer logic.
-    command: `npm run build && npm run start -- -p ${PORT}`,
+    command: `cd bk-web && npm run build && npm run start -- -p ${PORT}`,
     url: `http://localhost:${PORT}`,
     timeout: 180_000,
     reuseExistingServer: !process.env.CI,
