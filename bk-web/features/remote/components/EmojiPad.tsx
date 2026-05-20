@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { REACTIONS, getGifUrl, getStaticUrl } from '@/lib/reactions';
+import { REACTIONS, getGifUrl, getStaticUrl } from '@bs-kara/shared';
 
 interface EmojiPadProps {
   onSendEmoji: (emoji: string) => void;

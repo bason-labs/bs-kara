@@ -9,7 +9,7 @@ import {
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { ListMusic, Trash2 } from 'lucide-react';
-import { QueueItem } from '@/lib/youtube/types';
+import { QueueItem } from '@bs-kara/shared';
 import { QueueItemBody } from './QueueItemBody';
 import { PlayNowButton } from './PlayNowButton';
 import type { DndQueueListProps } from './DndQueueList';

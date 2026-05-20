@@ -5,7 +5,7 @@ import {
   requireAdmin,
   AdminAuthError,
 } from '@/features/admin/lib/requireAdmin';
-import { ptDateKey } from '@/lib/ptDateKey';
+import { ptDateKey } from '@bs-kara/shared';
 
 export const dynamic = 'force-dynamic';
 

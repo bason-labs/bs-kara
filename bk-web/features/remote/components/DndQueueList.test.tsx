@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { QueueItem } from '@/lib/youtube/types';
+import type { QueueItem } from '@bs-kara/shared';
 import { DndQueueList } from './DndQueueList';
 
 function item(over: Partial<QueueItem> = {}): QueueItem {

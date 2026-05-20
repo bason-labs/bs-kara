@@ -1,7 +1,7 @@
 import 'server-only';
 import { getDatabase, ServerValue } from 'firebase-admin/database';
 import { getAdminApp } from '@/features/admin/lib/firebaseAdmin';
-import { ptDateKey } from '@/lib/ptDateKey';
+import { ptDateKey } from '@bs-kara/shared';
 
 function adminDb() {
   return getDatabase(getAdminApp());

@@ -8,9 +8,9 @@ import {
   startAfter,
   onChildAdded,
 } from 'firebase/database';
-import { db } from '@/lib/firebase';
-import { getRoomDataPath } from '@/lib/roomPaths';
-import { computeScore, type ScoreResult } from '@/lib/scoring';
+import { db } from '@bs-kara/shared';
+import { getRoomDataPath } from '@bs-kara/shared';
+import { computeScore, type ScoreResult } from '@bs-kara/shared';
 
 interface StoredReaction {
   emoji: string;

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { Maximize2, Mic, Trash2 } from 'lucide-react';
-import { YouTubeVideo } from '@/lib/youtube/types';
+import { YouTubeVideo } from '@bs-kara/shared';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface NowPlayingCardProps {

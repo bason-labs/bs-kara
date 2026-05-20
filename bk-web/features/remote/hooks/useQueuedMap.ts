@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { QueueItem } from '@/lib/youtube/types';
+import type { QueueItem } from '@bs-kara/shared';
 
 // videoId → queueId for songs currently waiting in the queue. Used by
 // SearchPanel to toggle the "+ Add" / "Added" button into a remove action.

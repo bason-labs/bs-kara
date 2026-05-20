@@ -2,7 +2,7 @@
 
 import { Shuffle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { Genre, RandomFilters, SingerType, Tone } from '@/lib/youtube/types';
+import type { Genre, RandomFilters, SingerType, Tone } from '@bs-kara/shared';
 import { SectionHeader } from '../primitives/SectionHeader';
 import { FilterRow } from '../primitives/FilterRow';
 

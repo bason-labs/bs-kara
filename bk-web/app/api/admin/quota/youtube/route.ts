@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDatabase } from 'firebase-admin/database';
-import { ptDateKey } from '@/lib/ptDateKey';
+import { ptDateKey } from '@bs-kara/shared';
 import { getAdminApp } from '@/features/admin/lib/firebaseAdmin';
 import {
   requireAdmin,

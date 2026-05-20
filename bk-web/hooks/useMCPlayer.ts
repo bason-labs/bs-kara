@@ -1,7 +1,7 @@
 'use client';
 
 import { useLayoutEffect, useRef, useState } from 'react';
-import type { YouTubeVideo } from '@/lib/youtube/types';
+import type { YouTubeVideo } from '@bs-kara/shared';
 import { useAIVoice } from './useAIVoice';
 
 interface UseMCPlayerArgs {

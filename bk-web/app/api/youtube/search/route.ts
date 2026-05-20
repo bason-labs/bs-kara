@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
-import type { YouTubeVideo } from '@/lib/youtube/types';
-import { normalizeDiacritics } from '@/lib/text/normalize';
+import type { YouTubeVideo } from '@bs-kara/shared';
+import { normalizeDiacritics } from '@bs-kara/shared';
 import { recordSearchLive, recordSearchTotal } from '@/lib/analytics/serverAnalytics';
 
 const YOUTUBE_ENDPOINT = 'https://www.googleapis.com/youtube/v3/search';

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { YouTubeVideo } from '@/lib/youtube/types';
+import type { YouTubeVideo } from '@bs-kara/shared';
 import { NowPlayingCard } from './NowPlayingCard';
 
 const track: YouTubeVideo = {

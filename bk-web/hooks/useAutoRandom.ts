@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { searchYouTube } from '@/lib/youtube/client';
-import type { RandomFilters, YouTubeVideo } from '@/lib/youtube/types';
+import type { RandomFilters, YouTubeVideo } from '@bs-kara/shared';
 import {
   buildRandomSearchQuery,
   pickBestVideo,
   pickRandomTitle,
-} from '@/lib/random/picker';
+} from '@bs-kara/shared';
 
 interface UseAutoRandomParams {
   // Auto-mode is on for the room.

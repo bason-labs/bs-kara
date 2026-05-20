@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pause, Play, SkipBack, SkipForward, X } from 'lucide-react';
 import type { YouTubePlayer } from 'react-youtube';
-import { YouTubeVideo } from '@/lib/youtube/types';
+import { YouTubeVideo } from '@bs-kara/shared';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
 import { useSongScore } from '@/hooks/useSongScore';

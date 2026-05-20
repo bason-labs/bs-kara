@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ref, get } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { db } from '@bs-kara/shared';
 import type { RoomAccessReason } from '@/app/api/room-access/route';
 
 const DEFAULT_TIMEOUT_MINUTES = 60;

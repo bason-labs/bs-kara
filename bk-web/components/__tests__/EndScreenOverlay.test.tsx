@@ -8,7 +8,7 @@ vi.mock('canvas-confetti', () => ({
 }));
 
 import { EndScreenOverlay } from '@/components/EndScreenOverlay';
-import { VERDICT_TABLE } from '@/lib/scoring';
+import { VERDICT_TABLE } from '@bs-kara/shared';
 
 // Trigger flow: first poll reports an early position (arms the re-trigger
 // gate), every later poll reports a near-end position (fires the overlay).

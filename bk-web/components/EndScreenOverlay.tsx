@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import type { ScoreResult } from '@/lib/scoring';
+import type { ScoreResult } from '@bs-kara/shared';
 import { ScoreBlock } from '@/components/ScoreBlock';
 
 interface EndScreenOverlayProps {

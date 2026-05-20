@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { YouTubeVideo } from '@/lib/youtube/types';
+import type { YouTubeVideo } from '@bs-kara/shared';
 import { searchYouTube } from '@/lib/youtube/client';
-import { DEFAULT_HOT_HITS_QUERY } from '@/lib/config';
+import { DEFAULT_HOT_HITS_QUERY } from '@bs-kara/shared';
 
 // Fetches the initial "Hot Hits" list shown when SearchPanel mounts. Errors
 // (network/abort during back nav) are swallowed so isLoading still settles

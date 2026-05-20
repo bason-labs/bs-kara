@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { RandomFilters } from '@/lib/youtube/types';
+import type { RandomFilters } from '@bs-kara/shared';
 import { AutoRandomSection } from './sections/AutoRandomSection';
 import { QueueSection } from './sections/QueueSection';
 import { AIMcSection } from './sections/AIMcSection';

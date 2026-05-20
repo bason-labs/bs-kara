@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { RandomFilters } from '@/lib/youtube/types';
+import type { RandomFilters } from '@bs-kara/shared';
 
 const previewVoiceMock = vi.fn();
 const cancelMock = vi.fn();

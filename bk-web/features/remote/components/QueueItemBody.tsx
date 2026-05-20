@@ -2,7 +2,7 @@
 
 import { useTranslation } from 'react-i18next';
 import { Mic, Pencil, Plus } from 'lucide-react';
-import type { QueueItem } from '@/lib/youtube/types';
+import type { QueueItem } from '@bs-kara/shared';
 
 interface QueueItemBodyProps {
   item: QueueItem;

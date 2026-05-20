@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { REACTIONS } from '@/lib/reactions';
+import { REACTIONS } from '@bs-kara/shared';
 import { EmojiPad } from './EmojiPad';
 
 describe('EmojiPad', () => {

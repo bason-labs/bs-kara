@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { onDisconnect, ref, remove, set } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { db } from '@bs-kara/shared';
 import { lookupUserByCode, lookupUserByPhone } from '@/lib/registeredUsers';
-import { getActiveRoomPresencePath, getRoomDataPath } from '@/lib/roomPaths';
+import { getActiveRoomPresencePath, getRoomDataPath } from '@bs-kara/shared';
 import { getPublicOrigin } from '@/lib/publicOrigin';
 
 const TV_ROOM_STORAGE_KEY = 'karaoke_tv_room';

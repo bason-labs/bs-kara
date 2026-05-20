@@ -2,7 +2,7 @@
 
 import { useTranslation } from 'react-i18next';
 import { Check, Plus, X } from 'lucide-react';
-import type { YouTubeVideo } from '@/lib/youtube/types';
+import type { YouTubeVideo } from '@bs-kara/shared';
 
 interface AddToQueueButtonProps {
   video: YouTubeVideo;

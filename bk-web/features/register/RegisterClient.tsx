@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react';
 import { NeonOrbs } from '@/features/remote/components/NeonOrbs';
-import { auth } from '@/lib/firebase';
+import { auth } from '@bs-kara/shared';
 import { usePhoneAuth } from './hooks/usePhoneAuth';
 import { PhoneStep } from './components/PhoneStep';
 import { OtpStep } from './components/OtpStep';

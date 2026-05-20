@@ -10,7 +10,7 @@ import {
   type DropResult,
 } from '@hello-pangea/dnd';
 import { GripVertical, Trash2 } from 'lucide-react';
-import type { QueueItem } from '@/lib/youtube/types';
+import type { QueueItem } from '@bs-kara/shared';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { QueueItemBody } from './QueueItemBody';
 import { PlayNowButton } from './PlayNowButton';

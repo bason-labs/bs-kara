@@ -1,4 +1,4 @@
-import type { SearchResult, YouTubeVideo } from './types';
+import type { SearchResult, YouTubeVideo } from '@bs-kara/shared';
 
 async function searchViaScraper(query: string): Promise<YouTubeVideo[]> {
   try {

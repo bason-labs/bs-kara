@@ -5,7 +5,7 @@ import {
   VERDICT_TABLE,
   type ScoreResult,
   type VerdictLocale,
-} from '@/lib/scoring';
+} from '@bs-kara/shared';
 
 interface ScoreBlockProps {
   score: ScoreResult;

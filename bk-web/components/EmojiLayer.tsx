@@ -10,9 +10,9 @@ import {
   useState,
 } from 'react';
 import { ref, onChildAdded, query, orderByChild, startAfter } from 'firebase/database';
-import { db } from '@/lib/firebase';
-import { getRoomDataPath } from '@/lib/roomPaths';
-import { getGifUrl } from '@/lib/reactions';
+import { db } from '@bs-kara/shared';
+import { getRoomDataPath } from '@bs-kara/shared';
+import { getGifUrl } from '@bs-kara/shared';
 
 interface IncomingReaction {
   reactionId: string;

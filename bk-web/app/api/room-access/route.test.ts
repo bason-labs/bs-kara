@@ -4,7 +4,7 @@ import {
   getRoomCodeIndexEntryPath,
   getRegisteredUserPath,
   getRoomDataPath,
-} from '@/lib/roomPaths';
+} from '@bs-kara/shared';
 import { byPhoneRoot, subscriptionPath } from '@/lib/subscriptions/paths';
 
 // --- Firebase Admin mocks ---

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { YouTubeVideo } from '@/lib/youtube/types';
+import type { YouTubeVideo } from '@bs-kara/shared';
 
 const TOAST_TIMEOUT_MS = 2500;
 

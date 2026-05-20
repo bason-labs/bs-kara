@@ -1,11 +1,11 @@
 import { ref, get, set, update } from 'firebase/database';
-import { db } from './firebase';
 import {
+  db,
   getRegisteredUserPath,
   getRegisteredUsersPath,
   getRoomCodeIndexEntryPath,
   getRoomDataPath,
-} from './roomPaths';
+} from '@bs-kara/shared';
 
 export interface RegisteredUser {
   normalizedPhone: string;

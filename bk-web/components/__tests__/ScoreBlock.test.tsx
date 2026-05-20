@@ -6,8 +6,7 @@ import { render, screen } from '@testing-library/react';
 const langRef = vi.hoisted(() => ({ current: 'vi' as 'vi' | 'en' }));
 
 vi.mock('react-i18next', async () => {
-  const enMod = await import('@/locales/en.json');
-  const viMod = await import('@/locales/vi.json');
+  const { localeEn: enMod, localeVi: viMod } = await import('@bs-kara/shared');
   type Dict = Record<string, unknown>;
   const en = (enMod.default ?? enMod) as Dict;
   const vi = (viMod.default ?? viMod) as Dict;
@@ -36,9 +35,7 @@ vi.mock('react-i18next', async () => {
 });
 
 import { ScoreBlock } from '@/components/ScoreBlock';
-import { VERDICT_TABLE } from '@/lib/scoring';
-import enLocale from '@/locales/en.json';
-import viLocale from '@/locales/vi.json';
+import { VERDICT_TABLE, localeEn as enLocale, localeVi as viLocale } from '@bs-kara/shared';
 
 beforeEach(() => {
   langRef.current = 'vi';

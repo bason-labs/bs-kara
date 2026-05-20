@@ -13,7 +13,7 @@ import {
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowUpLeft, History, Mic, Search, SearchX, X } from 'lucide-react';
-import type { SearchError, YouTubeVideo } from '@/lib/youtube/types';
+import type { SearchError, YouTubeVideo } from '@bs-kara/shared';
 import { searchYouTube } from '@/lib/youtube/client';
 import { useSearchHistory } from '@/features/remote/hooks/useSearchHistory';
 import { useSearchSuggestions } from '@/features/remote/hooks/useSearchSuggestions';

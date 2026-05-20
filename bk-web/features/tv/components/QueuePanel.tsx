@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { Mic } from 'lucide-react';
-import type { QueueItem } from '@/lib/youtube/types';
+import type { QueueItem } from '@bs-kara/shared';
 
 interface QueuePanelProps {
   queue: QueueItem[];

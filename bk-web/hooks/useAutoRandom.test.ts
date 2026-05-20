@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RandomFilters, YouTubeVideo } from '@/lib/youtube/types';
+import type { RandomFilters, YouTubeVideo } from '@bs-kara/shared';
 import { useAutoRandom } from './useAutoRandom';
 
 vi.mock('@/lib/youtube/client', async () => {

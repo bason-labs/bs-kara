@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { onDisconnect, ref, runTransaction } from 'firebase/database';
-import { db } from '@/lib/firebase';
-import { getRoomDataPath } from '@/lib/roomPaths';
+import { db } from '@bs-kara/shared';
+import { getRoomDataPath } from '@bs-kara/shared';
 
 // Generates a stable per-tab device id. Survives re-renders within the same
 // tab; a new tab gets a new id (which is what we want for fullscreen claims).

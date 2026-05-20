@@ -1,7 +1,7 @@
 'use client';
 
 import { TransportControls } from '@/components/TransportControls';
-import { YouTubeVideo } from '@/lib/youtube/types';
+import { YouTubeVideo } from '@bs-kara/shared';
 
 interface RemoteControlsProps {
   isPlaying: boolean;

@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useTransientNotice } from '@/hooks/useTransientNotice';
+import { useTransientNotice } from '@bs-kara/shared';
 
 // End-Party flow: confirm-dialog gate → resetRoom → 5s "party ended"
 // toast. The TV stays attached to its room (see useTVPresence) so a fresh

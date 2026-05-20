@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth } from '@bs-kara/shared';
 import { lookupUserByPhone, type RegisteredUser } from '@/lib/registeredUsers';
 
 export interface CurrentHostState {

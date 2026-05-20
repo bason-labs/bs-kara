@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Maximize2, Mic, Minimize2 } from 'lucide-react';
 import type { YouTubePlayer } from 'react-youtube';
-import { useRoom } from '@/hooks/useRoom';
+import { useRoom } from '@bs-kara/shared';
 import { useAutoHide } from '@/hooks/useAutoHide';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
