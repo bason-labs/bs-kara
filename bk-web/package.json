@@ -1,5 +1,5 @@
 {
-  "name": "bs-kara",
+  "name": "@bs-kara/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -16,6 +16,7 @@
     "test:rules:emulator": "firebase --project demo-bs-kara emulators:exec --only database 'npm run test:rules'"
   },
   "dependencies": {
+    "@bs-kara/shared": "workspace:*",
     "@hello-pangea/dnd": "^18.0.1",
     "@types/react-youtube": "^7.6.2",
     "canvas-confetti": "^1.9.4",

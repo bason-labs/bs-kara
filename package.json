@@ -1,0 +1,16 @@
+{
+  "name": "bs-kara",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev --filter=@bs-kara/web",
+    "dev:mobile": "turbo dev --filter=@bs-kara/mobile",
+    "dev:all": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "typecheck": "turbo typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2"
+  }
+}
