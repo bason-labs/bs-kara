@@ -69,7 +69,7 @@ function RemoteInner() {
   } = useRoomGate();
 
   const { timedOut, rejoinReason, resetActivity, rejoin } = useInactivityTimeout(roomCode);
-  const { profile: hostProfile } = useCurrentHost();
+  const { profile: hostProfile, loading: hostLoading } = useCurrentHost();
 
   const [tab, setTab] = useState<Tab>('search');
   const [playerOpen, setPlayerOpen] = useState(false);
@@ -392,20 +392,19 @@ function RemoteInner() {
           </h1>
           <p className="text-sm sm:text-base text-muted mb-8">{t('home.tagline')}</p>
 
-          {isCoarsePointer === null ? (
+          {isCoarsePointer === null || hostLoading ? (
             <div className="w-full h-[260px] rounded-3xl border border-border bg-surface/70 backdrop-blur-md shadow-glow" />
           ) : (
             <div className="w-full flex flex-col gap-4">
-              {/* Host path */}
+              {/* Host path — navigate directly; the guest-access API must
+                not gate the owner from their own room. */}
               {hostProfile ? (
-                <button
-                  type="button"
-                  onClick={() => submitJoin(hostProfile.roomCode)}
-                  disabled={isJoining}
-                  className="w-full py-3.5 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98] disabled:opacity-40"
+                <Link
+                  href={`/?room=${hostProfile.roomCode}`}
+                  className="w-full py-3.5 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98] text-center block"
                 >
-                  {isJoining ? '…' : t('auth.goToMyRoom')}
-                </button>
+                  {t('auth.goToMyRoom')}
+                </Link>
               ) : (
                 <Link
                   href="/register"

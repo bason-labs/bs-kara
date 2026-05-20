@@ -108,6 +108,10 @@ export async function unsuspendUser(phone: string): Promise<void> {
   await set(ref(db, `${getRegisteredUserPath(normalizePhone(phone))}/suspended`), false);
 }
 
+export async function ensureHostUid(roomCode: string, uid: string): Promise<void> {
+  await set(ref(db, `${getRoomDataPath(roomCode)}/hostUid`), uid);
+}
+
 export async function updateDisplayName(
   phone: string,
   displayName: string,

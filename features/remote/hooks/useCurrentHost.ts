@@ -11,10 +11,33 @@ export interface CurrentHostState {
   loading: boolean;
 }
 
+const CACHE_KEY = 'bs_kara_host_profile';
+
+function readCache(): RegisteredUser | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? (JSON.parse(raw) as RegisteredUser) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(p: RegisteredUser | null) {
+  try {
+    if (p) localStorage.setItem(CACHE_KEY, JSON.stringify(p));
+    else localStorage.removeItem(CACHE_KEY);
+  } catch {
+    // storage unavailable, ignore
+  }
+}
+
 export function useCurrentHost(): CurrentHostState {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<RegisteredUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<RegisteredUser | null>(() => readCache());
+  // Skip the loading skeleton when a cached profile is available; Firebase
+  // will still correct stale data in the background.
+  const [loading, setLoading] = useState<boolean>(() => readCache() === null);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,9 +46,13 @@ export function useCurrentHost(): CurrentHostState {
       setUser(u);
       if (u?.phoneNumber) {
         const found = await lookupUserByPhone(u.phoneNumber);
-        if (!cancelled) setProfile(found);
+        if (!cancelled) {
+          setProfile(found);
+          writeCache(found);
+        }
       } else {
         setProfile(null);
+        writeCache(null);
       }
       if (!cancelled) setLoading(false);
     });

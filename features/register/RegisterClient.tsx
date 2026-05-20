@@ -10,7 +10,7 @@ import { usePhoneAuth } from './hooks/usePhoneAuth';
 import { PhoneStep } from './components/PhoneStep';
 import { OtpStep } from './components/OtpStep';
 import { NameStep } from './components/NameStep';
-import { registerUser, lookupUserByPhone } from '@/lib/registeredUsers';
+import { registerUser, lookupUserByPhone, ensureHostUid } from '@/lib/registeredUsers';
 
 type Step = 'phone' | 'otp' | 'name';
 
@@ -33,6 +33,7 @@ export function RegisterClient() {
     if (!user) return;
     const existing = await lookupUserByPhone(e164Phone);
     if (existing) {
+      await ensureHostUid(existing.roomCode, user.uid);
       router.push(`/?room=${existing.roomCode}`);
       return;
     }

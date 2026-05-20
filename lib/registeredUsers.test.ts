@@ -25,6 +25,7 @@ import {
   updateDisplayName,
   reassignRoomCode,
   getAllUsers,
+  ensureHostUid,
 } from './registeredUsers';
 
 const getMock = get as unknown as ReturnType<typeof vi.fn>;
@@ -141,6 +142,21 @@ describe('registerUser', () => {
     const [, updates] = updateMock.mock.calls[0] as [unknown, Record<string, unknown>];
     const hasHostUid = Object.keys(updates).some((k) => k.endsWith('/hostUid'));
     expect(hasHostUid).toBe(false);
+  });
+});
+
+// Regression: returning host who logs in via OTP must get hostUid written so
+// isHost resolves correctly in useHostAuth (was null for pre-feature rooms).
+describe('ensureHostUid', () => {
+  it('does not write hostUid when verifying OTP for an existing user (bug)', async () => {
+    // This test documents the bug: before the fix, ensureHostUid did not exist,
+    // so returning users never had hostUid written and isHost was always false.
+    setMock.mockResolvedValueOnce(undefined);
+    await ensureHostUid('5678', 'firebase-uid-123');
+    expect(setMock).toHaveBeenCalledWith(
+      { path: 'rooms/5678/hostUid' },
+      'firebase-uid-123',
+    );
   });
 });
 
