@@ -13,6 +13,7 @@ if (!i18n.isInitialized) {
     fallbackLng: 'en',
     interpolation: { escapeValue: false },
     react: { useSuspense: false },
+    compatibilityJSON: 'v3',
   });
 }
 

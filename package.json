@@ -9,9 +9,23 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test",
-    "typecheck": "turbo typecheck"
+    "typecheck": "turbo typecheck",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "devDependencies": {
     "turbo": "^2"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.0.0",
+      "react-dom": "19.0.0"
+    }
+  },
+  "version": "1.0.0",
+  "dependencies": {
+    "expo": "~53.0.27",
+    "react": "19.0.0",
+    "react-native": "0.79.6"
   }
 }

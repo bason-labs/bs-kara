@@ -10,7 +10,7 @@ export default function GateScreen() {
   useEffect(() => {
     if (isLoading) return;
     if (activeRoomCode) {
-      router.replace({ pathname: '/(room)', params: { roomCode: activeRoomCode } });
+      router.replace({ pathname: '/(room)/search', params: { roomCode: activeRoomCode } });
     } else {
       router.replace('/join');
     }

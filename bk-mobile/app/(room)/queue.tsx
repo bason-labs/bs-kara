@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, SafeAreaView, TouchableOpacity } from 'react-native';
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
 import { Settings } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useRoomContext } from '@/context/RoomContext';
 import { NowPlayingCard } from '@/components/NowPlayingCard';
 import { QueueItemRow } from '@/components/QueueItemRow';
@@ -10,6 +11,7 @@ import { SettingsSheet } from '@/components/SettingsSheet';
 import type { QueueItem } from '@bs-kara/shared';
 
 export default function QueueScreen() {
+  const { t } = useTranslation();
   const {
     roomData,
     togglePlayPause,
@@ -27,7 +29,7 @@ export default function QueueScreen() {
     <SafeAreaView className="flex-1 bg-[#06100f]">
       {/* Header */}
       <View className="flex-row items-center px-4 pt-4 pb-2">
-        <Text className="text-[#e0ffff] text-lg font-bold flex-1">Hàng chờ</Text>
+        <Text className="text-[#e0ffff] text-lg font-bold flex-1">{t('queue.title')}</Text>
         <TouchableOpacity
           onPress={() => setSettingsVisible(true)}
           activeOpacity={0.7}
@@ -47,7 +49,7 @@ export default function QueueScreen() {
       {/* Queue list */}
       {roomData.queue.length === 0 ? (
         <View className="flex-1 items-center justify-center">
-          <Text className="text-[#7aa8a8] text-sm">Hàng đợi đang trống. Hãy thêm bài hát nhé!</Text>
+          <Text className="text-[#7aa8a8] text-sm">{t('queue.emptyMessage')}</Text>
         </View>
       ) : (
         <DraggableFlatList

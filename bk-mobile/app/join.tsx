@@ -27,7 +27,7 @@ export default function JoinScreen() {
         setError((data.reason as JoinError) ?? 'error');
         return;
       }
-      router.replace({ pathname: '/(room)', params: { roomCode } });
+      router.replace({ pathname: '/(room)/search', params: { roomCode } });
     } catch {
       setError('error');
     } finally {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,7 +26,6 @@ export default function SearchScreen() {
   const [results, setResults] = useState<YouTubeVideo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [added, setAdded] = useState<Set<string>>(new Set());
-  const [hotHitsLoaded, setHotHitsLoaded] = useState(false);
 
   const [requesterModalVisible, setRequesterModalVisible] = useState(false);
   const [requesterName, setRequesterName] = useState('');
@@ -41,13 +40,16 @@ export default function SearchScreen() {
       );
       const data = (await res.json()) as YouTubeVideo[];
       setResults(Array.isArray(data) ? data : []);
-      if (!q.trim()) setHotHitsLoaded(true);
     } catch {
       setResults([]);
     } finally {
       setIsSearching(false);
     }
   }, []);
+
+  useEffect(() => {
+    search('');
+  }, [search]);
 
   function handleAddPress(video: YouTubeVideo) {
     if (roomData.requesterPromptEnabled) {
@@ -65,8 +67,6 @@ export default function SearchScreen() {
     setRequesterModalVisible(false);
     pendingVideoRef.current = null;
   }
-
-  const showHotHitsPrompt = results.length === 0 && !isSearching && !hotHitsLoaded;
 
   return (
     <SafeAreaView className="flex-1 bg-[#06100f]">
@@ -97,16 +97,10 @@ export default function SearchScreen() {
         </View>
       )}
 
-      {/* Hot hits prompt */}
-      {showHotHitsPrompt && (
+      {/* Empty state */}
+      {!isSearching && results.length === 0 && (
         <View className="flex-1 items-center justify-center px-6">
           <Text className="text-[#7aa8a8] text-sm text-center">{t('search.hotHitsLabel')}</Text>
-          <TouchableOpacity
-            className="mt-4 px-6 py-3 border border-[#008b8b] rounded-full"
-            onPress={() => search('')}
-          >
-            <Text className="text-[#008b8b] text-sm font-semibold">Xem bài hot</Text>
-          </TouchableOpacity>
         </View>
       )}
 

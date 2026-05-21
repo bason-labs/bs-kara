@@ -1,3 +1,4 @@
+import '../lib/firebaseAuthInit';
 import '../global.css';
 import { Stack } from 'expo-router';
 import { Suspense } from 'react';

@@ -1,4 +1,5 @@
 import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { YouTubeVideo } from '@bs-kara/shared';
 
 interface SongResultItemProps {
@@ -8,6 +9,7 @@ interface SongResultItemProps {
 }
 
 export function SongResultItem({ video, onAdd, added }: SongResultItemProps) {
+  const { t } = useTranslation();
   return (
     <View className="flex-row items-center gap-3 px-4 py-3 border-b border-[#1f3a3a]">
       <Image
@@ -30,7 +32,7 @@ export function SongResultItem({ video, onAdd, added }: SongResultItemProps) {
         style={{ opacity: added ? 0.6 : 1 }}
       >
         <Text className="text-[#008b8b] text-xs font-semibold">
-          {added ? 'Đã thêm' : '+ Thêm'}
+          {added ? t('search.addedToQueueButton') : t('search.addToQueueButton')}
         </Text>
       </TouchableOpacity>
     </View>

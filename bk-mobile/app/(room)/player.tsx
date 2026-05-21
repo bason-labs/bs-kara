@@ -1,5 +1,6 @@
 import { View, Text, SafeAreaView, Dimensions } from 'react-native';
 import YoutubeIframe from 'react-native-youtube-iframe';
+import { useTranslation } from 'react-i18next';
 import { useRoomContext } from '@/context/RoomContext';
 import { TransportControls } from '@/components/TransportControls';
 import { EmojiPad } from '@/components/EmojiPad';
@@ -8,6 +9,7 @@ const { width } = Dimensions.get('window');
 const PLAYER_HEIGHT = (width - 32) * (9 / 16);
 
 export default function PlayerScreen() {
+  const { t } = useTranslation();
   const { roomData, togglePlayPause, playNext, playPrevious, sendEmoji } = useRoomContext();
   const { currentPlaying, isPlaying } = roomData;
 
@@ -15,7 +17,7 @@ export default function PlayerScreen() {
     return (
       <SafeAreaView className="flex-1 bg-[#06100f] items-center justify-center">
         <Text className="text-[#7aa8a8] text-sm text-center px-6">
-          Chưa có bài nào đang phát — vào Tìm bài để chọn.
+          {t('player.idleHint')}
         </Text>
       </SafeAreaView>
     );

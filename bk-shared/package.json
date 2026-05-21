@@ -22,8 +22,8 @@
   },
   "dependencies": {
     "firebase": "^12.12.1",
-    "i18next": "^26.0.8",
-    "react-i18next": "^17.0.4"
+    "i18next": "^23.0.0",
+    "react-i18next": "^14.0.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
