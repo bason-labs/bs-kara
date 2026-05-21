@@ -7,7 +7,7 @@ import { GradientButton } from '@/components/GradientButton';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 
-type JoinError = 'room_not_found' | 'subscription_expired' | 'error' | null;
+type JoinError = 'room_not_found' | 'subscription_expired' | 'guests_not_allowed' | 'error' | null;
 
 export default function JoinScreen() {
   const { t } = useTranslation();
@@ -38,6 +38,7 @@ export default function JoinScreen() {
   function getErrorMessage(): string | null {
     if (error === 'room_not_found') return t('home.invalidCode');
     if (error === 'subscription_expired') return 'Phòng này không còn hoạt động.';
+    if (error === 'guests_not_allowed') return 'Phòng này không cho phép khách tham gia tự do. Hãy nhờ chủ phòng mời bạn.';
     if (error === 'error') return 'Đã xảy ra lỗi, vui lòng thử lại.';
     return null;
   }
