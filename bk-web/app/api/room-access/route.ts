@@ -5,7 +5,6 @@ import { getAdminApp } from '@/features/admin/lib/firebaseAdmin';
 import {
   getRoomCodeIndexEntryPath,
   getRegisteredUserPath,
-  getRoomDataPath,
 } from '@bs-kara/shared';
 import { byPhoneRoot, subscriptionPath } from '@/lib/subscriptions/paths';
 
@@ -16,8 +15,7 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 export type RoomAccessReason =
   | 'ok'
   | 'room_not_found'
-  | 'subscription_expired'
-  | 'guests_not_allowed';
+  | 'subscription_expired';
 
 export interface RoomAccessResponse {
   allowed: boolean;
@@ -84,12 +82,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       });
     }
     if (!hasActiveSubscription) return deny('subscription_expired');
-
-    // 4. Check guestsAllowed toggle
-    const guestsSnap = await db
-      .ref(`${getRoomDataPath(roomCode)}/guestsAllowed`)
-      .once('value');
-    if (guestsSnap.val() !== true) return deny('guests_not_allowed');
 
     return NextResponse.json(
       { allowed: true, reason: 'ok' } satisfies RoomAccessResponse,

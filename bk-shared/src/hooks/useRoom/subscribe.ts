@@ -61,7 +61,6 @@ export function useRoomSubscribe(roomId: string | null) {
         isTvActive?: boolean;
         fullscreenOwner?: string | null;
         lastEndedAt?: number | null;
-        guestsAllowed?: boolean;
         hostUid?: string | null;
         guestCanRemove?: boolean;
       } | null;
@@ -141,7 +140,6 @@ export function useRoomSubscribe(roomId: string | null) {
             : null,
         lastEndedAt:
           typeof data.lastEndedAt === 'number' ? data.lastEndedAt : null,
-        guestsAllowed: data.guestsAllowed === true,
         hostUid:
           typeof data.hostUid === 'string' && data.hostUid
             ? data.hostUid

@@ -29,17 +29,13 @@ export function useTVPresence() {
     }
     const urlParam = new URLSearchParams(window.location.search).get('room');
     if (urlParam && CODE_PATTERN.test(urlParam)) {
-      // Treat URL param as a fresh activation: write guestsAllowed=false same as manual lookup.
-      set(ref(db, `${getRoomDataPath(urlParam)}/guestsAllowed`), false).catch(() => {});
       sessionStorage.setItem(TV_ROOM_STORAGE_KEY, urlParam);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRoomCode(urlParam);
       setPhase('active');
       return;
     }
     const stored = sessionStorage.getItem(TV_ROOM_STORAGE_KEY);
     if (stored) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRoomCode(stored);
       setPhase('active');
     }
@@ -79,19 +75,10 @@ export function useTVPresence() {
 
   // Called by TVRoomLookup after successful validation.
   const activateRoomByCode = useCallback(async (code: string) => {
-    await set(ref(db, `${getRoomDataPath(code)}/guestsAllowed`), false).catch(() => {});
     sessionStorage.setItem(TV_ROOM_STORAGE_KEY, code);
     setRoomCode(code);
     setPhase('active');
   }, []);
-
-  const setGuestsAllowed = useCallback(
-    (enabled: boolean) => {
-      if (!roomCode) return;
-      set(ref(db, `${getRoomDataPath(roomCode)}/guestsAllowed`), enabled).catch(() => {});
-    },
-    [roomCode],
-  );
 
   // Used by TVRoomLookup to validate the operator's input.
   // Accepts either a room code (4-7 digits) or a phone number.
@@ -111,5 +98,5 @@ export function useTVPresence() {
     return null;
   }, []);
 
-  return { phase, roomCode, joinUrl, activateRoomByCode, resolveRoomCode, setGuestsAllowed };
+  return { phase, roomCode, joinUrl, activateRoomByCode, resolveRoomCode };
 }

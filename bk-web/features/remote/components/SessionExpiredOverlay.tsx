@@ -17,15 +17,11 @@ export function SessionExpiredOverlay({
 }: SessionExpiredOverlayProps) {
   if (!timedOut) return null;
 
-  const isHardBlocked =
-    rejoinReason === 'subscription_expired' ||
-    rejoinReason === 'guests_not_allowed';
+  const isHardBlocked = rejoinReason === 'subscription_expired';
 
   let title = 'Phiên của bạn đã hết hạn do không hoạt động';
   if (rejoinReason === 'subscription_expired') {
     title = 'Phòng không còn hoạt động';
-  } else if (rejoinReason === 'guests_not_allowed') {
-    title = 'Phòng đã đóng';
   }
 
   return (

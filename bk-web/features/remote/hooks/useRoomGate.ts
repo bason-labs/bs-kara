@@ -7,10 +7,10 @@ import type { RoomAccessReason } from '@/app/api/room-access/route';
 const ROOM_CODE_PATTERN = /^\d{4,7}$/;
 
 // Owns the URL ↔ room-code contract. `submitJoin` validates a code via the
-// server-side /api/room-access route (checks room existence, subscription
-// validity, and the owner's guestsAllowed toggle) before navigating to
-// /?room=<code>. Room code lives in the URL only — refreshing keeps the user
-// in the room, and Leave is irreversible without an explicit re-join.
+// server-side /api/room-access route (checks room existence and subscription
+// validity) before navigating to /?room=<code>. Room code lives in the URL
+// only — refreshing keeps the user in the room, and Leave is irreversible
+// without an explicit re-join.
 export function useRoomGate() {
   const searchParams = useSearchParams();
   const router = useRouter();

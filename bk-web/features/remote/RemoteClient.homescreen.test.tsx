@@ -97,7 +97,7 @@ vi.mock('@/hooks/useRoom', () => ({
       playedHistory: [], dragDropEnabled: true, requesterPromptEnabled: true,
       isMCEnabled: true, mcVoice: 'vi-VN-Neural2-A', lastAnnouncedSongId: null,
       aiScoringEnabled: false, lastScoredSongId: null, isTvActive: false,
-      fullscreenOwner: null, lastEndedAt: null, guestsAllowed: false,
+      fullscreenOwner: null, lastEndedAt: null,
       hostUid: 'host-uid-123', guestCanRemove: false,
     },
     isLoading: false, roomExists: null,
@@ -124,9 +124,9 @@ beforeEach(() => {
 });
 
 // Regression: when the host clicked "Vào phòng của tôi" (Join my room), it
-// called submitJoin() which hits /api/room-access. That API blocks the request
-// with guests_not_allowed when guestsAllowed=false — even though the caller
-// IS the owner. Fix: host navigates directly to /?room=XXXX via a Link,
+// called submitJoin() which hits /api/room-access. The API was previously
+// blocking the request with guests_not_allowed — even though the caller IS
+// the owner. Fix: host navigates directly to /?room=XXXX via a Link,
 // bypassing the guest-access gate entirely.
 describe('RemoteClient home screen — host navigation', () => {
   it('does not call submitJoin when the host clicks "Join my room"', async () => {

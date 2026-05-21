@@ -32,8 +32,6 @@ export function JoinForm({ onJoin, joinError, isJoining }: JoinFormProps) {
     errorMessage = 'Phòng này tạm thời không khả dụng.';
   } else if (joinError === 'subscription_expired') {
     errorMessage = 'Phòng này không còn hoạt động.';
-  } else if (joinError === 'guests_not_allowed') {
-    errorMessage = 'Phòng chưa mở — hãy chờ chủ phòng bật chế độ cho khách tham gia.';
   } else if (joinError === 'error') {
     errorMessage = 'Đã xảy ra lỗi, vui lòng thử lại.';
   }
@@ -55,11 +53,7 @@ export function JoinForm({ onJoin, joinError, isJoining }: JoinFormProps) {
       />
 
       {errorMessage && (
-        <p
-          className={`text-xs text-center ${
-            joinError === 'guests_not_allowed' ? 'text-muted' : 'text-danger'
-          }`}
-        >
+        <p className="text-xs text-center text-danger">
           {errorMessage}
         </p>
       )}

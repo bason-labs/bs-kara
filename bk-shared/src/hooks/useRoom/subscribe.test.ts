@@ -50,22 +50,3 @@ describe('useRoomSubscribe — guestCanRemove', () => {
   });
 });
 
-describe('useRoomSubscribe — guestsAllowed', () => {
-  it('defaults guestsAllowed to false when field is missing', () => {
-    const { result } = renderHook(() => useRoomSubscribe('1234'));
-    triggerSnapshot({ isPlaying: true });
-    expect(result.current.roomData.guestsAllowed).toBe(false);
-  });
-
-  it('maps guestsAllowed: true from the snapshot', () => {
-    const { result } = renderHook(() => useRoomSubscribe('1234'));
-    triggerSnapshot({ guestsAllowed: true });
-    expect(result.current.roomData.guestsAllowed).toBe(true);
-  });
-
-  it('maps guestsAllowed: false from the snapshot', () => {
-    const { result } = renderHook(() => useRoomSubscribe('1234'));
-    triggerSnapshot({ guestsAllowed: false });
-    expect(result.current.roomData.guestsAllowed).toBe(false);
-  });
-});

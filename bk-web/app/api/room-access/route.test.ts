@@ -3,7 +3,6 @@ import { NextRequest } from 'next/server';
 import {
   getRoomCodeIndexEntryPath,
   getRegisteredUserPath,
-  getRoomDataPath,
 } from '@bs-kara/shared';
 import { byPhoneRoot, subscriptionPath } from '@/lib/subscriptions/paths';
 
@@ -55,7 +54,6 @@ function setupValidRoom(roomCode = '1234') {
     status: 'active',
     endDate: Date.now() + 86_400_000,
   });
-  snapshots[`${getRoomDataPath(roomCode)}/guestsAllowed`] = snap(true);
 }
 
 describe('GET /api/room-access', () => {
@@ -92,14 +90,15 @@ describe('GET /api/room-access', () => {
     expect(body.reason).toBe('subscription_expired');
   });
 
-  it('returns guests_not_allowed when guestsAllowed is false', async () => {
-    const roomCode = '1234';
-    setupValidRoom(roomCode);
-    snapshots[`${getRoomDataPath(roomCode)}/guestsAllowed`] = snap(false);
-    const res = await GET(makeReq(roomCode));
+  // Regression: guests were previously blocked when guestsAllowed=false in
+  // the room data. The feature has been removed — guests are always allowed
+  // once the room has an active subscription.
+  it('returns ok regardless of any legacy guestsAllowed value in the room', async () => {
+    setupValidRoom('1234');
+    const res = await GET(makeReq('1234'));
     const body = await res.json() as { allowed: boolean; reason: string };
-    expect(body.allowed).toBe(false);
-    expect(body.reason).toBe('guests_not_allowed');
+    expect(body.allowed).toBe(true);
+    expect(body.reason).toBe('ok');
   });
 
   it('returns room_not_found when user is suspended', async () => {

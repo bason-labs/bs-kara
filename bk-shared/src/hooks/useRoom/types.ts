@@ -44,9 +44,6 @@ export interface RoomState {
   // Timestamp written by `resetRoom` (End Party). Phones watch this so they
   // can surface a "party ended" notice while staying connected to the room.
   lastEndedAt: number | null;
-  // Owner-controlled toggle. false by default — guests cannot join until
-  // the TV host flips this on from the waiting overlay.
-  guestsAllowed: boolean;
   // Firebase Auth UID of the registered host who owns this room.
   // null for legacy rooms created before host auth was introduced.
   hostUid: string | null;
@@ -73,7 +70,6 @@ export const DEFAULT_STATE: RoomState = {
   isTvActive: false,
   fullscreenOwner: null,
   lastEndedAt: null,
-  guestsAllowed: false,
   hostUid: null,
   guestCanRemove: false,
 };

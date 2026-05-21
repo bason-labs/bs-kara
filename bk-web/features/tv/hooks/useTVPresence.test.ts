@@ -37,7 +37,7 @@ beforeEach(() => {
 });
 
 describe('useTVPresence — URL param activation', () => {
-  it('activates directly from ?room= URL param and writes guestsAllowed=false', async () => {
+  it('activates directly from ?room= URL param', async () => {
     Object.defineProperty(window, 'location', {
       value: { ...window.location, search: '?room=5678' },
       writable: true,
@@ -46,10 +46,6 @@ describe('useTVPresence — URL param activation', () => {
     await act(async () => {});
     expect(result.current.phase).toBe('active');
     expect(result.current.roomCode).toBe('5678');
-    const paths = refMock.mock.calls.map((c) => c[1] as string | undefined);
-    expect(paths).toContain('rooms/5678/guestsAllowed');
-    const idx = refMock.mock.calls.findIndex((c) => c[1] === 'rooms/5678/guestsAllowed');
-    expect(setMock.mock.calls[idx]?.[1]).toBe(false);
     window.location.search = '';
   });
 
@@ -77,36 +73,15 @@ describe('useTVPresence — URL param activation', () => {
   });
 });
 
-describe('useTVPresence — guestsAllowed', () => {
-  it('activateRoomByCode writes guestsAllowed=false before activating', async () => {
+describe('useTVPresence — activateRoomByCode', () => {
+  it('activates the room without writing guestsAllowed', async () => {
     const { result } = renderHook(() => useTVPresence());
     await act(async () => {
       await result.current.activateRoomByCode('1234');
     });
-    // ref should have been called with the guestsAllowed path
+    expect(result.current.phase).toBe('active');
+    expect(result.current.roomCode).toBe('1234');
     const paths = refMock.mock.calls.map((call) => call[1] as string | undefined);
-    expect(paths).toContain('rooms/1234/guestsAllowed');
-    // set should have been called with false for that path
-    const idx = refMock.mock.calls.findIndex((c) => c[1] === 'rooms/1234/guestsAllowed');
-    expect(setMock.mock.calls[idx]?.[1]).toBe(false);
-  });
-
-  it('setGuestsAllowed(true) writes true to rooms/{roomCode}/guestsAllowed', async () => {
-    const { result } = renderHook(() => useTVPresence());
-    await act(async () => {
-      await result.current.activateRoomByCode('1234');
-    });
-    setMock.mockClear();
-    refMock.mockClear();
-    act(() => { result.current.setGuestsAllowed(true); });
-    const paths = refMock.mock.calls.map((c) => c[1] as string | undefined);
-    expect(paths).toContain('rooms/1234/guestsAllowed');
-    expect(setMock).toHaveBeenCalledWith(expect.anything(), true);
-  });
-
-  it('setGuestsAllowed is a no-op when no room is active', () => {
-    const { result } = renderHook(() => useTVPresence());
-    act(() => { result.current.setGuestsAllowed(true); });
-    expect(setMock).not.toHaveBeenCalled();
+    expect(paths).not.toContain('rooms/1234/guestsAllowed');
   });
 });
