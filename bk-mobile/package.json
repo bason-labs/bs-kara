@@ -9,25 +9,42 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "jest"
   },
   "dependencies": {
     "@bs-kara/shared": "workspace:*",
+    "@gorhom/bottom-sheet": "^5.2.14",
+    "@react-native-async-storage/async-storage": "^3.0.3",
     "expo": "~53.0.0",
+    "expo-linear-gradient": "^55.0.14",
     "expo-router": "~4.0.0",
     "expo-status-bar": "~2.2.3",
+    "firebase": "^12.12.1",
+    "i18next": "^23.0.0",
+    "lucide-react-native": "^1.16.0",
     "nativewind": "^4.1.23",
     "react": "19.0.0",
+    "react-i18next": "^14.0.0",
     "react-native": "0.79.2",
+    "react-native-draggable-flatlist": "^4.0.3",
     "react-native-safe-area-context": "4.14.0",
     "react-native-screens": "~4.4.0",
-    "react-i18next": "^14.0.0",
-    "i18next": "^23.0.0",
-    "firebase": "^12.12.1"
+    "react-native-svg": "^15.15.5",
+    "react-native-youtube-iframe": "^2.4.1"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|lucide-react-native|@gorhom|react-native-draggable-flatlist|react-native-reanimated)"
+    ]
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.0.10",
+    "jest-expo": "^55.0.18",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3"
   }
