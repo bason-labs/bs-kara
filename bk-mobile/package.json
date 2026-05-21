@@ -36,9 +36,11 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["**/*.test.js"],
-    "moduleFileExtensions": ["js", "jsx"],
-    "transform": {}
+    "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json"],
+    "testMatch": ["**/*.test.ts", "**/*.test.tsx", "**/*.test.js"],
+    "transform": {
+      "^.+\\.(ts|tsx|js|jsx)$": "babel-jest"
+    }
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

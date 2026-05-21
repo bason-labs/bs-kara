@@ -1,5 +1,4 @@
-// Import from colors.js (the CommonJS wrapper)
-const { DarkColors, LightColors } = require('./colors.js');
+import { DarkColors, LightColors } from './colors';
 
 describe('color tokens', () => {
   it('dark theme has all required tokens', () => {

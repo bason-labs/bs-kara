@@ -2,15 +2,7 @@ module.exports = function (api) {
   const isTest = api.env('test');
   api.cache(true);
 
-  if (isTest) {
-    // For tests, just use identity - don't transform anything
-    return {
-      presets: [],
-      plugins: [],
-    };
-  }
-
-  return {
+  const baseConfig = {
     presets: [
       ['babel-preset-expo', { jsxImportSource: 'nativewind' }],
     ],
@@ -18,4 +10,17 @@ module.exports = function (api) {
       'nativewind/babel',
     ],
   };
+
+  if (isTest) {
+    // For tests, use babel-preset-expo but without nativewind
+    return {
+      presets: [
+        ['babel-preset-expo'],
+        ['@babel/preset-typescript', { allExtensions: true, isTSX: true }],
+      ],
+      plugins: [],
+    };
+  }
+
+  return baseConfig;
 };
