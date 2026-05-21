@@ -3,6 +3,16 @@ import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { server } from './msw/server';
 
+// Provide stub Firebase env values so `@bs-kara/shared`'s firebase.ts can
+// initialise its app without throwing during tests. Individual tests still
+// mock `firebase/database` / `firebase/auth` to control runtime behaviour.
+process.env.NEXT_PUBLIC_FIREBASE_API_KEY ??= 'test-api-key';
+process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ??= 'test.firebaseapp.com';
+process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL ??=
+  'https://test-default-rtdb.firebaseio.com';
+process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ??= 'test-project';
+process.env.NEXT_PUBLIC_FIREBASE_APP_ID ??= '1:1234567890:web:abcdef';
+
 // Pass-through i18n: t(key, opts) → if `opts` has interpolation values, do a
 // minimal {{var}} substitution so tests can assert on rendered text. Otherwise
 // return the key — assertions target keys / aria-labels rather than locale text.

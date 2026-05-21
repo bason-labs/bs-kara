@@ -6,6 +6,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./hooks": {
+      "types": "./src/hooks.ts",
+      "default": "./src/hooks.ts"
     }
   },
   "scripts": {

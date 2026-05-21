@@ -44,14 +44,7 @@ export { DEFAULT_RANDOM_FILTERS } from './lib/youtube/types';
 // Scoring
 export * from './lib/scoring';
 
-// i18n
-export { default as i18n } from './lib/i18n';
-
 // Locales (for consumers that need the raw JSON)
 export { default as localeEn } from './locales/en.json';
 export { default as localeVi } from './locales/vi.json';
 
-// Hooks
-export { useRoom } from './hooks/useRoom';
-export type { RoomState } from './hooks/useRoom/types';
-export { useTransientNotice } from './hooks/useTransientNotice';

@@ -6,10 +6,10 @@ import { render, screen } from '@testing-library/react';
 const langRef = vi.hoisted(() => ({ current: 'vi' as 'vi' | 'en' }));
 
 vi.mock('react-i18next', async () => {
-  const { localeEn: enMod, localeVi: viMod } = await import('@bs-kara/shared');
+  const { localeEn, localeVi } = await import('@bs-kara/shared');
   type Dict = Record<string, unknown>;
-  const en = (enMod.default ?? enMod) as Dict;
-  const vi = (viMod.default ?? viMod) as Dict;
+  const en = localeEn as Dict;
+  const vi = localeVi as Dict;
   const lookup = (dict: Dict, key: string): string | undefined => {
     const out = key.split('.').reduce<unknown>(
       (acc, k) =>

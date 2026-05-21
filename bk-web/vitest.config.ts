@@ -12,6 +12,7 @@ export default defineConfig({
       // stub it to a no-op so server-only files can be unit-tested.
       'server-only': fileURLToPath(new URL('./tests/stubs/server-only.ts', import.meta.url)),
       '@bs-kara/shared': fileURLToPath(new URL('../bk-shared/src/index.ts', import.meta.url)),
+      '@bs-kara/shared/hooks': fileURLToPath(new URL('../bk-shared/src/hooks.ts', import.meta.url)),
     },
   },
   test: {

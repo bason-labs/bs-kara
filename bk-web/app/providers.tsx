@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
-import i18n from '@bs-kara/shared';
+import { i18n } from '@bs-kara/shared/hooks';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
 export function Providers({ children }: { children: ReactNode }) {
