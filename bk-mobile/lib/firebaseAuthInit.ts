@@ -1,6 +1,13 @@
 import { getApps, initializeApp } from 'firebase/app';
-import { getAuth, type Persistence } from 'firebase/auth';
+// firebase/auth resolves to the React Native build in Metro (which exports
+// getReactNativePersistence). TypeScript uses the browser typings (which don't
+// include it), so we cast auth module to any for the RN-only symbol.
+import * as firebaseAuthModule from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const { getAuth } = firebaseAuthModule;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const { getReactNativePersistence } = firebaseAuthModule as any;
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -12,13 +19,9 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// getReactNativePersistence only exists in the RN bundle of firebase/auth.
-// The browser typings don't include it so we access it via dynamic require.
-// Metro resolves firebase/auth to the RN build at runtime, so this works.
-// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
-const { getReactNativePersistence } = require('@firebase/auth/dist/rn/index.js');
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
-const rnPersistence: Persistence = getReactNativePersistence(AsyncStorage) as Persistence;
-
+// Set AsyncStorage persistence. getAuth(app) may already be initialized by
+// bk-shared/firebase.ts so we use the existing instance and update its
+// persistence rather than calling initializeAuth (which would throw).
 const auth = getAuth(app);
-auth.setPersistence(rnPersistence).catch(() => {});
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+auth.setPersistence(getReactNativePersistence(AsyncStorage)).catch(() => {});
