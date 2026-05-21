@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "test:unit": "jest --testPathIgnorePatterns=.e2e. --testEnvironment=node"
   },
   "dependencies": {
     "@bs-kara/shared": "workspace:*",
@@ -34,10 +35,10 @@
     "react-native-youtube-iframe": "^2.4.1"
   },
   "jest": {
-    "preset": "jest-expo",
-    "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|@react-native-async-storage|expo(nent)?|expo-.*|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-youtube-iframe|lucide-react-native|@gorhom|react-native-draggable-flatlist|react-native-reanimated))"
-    ]
+    "testEnvironment": "node",
+    "testMatch": ["**/*.test.js"],
+    "moduleFileExtensions": ["js", "jsx"],
+    "transform": {}
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
