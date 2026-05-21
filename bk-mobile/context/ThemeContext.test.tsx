@@ -4,7 +4,7 @@ import { Text } from 'react-native';
 import { ThemeProvider, useTheme } from './ThemeContext';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest')
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 jest.mock('nativewind', () => ({
   useColorScheme: () => ({ setColorScheme: jest.fn() }),
