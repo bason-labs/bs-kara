@@ -100,7 +100,9 @@ export default function SearchScreen() {
       {/* Empty state */}
       {!isSearching && results.length === 0 && (
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-[#7aa8a8] text-sm text-center">{t('search.hotHitsLabel')}</Text>
+          <Text className="text-[#7aa8a8] text-sm text-center">
+            {query.trim() ? t('search.noResults') : t('search.hotHitsLabel')}
+          </Text>
         </View>
       )}
 
@@ -109,6 +111,13 @@ export default function SearchScreen() {
         <FlatList
           data={results}
           keyExtractor={(item) => item.id}
+          ListHeaderComponent={
+            !query.trim() ? (
+              <Text className="text-xs uppercase tracking-[3px] text-[#7aa8a8] px-4 pt-2 pb-3">
+                {t('search.hotHitsLabel')}
+              </Text>
+            ) : null
+          }
           renderItem={({ item }) => (
             <SongResultItem
               video={item}

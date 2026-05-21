@@ -1,4 +1,4 @@
-import { View, Text, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, SafeAreaView, TouchableOpacity, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react-native';
@@ -36,9 +36,7 @@ export default function RegisterScreen() {
 
           <GradientButton
             label={`Mở ${API_BASE.replace('https://', '')}`}
-            onPress={() => {
-              // TODO: open web browser to registration page
-            }}
+            onPress={() => Linking.openURL(API_BASE)}
           />
         </View>
       </View>
