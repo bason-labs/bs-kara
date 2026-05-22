@@ -1,26 +1,26 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  Image,
-  Modal,
-  TouchableOpacity,
-  SafeAreaView,
-  ActivityIndicator,
-  ScrollView,
+  View, Text, TextInput, FlatList, Image, Modal,
+  TouchableOpacity, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowUpLeft, History, Mic, Search, X } from 'lucide-react-native';
+import {
+  AlertCircle, ArrowLeft, ArrowUpLeft, History,
+  Mic, Search, SearchX, WifiOff, X,
+} from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoomContext } from '@/context/RoomContext';
 import { SongResultItem } from '@/components/SongResultItem';
+import { SearchSkeleton } from '@/components/SearchSkeleton';
+import { AddedToast } from '@/components/AddedToast';
+import { VoiceSearchModal } from '@/components/VoiceSearchModal';
 import { RoomHeader } from '@/components/RoomHeader';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { useSearchSuggestions } from '@/hooks/useSearchSuggestions';
+import { useQueuedMap } from '@/hooks/useQueuedMap';
+import { useVoiceSearch } from '@/hooks/useVoiceSearch';
 import type { YouTubeVideo } from '@bs-kara/shared';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
@@ -38,73 +38,111 @@ export default function SearchScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { addSongToQueue, roomData, roomCode } = useRoomContext();
-  const { history, push: pushHistory } = useSearchHistory();
+  const { history, push: pushHistory, remove: removeHistory } = useSearchHistory();
 
   const [query, setQuery] = useState('');
-  const [activeChip, setActiveChip] = useState<string | null>(null);
+  const [activeChips, setActiveChips] = useState<Set<string>>(new Set());
   const [results, setResults] = useState<YouTubeVideo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState<'quota' | 'generic' | null>(null);
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [isFocused, setIsFocused] = useState(false);
-
-  const { suggestions, clear: clearSuggestions } = useSearchSuggestions(isFocused ? query : '');
-
+  const [toastVideo, setToastVideo] = useState<YouTubeVideo | null>(null);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [requesterModalVisible, setRequesterModalVisible] = useState(false);
   const [requesterName, setRequesterName] = useState('');
+
   const pendingVideoRef = useRef<YouTubeVideo | null>(null);
   const inputRef = useRef<TextInput>(null);
+  const panelInputRef = useRef<TextInput>(null);
 
-  const search = useCallback(async (q: string, chipKeyword?: string) => {
-    const base = q.trim() || 'nhạc trẻ karaoke';
-    const term = chipKeyword ? `${base} ${chipKeyword}` : base;
+  const { suggestions, clear: clearSuggestions } = useSearchSuggestions(isFocused ? query : '');
+  const queuedMap = useQueuedMap(roomData?.queue ?? []);
+
+  const { isListening, interimTranscript, start: startVoice } = useVoiceSearch({
+    onFinal: (text) => {
+      setQuery(text);
+      setIsFocused(false);
+      const chipKeywords = FILTER_CHIPS
+        .filter((c) => activeChips.has(c.id))
+        .map((c) => c.keyword)
+        .join(' ');
+      const term = [text.trim(), chipKeywords].filter(Boolean).join(' ') || 'nhạc trẻ karaoke';
+      void search(term);
+    },
+    onUnsupported: () => setSearchError('generic'),
+  });
+
+  function handleChipToggle(chip: typeof FILTER_CHIPS[number]) {
+    setActiveChips((prev) => {
+      const next = new Set(prev);
+      next.has(chip.id) ? next.delete(chip.id) : next.add(chip.id);
+      return next;
+    });
+  }
+
+  const buildTerm = useCallback((q: string, chips: Set<string>) => {
+    const chipKeywords = FILTER_CHIPS
+      .filter((c) => chips.has(c.id))
+      .map((c) => c.keyword)
+      .join(' ');
+    return [q.trim(), chipKeywords].filter(Boolean).join(' ') || 'nhạc trẻ karaoke';
+  }, []);
+
+  const search = useCallback(async (term: string) => {
+    setSearchError(null);
     setIsSearching(true);
+    setHasSearched(true);
     try {
-      const res = await fetch(
-        `${API_BASE}/api/youtube/search?q=${encodeURIComponent(term)}`
-      );
+      const res = await fetch(`${API_BASE}/api/youtube/search?q=${encodeURIComponent(term)}`);
+      if (res.status === 429 || res.status === 403) {
+        setSearchError('quota');
+        setResults([]);
+        return;
+      }
+      if (!res.ok) {
+        setSearchError('generic');
+        setResults([]);
+        return;
+      }
       const data = (await res.json()) as YouTubeVideo[];
       const list = Array.isArray(data) ? data : [];
       setResults(list);
-      if (q.trim()) pushHistory(q.trim(), list[0]?.thumbnail);
     } catch {
+      setSearchError('generic');
       setResults([]);
     } finally {
       setIsSearching(false);
     }
-  }, [pushHistory]);
+  }, []);
 
   useEffect(() => {
-    search('');
-  }, [search]);
+    void search(buildTerm('', new Set()));
+  }, [search, buildTerm]);
 
-  function handleChipPress(chip: typeof FILTER_CHIPS[number]) {
-    if (activeChip === chip.id) {
-      setActiveChip(null);
-      search(query);
-    } else {
-      setActiveChip(chip.id);
-      search(query, chip.keyword);
-    }
-  }
+  useEffect(() => {
+    if (isFocused) panelInputRef.current?.focus();
+  }, [isFocused]);
 
   function handleSearchSubmit() {
-    const chip = FILTER_CHIPS.find((c) => c.id === activeChip);
-    search(query, chip?.keyword);
+    const term = buildTerm(query, activeChips);
+    if (query.trim()) pushHistory(query.trim(), results[0]?.thumbnail);
     clearSuggestions();
     inputRef.current?.blur();
     setIsFocused(false);
+    void search(term);
   }
 
   function handleQueryChange(text: string) {
     setQuery(text);
-    if (text.trim() === '') setActiveChip(null);
+    if (text.trim() === '') setActiveChips(new Set());
   }
 
   function handleClearQuery() {
     setQuery('');
     clearSuggestions();
-    inputRef.current?.focus();
+    panelInputRef.current?.focus();
   }
 
   function handleBack() {
@@ -118,13 +156,12 @@ export default function SearchScreen() {
     setIsFocused(false);
     clearSuggestions();
     inputRef.current?.blur();
-    const chip = FILTER_CHIPS.find((c) => c.id === activeChip);
-    search(q, chip?.keyword);
+    void search(buildTerm(q, activeChips));
   }
 
   function handleSuggestionFill(suggestion: string) {
     setQuery(suggestion);
-    inputRef.current?.focus();
+    panelInputRef.current?.focus();
   }
 
   function handleSuggestionSearch(suggestion: string) {
@@ -132,12 +169,12 @@ export default function SearchScreen() {
     clearSuggestions();
     setIsFocused(false);
     inputRef.current?.blur();
-    const chip = FILTER_CHIPS.find((c) => c.id === activeChip);
-    search(suggestion, chip?.keyword);
+    if (suggestion.trim()) pushHistory(suggestion.trim());
+    void search(buildTerm(suggestion, activeChips));
   }
 
   function handleAddPress(video: YouTubeVideo) {
-    if (roomData.requesterPromptEnabled) {
+    if (roomData?.requesterPromptEnabled) {
       pendingVideoRef.current = video;
       setRequesterName('');
       setRequesterModalVisible(true);
@@ -149,16 +186,83 @@ export default function SearchScreen() {
   function confirmAdd(video: YouTubeVideo, name: string | null) {
     addSongToQueue(video, name ?? null);
     setAdded((prev) => new Set(prev).add(video.id));
+    setToastVideo(video);
     setRequesterModalVisible(false);
     pendingVideoRef.current = null;
   }
 
-  const showHistory = isFocused && query.trim() === '' && history.length > 0;
-  const showSuggestions = isFocused && query.trim() !== '' && suggestions.length > 0;
+  function renderChips(chips: Set<string>, onToggle: (chip: typeof FILTER_CHIPS[number]) => void) {
+    return FILTER_CHIPS.map((chip, i) => {
+      const isActive = chips.has(chip.id);
+      const marginRight = i < FILTER_CHIPS.length - 1 ? 8 : 0;
+      if (isActive) {
+        return (
+          <LinearGradient key={chip.id}
+            colors={['#008b8b', '#006d6f', '#0d98ba']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={{ borderRadius: 999, marginRight }}>
+            <TouchableOpacity onPress={() => onToggle(chip)} activeOpacity={0.8}
+              style={{ paddingHorizontal: 14, paddingVertical: 6 }}>
+              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{chip.label}</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        );
+      }
+      return (
+        <TouchableOpacity key={chip.id} onPress={() => onToggle(chip)} activeOpacity={0.7}
+          style={{ backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a',
+            borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6, marginRight }}>
+          <Text style={{ color: '#7aa8a8', fontSize: 12 }}>{chip.label}</Text>
+        </TouchableOpacity>
+      );
+    });
+  }
+
+  function renderErrorState() {
+    if (searchError === 'quota') {
+      return (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
+          <AlertCircle size={36} color="#f59e0b" />
+          <Text style={{ color: '#f59e0b', fontSize: 15, fontWeight: '600', marginTop: 12, textAlign: 'center' }}>
+            {t('search.errorQuotaTitle')}
+          </Text>
+          <Text style={{ color: '#7aa8a8', fontSize: 13, marginTop: 6, textAlign: 'center' }}>
+            {t('search.errorQuotaSubtitle')}
+          </Text>
+        </View>
+      );
+    }
+    if (searchError === 'generic') {
+      return (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
+          <WifiOff size={36} color="#f87171" />
+          <Text style={{ color: '#f87171', fontSize: 15, fontWeight: '600', marginTop: 12, textAlign: 'center' }}>
+            {t('search.errorGenericTitle')}
+          </Text>
+          <Text style={{ color: '#7aa8a8', fontSize: 13, marginTop: 6, textAlign: 'center' }}>
+            {t('search.errorGenericSubtitle')}
+          </Text>
+        </View>
+      );
+    }
+    if (hasSearched && results.length === 0 && !searchError) {
+      return (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
+          <SearchX size={36} color="#7aa8a8" />
+          <Text style={{ color: '#e0ffff', fontSize: 15, fontWeight: '600', marginTop: 12, textAlign: 'center' }}>
+            {t('search.errorNoResultsTitle')}
+          </Text>
+          <Text style={{ color: '#7aa8a8', fontSize: 13, marginTop: 6, textAlign: 'center' }}>
+            {t('search.errorNoResultsSubtitle')}
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#06100f]">
-      {/* Header — hidden while focused to give more room */}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#06100f' }}>
       {!isFocused && (
         <RoomHeader
           roomCode={roomCode}
@@ -169,21 +273,10 @@ export default function SearchScreen() {
 
       {/* Search bar */}
       <View style={{ flexDirection: 'row', alignItems: 'center',
-        marginHorizontal: 16, marginTop: isFocused ? 12 : 0, marginBottom: 4, gap: 10 }}>
-        {/* Back arrow (focused only) */}
-        {isFocused && (
-          <TouchableOpacity onPress={handleBack} activeOpacity={0.7} style={{ padding: 4 }}>
-            <ArrowLeft size={22} color="#7aa8a8" />
-          </TouchableOpacity>
-        )}
-
-        {/* Input pill */}
+        marginHorizontal: 16, marginTop: 0, marginBottom: 4, gap: 10 }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center',
-          backgroundColor: '#0e1c1c',
-          borderWidth: isFocused ? 1.5 : 1,
-          borderColor: isFocused ? '#008b8b' : '#1f3a3a',
-          borderRadius: isFocused ? 14 : 999,
-          paddingHorizontal: 14, paddingVertical: 8, gap: 8 }}>
+          backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a',
+          borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, gap: 8 }}>
           <TextInput
             ref={inputRef}
             value={query}
@@ -195,159 +288,66 @@ export default function SearchScreen() {
             placeholderTextColor="#7aa8a8"
             style={{ flex: 1, color: '#e0ffff', fontSize: 14 }}
           />
-          {/* Right side: X clear (focused + has text) or search icon (idle) */}
-          {isFocused && query.length > 0 ? (
-            <TouchableOpacity onPress={handleClearQuery} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          {query.length > 0 ? (
+            <TouchableOpacity onPress={() => { setQuery(''); clearSuggestions(); }}
+              activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <X size={16} color="#7aa8a8" />
             </TouchableOpacity>
-          ) : !isFocused ? (
+          ) : (
             <TouchableOpacity onPress={handleSearchSubmit} activeOpacity={0.7}>
               <Search size={18} color="#7aa8a8" />
             </TouchableOpacity>
-          ) : null}
+          )}
         </View>
-
-        {/* Mic button */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          style={{ width: 40, height: 40, borderRadius: 999,
-            borderWidth: 1, borderColor: '#1f3a3a', backgroundColor: '#0e1c1c',
-            alignItems: 'center', justifyContent: 'center' }}
-        >
+        <TouchableOpacity activeOpacity={0.7} onPress={() => void startVoice()}
+          style={{ width: 40, height: 40, borderRadius: 999, borderWidth: 1,
+            borderColor: '#1f3a3a', backgroundColor: '#0e1c1c',
+            alignItems: 'center', justifyContent: 'center' }}>
           <Mic size={18} color="#7aa8a8" />
         </TouchableOpacity>
       </View>
 
-      {/* Filter chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
+      {/* Filter chips — main screen */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
         style={{ flexShrink: 0, overflow: 'visible' }}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, alignItems: 'center' }}
-      >
-        {FILTER_CHIPS.map((chip, i) => {
-          const isActive = activeChip === chip.id;
-          const marginRight = i < FILTER_CHIPS.length - 1 ? 8 : 0;
-          if (isActive) {
-            return (
-              <LinearGradient
-                key={chip.id}
-                colors={['#008b8b', '#006d6f', '#0d98ba']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ borderRadius: 999, marginRight }}
-              >
-                <TouchableOpacity
-                  onPress={() => handleChipPress(chip)}
-                  activeOpacity={0.8}
-                  style={{ paddingHorizontal: 14, paddingVertical: 6 }}
-                >
-                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{chip.label}</Text>
-                </TouchableOpacity>
-              </LinearGradient>
-            );
-          }
-          return (
-            <TouchableOpacity
-              key={chip.id}
-              onPress={() => handleChipPress(chip)}
-              activeOpacity={0.7}
-              style={{ backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a',
-                borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6, marginRight }}
-            >
-              <Text style={{ color: '#7aa8a8', fontSize: 12 }}>{chip.label}</Text>
-            </TouchableOpacity>
-          );
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4,
+          paddingBottom: 12, alignItems: 'center' }}>
+        {renderChips(activeChips, (chip) => {
+          const next = new Set(activeChips);
+          next.has(chip.id) ? next.delete(chip.id) : next.add(chip.id);
+          setActiveChips(next);
+          void search(buildTerm(query, next));
         })}
+        {activeChips.size > 0 && (
+          <TouchableOpacity onPress={() => {
+            setActiveChips(new Set());
+            void search(buildTerm(query, new Set()));
+          }} activeOpacity={0.7}
+            style={{ marginLeft: 4, paddingHorizontal: 12, paddingVertical: 6,
+              borderRadius: 999, borderWidth: 1, borderColor: '#4a7a7a' }}>
+            <Text style={{ color: '#4a7a7a', fontSize: 12 }}>
+              {t('search.clearFilters', { count: activeChips.size })}
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
-      {/* Search history (shown when focused + empty query) */}
-      {showHistory && (
-        <FlatList
-          data={history}
-          keyExtractor={(item) => item.q}
-          keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              onPress={() => handleHistoryPress(item.q)}
-              activeOpacity={0.7}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 12,
-                paddingHorizontal: 16, paddingVertical: 12,
-                borderBottomWidth: 1, borderBottomColor: '#1f3a3a' }}
-            >
-              <History size={16} color="#7aa8a8" />
-              <Text style={{ flex: 1, color: '#e0ffff', fontSize: 14 }} numberOfLines={1}>
-                {item.q}
-              </Text>
-              {item.thumb ? (
-                <Image source={{ uri: item.thumb }}
-                  style={{ width: 48, height: 32, borderRadius: 4, backgroundColor: '#152a2a' }} />
-              ) : null}
-              <TouchableOpacity
-                onPress={() => handleHistoryPress(item.q)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <ArrowUpLeft size={16} color="#7aa8a8" />
-              </TouchableOpacity>
-            </TouchableOpacity>
-          )}
-        />
-      )}
+      {/* Loading skeleton */}
+      {isSearching && <SearchSkeleton />}
 
-      {/* Autocomplete suggestions (focused + typing) */}
-      {showSuggestions && (
-        <FlatList
-          data={suggestions}
-          keyExtractor={(item) => item}
-          keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12,
-              paddingHorizontal: 16, paddingVertical: 12,
-              borderBottomWidth: 1, borderBottomColor: '#1f3a3a' }}>
-              <Search size={16} color="#7aa8a8" />
-              <TouchableOpacity
-                style={{ flex: 1 }}
-                activeOpacity={0.7}
-                onPress={() => handleSuggestionSearch(item)}
-              >
-                <Text style={{ color: '#e0ffff', fontSize: 14 }} numberOfLines={1}>{item}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleSuggestionFill(item)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <ArrowUpLeft size={16} color="#7aa8a8" />
-              </TouchableOpacity>
-            </View>
-          )}
-        />
-      )}
-
-      {/* Loading */}
-      {!showHistory && !showSuggestions && isSearching && (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#008b8b" />
-        </View>
-      )}
-
-      {/* Empty state */}
-      {!showHistory && !showSuggestions && !isSearching && results.length === 0 && (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-[#7aa8a8] text-sm text-center">
-            {query.trim() ? t('search.noResults') : t('search.hotHitsLabel')}
-          </Text>
-        </View>
-      )}
+      {/* Error / empty states */}
+      {!isSearching && renderErrorState()}
 
       {/* Results */}
-      {!showHistory && !showSuggestions && !isSearching && results.length > 0 && (
+      {!isSearching && !searchError && results.length > 0 && (
         <FlatList
           data={results}
           keyExtractor={(item) => item.id}
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={
-            !query.trim() && !activeChip ? (
-              <Text className="text-xs uppercase tracking-[3px] text-[#7aa8a8] px-4 pt-2 pb-3">
+            !query.trim() && activeChips.size === 0 ? (
+              <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 3,
+                color: '#7aa8a8', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
                 {'🔥 '}{t('search.hotHitsLabel')}
               </Text>
             ) : null
@@ -357,48 +357,184 @@ export default function SearchScreen() {
               video={item}
               onAdd={() => handleAddPress(item)}
               added={added.has(item.id)}
+              queued={queuedMap.has(item.id)}
+              isCurrentlyPlaying={roomData?.currentPlaying?.id === item.id}
             />
           )}
         />
       )}
 
-      {/* Settings sheet */}
+      {/* Focused search overlay */}
+      <Modal visible={isFocused} animationType="fade" transparent={false} onRequestClose={handleBack}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#06100f' }}>
+          <KeyboardAvoidingView style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+
+            {/* Top bar */}
+            <View style={{ flexDirection: 'row', alignItems: 'center',
+              paddingHorizontal: 8, paddingVertical: 8,
+              borderBottomWidth: 1, borderBottomColor: '#1f3a3a', gap: 8 }}>
+              <TouchableOpacity onPress={handleBack} activeOpacity={0.7} style={{ padding: 8 }}>
+                <ArrowLeft size={22} color="#7aa8a8" />
+              </TouchableOpacity>
+              <TextInput
+                ref={panelInputRef}
+                value={query}
+                onChangeText={handleQueryChange}
+                onSubmitEditing={handleSearchSubmit}
+                returnKeyType="search"
+                placeholder={t('search.placeholder')}
+                placeholderTextColor="#7aa8a8"
+                style={{ flex: 1, backgroundColor: '#0e1c1c', color: '#e0ffff',
+                  fontSize: 14, borderRadius: 999,
+                  paddingHorizontal: 16, paddingVertical: 8,
+                  borderWidth: 1, borderColor: '#1f3a3a' }}
+              />
+              {query.length > 0 ? (
+                <TouchableOpacity onPress={handleClearQuery} activeOpacity={0.7}
+                  style={{ padding: 8, borderRadius: 999,
+                    backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a' }}>
+                  <X size={20} color="#7aa8a8" />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={() => void startVoice()} activeOpacity={0.7}
+                  style={{ padding: 8, borderRadius: 999,
+                    backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a' }}>
+                  <Mic size={20} color="#7aa8a8" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Chip row in overlay */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              style={{ flexShrink: 0, borderBottomWidth: 1, borderBottomColor: '#1f3a3a' }}
+              contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8, alignItems: 'center' }}>
+              {renderChips(activeChips, (chip) => {
+                const next = new Set(activeChips);
+                next.has(chip.id) ? next.delete(chip.id) : next.add(chip.id);
+                setActiveChips(next);
+                void search(buildTerm(query, next));
+              })}
+            </ScrollView>
+
+            {/* History list */}
+            {query.trim() === '' && (
+              <FlatList
+                data={history}
+                keyExtractor={(item) => item.q}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => (
+                  <View style={{ height: 52, flexDirection: 'row', alignItems: 'center',
+                    borderBottomWidth: 1, borderBottomColor: '#1f3a3a' }}>
+                    <TouchableOpacity onPress={() => handleHistoryPress(item.q)} activeOpacity={0.7}
+                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center',
+                        gap: 12, paddingHorizontal: 16, height: '100%' }}>
+                      <History size={18} color="#7aa8a8" style={{ flexShrink: 0 }} />
+                      <Text style={{ flex: 1, color: '#e0ffff', fontSize: 15 }} numberOfLines={1}>
+                        {item.q}
+                      </Text>
+                      {item.thumb ? (
+                        <Image source={{ uri: item.thumb }}
+                          style={{ width: 56, height: 36, borderRadius: 4, backgroundColor: '#152a2a' }} />
+                      ) : null}
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleSuggestionFill(item.q)}
+                      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                      style={{ paddingHorizontal: 8 }}>
+                      <ArrowUpLeft size={18} color="#7aa8a8" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => removeHistory(item.q)}
+                      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                      style={{ paddingHorizontal: 12 }}>
+                      <X size={16} color="#4a7a7a" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
+            )}
+
+            {/* Suggestions list */}
+            {query.trim() !== '' && (
+              <FlatList
+                data={suggestions}
+                keyExtractor={(item) => item}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => (
+                  <View style={{ flexDirection: 'row', alignItems: 'center',
+                    borderBottomWidth: 1, borderBottomColor: '#1f3a3a' }}>
+                    <TouchableOpacity onPress={() => handleSuggestionSearch(item)} activeOpacity={0.7}
+                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center',
+                        gap: 12, paddingHorizontal: 16, paddingVertical: 12 }}>
+                      <Search size={18} color="#7aa8a8" style={{ flexShrink: 0 }} />
+                      <Text style={{ flex: 1, color: '#e0ffff', fontSize: 15 }} numberOfLines={1}>
+                        {item}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleSuggestionFill(item)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      style={{ paddingHorizontal: 16 }}>
+                      <ArrowUpLeft size={18} color="#7aa8a8" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
+            )}
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Voice search modal */}
+      <VoiceSearchModal
+        visible={isListening}
+        interimTranscript={interimTranscript}
+        onClose={() => {/* stop handled by onFinal/onSpeechError */}}
+      />
+
+      {/* Added toast */}
+      {toastVideo && (
+        <AddedToast
+          video={toastVideo}
+          onViewQueue={() => { router.navigate('/(room)/queue'); setToastVideo(null); }}
+          onDismiss={() => setToastVideo(null)}
+        />
+      )}
+
       <SettingsSheet isOpen={settingsVisible} onClose={() => setSettingsVisible(false)} />
 
       {/* Requester modal */}
-      <Modal
-        visible={requesterModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setRequesterModalVisible(false)}
-      >
-        <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-[#0e1c1c] rounded-t-3xl px-6 pt-6 pb-10 gap-4">
-            <Text className="text-[#e0ffff] text-lg font-bold">{t('requester.title')}</Text>
+      <Modal visible={requesterModalVisible} transparent animationType="slide"
+        onRequestClose={() => setRequesterModalVisible(false)}>
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={{ backgroundColor: '#0e1c1c', borderTopLeftRadius: 24,
+            borderTopRightRadius: 24, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 40, gap: 16 }}>
+            <Text style={{ color: '#e0ffff', fontSize: 18, fontWeight: '700' }}>
+              {t('requester.title')}
+            </Text>
             <TextInput
               value={requesterName}
               onChangeText={setRequesterName}
               placeholder={t('requester.placeholder')}
               placeholderTextColor="#7aa8a8"
-              className="bg-[#152a2a] text-[#e0ffff] border border-[#1f3a3a] rounded-xl px-4 py-3"
+              style={{ backgroundColor: '#152a2a', color: '#e0ffff',
+                borderWidth: 1, borderColor: '#1f3a3a', borderRadius: 12,
+                paddingHorizontal: 16, paddingVertical: 12 }}
               autoFocus
             />
-            <View className="flex-row gap-3">
+            <View style={{ flexDirection: 'row', gap: 12 }}>
               <TouchableOpacity
-                className="flex-1 py-3 rounded-xl border border-[#1f3a3a] items-center"
-                onPress={() => {
-                  if (pendingVideoRef.current) confirmAdd(pendingVideoRef.current, null);
-                }}
-              >
-                <Text className="text-[#7aa8a8] font-semibold">{t('requester.skipButton')}</Text>
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12,
+                  borderWidth: 1, borderColor: '#1f3a3a', alignItems: 'center' }}
+                onPress={() => { if (pendingVideoRef.current) confirmAdd(pendingVideoRef.current, null); }}>
+                <Text style={{ color: '#7aa8a8', fontWeight: '600' }}>{t('requester.skipButton')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="flex-1 py-3 rounded-xl bg-[#008b8b] items-center"
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12,
+                  backgroundColor: '#008b8b', alignItems: 'center' }}
                 onPress={() => {
                   if (pendingVideoRef.current) confirmAdd(pendingVideoRef.current, requesterName || null);
-                }}
-              >
-                <Text className="text-[#e0ffff] font-semibold">{t('requester.confirmButton')}</Text>
+                }}>
+                <Text style={{ color: '#e0ffff', fontWeight: '600' }}>{t('requester.confirmButton')}</Text>
               </TouchableOpacity>
             </View>
           </View>
