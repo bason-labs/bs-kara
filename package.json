@@ -20,6 +20,9 @@
     "overrides": {
       "react": "19.0.0",
       "react-dom": "19.0.0"
+    },
+    "patchedDependencies": {
+      "expo-firebase-core@6.0.0": "patches/expo-firebase-core@6.0.0.patch"
     }
   },
   "version": "1.0.0",
