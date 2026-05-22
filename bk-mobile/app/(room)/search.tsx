@@ -13,13 +13,14 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowUpLeft, History, Mic, Search } from 'lucide-react-native';
+import { ArrowLeft, ArrowUpLeft, History, Mic, Search, X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoomContext } from '@/context/RoomContext';
 import { SongResultItem } from '@/components/SongResultItem';
 import { RoomHeader } from '@/components/RoomHeader';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
+import { useSearchSuggestions } from '@/hooks/useSearchSuggestions';
 import type { YouTubeVideo } from '@bs-kara/shared';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
@@ -45,6 +46,8 @@ export default function SearchScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [isFocused, setIsFocused] = useState(false);
+
+  const { suggestions, clear: clearSuggestions } = useSearchSuggestions(isFocused ? query : '');
 
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [requesterModalVisible, setRequesterModalVisible] = useState(false);
@@ -88,6 +91,7 @@ export default function SearchScreen() {
   function handleSearchSubmit() {
     const chip = FILTER_CHIPS.find((c) => c.id === activeChip);
     search(query, chip?.keyword);
+    clearSuggestions();
     inputRef.current?.blur();
     setIsFocused(false);
   }
@@ -97,17 +101,39 @@ export default function SearchScreen() {
     if (text.trim() === '') setActiveChip(null);
   }
 
+  function handleClearQuery() {
+    setQuery('');
+    clearSuggestions();
+    inputRef.current?.focus();
+  }
+
   function handleBack() {
     setIsFocused(false);
+    clearSuggestions();
     inputRef.current?.blur();
   }
 
   function handleHistoryPress(q: string) {
     setQuery(q);
     setIsFocused(false);
+    clearSuggestions();
     inputRef.current?.blur();
     const chip = FILTER_CHIPS.find((c) => c.id === activeChip);
     search(q, chip?.keyword);
+  }
+
+  function handleSuggestionFill(suggestion: string) {
+    setQuery(suggestion);
+    inputRef.current?.focus();
+  }
+
+  function handleSuggestionSearch(suggestion: string) {
+    setQuery(suggestion);
+    clearSuggestions();
+    setIsFocused(false);
+    inputRef.current?.blur();
+    const chip = FILTER_CHIPS.find((c) => c.id === activeChip);
+    search(suggestion, chip?.keyword);
   }
 
   function handleAddPress(video: YouTubeVideo) {
@@ -128,6 +154,7 @@ export default function SearchScreen() {
   }
 
   const showHistory = isFocused && query.trim() === '' && history.length > 0;
+  const showSuggestions = isFocused && query.trim() !== '' && suggestions.length > 0;
 
   return (
     <SafeAreaView className="flex-1 bg-[#06100f]">
@@ -168,12 +195,16 @@ export default function SearchScreen() {
             placeholderTextColor="#7aa8a8"
             style={{ flex: 1, color: '#e0ffff', fontSize: 14 }}
           />
-          {/* Search icon on right (idle only) */}
-          {!isFocused && (
+          {/* Right side: X clear (focused + has text) or search icon (idle) */}
+          {isFocused && query.length > 0 ? (
+            <TouchableOpacity onPress={handleClearQuery} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <X size={16} color="#7aa8a8" />
+            </TouchableOpacity>
+          ) : !isFocused ? (
             <TouchableOpacity onPress={handleSearchSubmit} activeOpacity={0.7}>
               <Search size={18} color="#7aa8a8" />
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
 
         {/* Mic button */}
@@ -263,15 +294,44 @@ export default function SearchScreen() {
         />
       )}
 
+      {/* Autocomplete suggestions (focused + typing) */}
+      {showSuggestions && (
+        <FlatList
+          data={suggestions}
+          keyExtractor={(item) => item}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12,
+              paddingHorizontal: 16, paddingVertical: 12,
+              borderBottomWidth: 1, borderBottomColor: '#1f3a3a' }}>
+              <Search size={16} color="#7aa8a8" />
+              <TouchableOpacity
+                style={{ flex: 1 }}
+                activeOpacity={0.7}
+                onPress={() => handleSuggestionSearch(item)}
+              >
+                <Text style={{ color: '#e0ffff', fontSize: 14 }} numberOfLines={1}>{item}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleSuggestionFill(item)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <ArrowUpLeft size={16} color="#7aa8a8" />
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+      )}
+
       {/* Loading */}
-      {!showHistory && isSearching && (
+      {!showHistory && !showSuggestions && isSearching && (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#008b8b" />
         </View>
       )}
 
       {/* Empty state */}
-      {!showHistory && !isSearching && results.length === 0 && (
+      {!showHistory && !showSuggestions && !isSearching && results.length === 0 && (
         <View className="flex-1 items-center justify-center px-6">
           <Text className="text-[#7aa8a8] text-sm text-center">
             {query.trim() ? t('search.noResults') : t('search.hotHitsLabel')}
@@ -280,7 +340,7 @@ export default function SearchScreen() {
       )}
 
       {/* Results */}
-      {!showHistory && !isSearching && results.length > 0 && (
+      {!showHistory && !showSuggestions && !isSearching && results.length > 0 && (
         <FlatList
           data={results}
           keyExtractor={(item) => item.id}
