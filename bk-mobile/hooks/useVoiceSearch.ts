@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Voice from '@react-native-voice/voice';
 import { Audio } from 'expo-av';
+
+// @react-native-voice/voice requires a native dev build — not available in Expo Go.
+// Load it lazily so the app still runs when the native module is absent.
+let Voice: typeof import('@react-native-voice/voice').default | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  Voice = require('@react-native-voice/voice').default as typeof import('@react-native-voice/voice').default;
+} catch {
+  Voice = null;
+}
 
 interface UseVoiceSearchOptions {
   onFinal: (transcript: string) => void;
@@ -23,6 +32,7 @@ export function useVoiceSearch({ onFinal, onUnsupported }: UseVoiceSearchOptions
   onUnsupportedRef.current = onUnsupported;
 
   useEffect(() => {
+    if (!Voice) return;
     Voice.onSpeechPartialResults = (e) => {
       setInterimTranscript(e.value?.[0] ?? '');
     };
@@ -34,7 +44,7 @@ export function useVoiceSearch({ onFinal, onUnsupported }: UseVoiceSearchOptions
           require('../assets/audio/ding.mp3')
         );
         await sound.playAsync();
-        sound.unloadAsync().catch(() => {}); // fire-and-forget cleanup
+        sound.unloadAsync().catch(() => {});
       } catch {}
       onFinalRef.current(text);
       setIsListening(false);
@@ -45,12 +55,16 @@ export function useVoiceSearch({ onFinal, onUnsupported }: UseVoiceSearchOptions
       setInterimTranscript('');
     };
     return () => {
-      void Voice.destroy();
-      Voice.removeAllListeners();
+      void Voice!.destroy();
+      Voice!.removeAllListeners();
     };
   }, []);
 
   const start = useCallback(async () => {
+    if (!Voice) {
+      onUnsupportedRef.current();
+      return;
+    }
     const available = await Voice.isAvailable();
     if (!available) {
       onUnsupportedRef.current();
@@ -61,7 +75,7 @@ export function useVoiceSearch({ onFinal, onUnsupported }: UseVoiceSearchOptions
         require('../assets/audio/pop.mp3')
       );
       await sound.playAsync();
-      sound.unloadAsync().catch(() => {}); // fire-and-forget cleanup
+      sound.unloadAsync().catch(() => {});
     } catch {}
     await Voice.start('vi-VN');
     setIsListening(true);
@@ -69,7 +83,7 @@ export function useVoiceSearch({ onFinal, onUnsupported }: UseVoiceSearchOptions
   }, []);
 
   const stop = useCallback(() => {
-    void Voice.stop();
+    Voice?.stop().catch(() => {});
     setIsListening(false);
     setInterimTranscript('');
   }, []);
