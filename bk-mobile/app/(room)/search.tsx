@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRoomContext } from '@/context/RoomContext';
 import { SongResultItem } from '@/components/SongResultItem';
 import { RoomHeader } from '@/components/RoomHeader';
+import { SettingsSheet } from '@/components/SettingsSheet';
 import type { YouTubeVideo } from '@bs-kara/shared';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
@@ -41,6 +42,7 @@ export default function SearchScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [added, setAdded] = useState<Set<string>>(new Set());
 
+  const [settingsVisible, setSettingsVisible] = useState(false);
   const [requesterModalVisible, setRequesterModalVisible] = useState(false);
   const [requesterName, setRequesterName] = useState('');
   const pendingVideoRef = useRef<YouTubeVideo | null>(null);
@@ -111,6 +113,7 @@ export default function SearchScreen() {
       <RoomHeader
         roomCode={roomCode}
         onLeave={() => router.replace('/join' as never)}
+        onSettings={() => setSettingsVisible(true)}
       />
 
       {/* Search bar */}
@@ -213,6 +216,9 @@ export default function SearchScreen() {
           )}
         />
       )}
+
+      {/* Settings sheet */}
+      <SettingsSheet isOpen={settingsVisible} onClose={() => setSettingsVisible(false)} />
 
       {/* Requester modal */}
       <Modal
