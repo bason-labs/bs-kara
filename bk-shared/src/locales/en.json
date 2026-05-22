@@ -75,7 +75,19 @@
     "errorGenericTitle": "Connection error",
     "errorGenericSubtitle": "Check your connection and retry",
     "inQueue": "In queue",
-    "nowPlayingLabel": "Now playing"
+    "nowPlayingLabel": "Now playing",
+    "filtersTriggerAriaLabel": "Open filters",
+    "filtersSheetTitle": "Song filters",
+    "filtersReset": "Reset",
+    "filtersApply": "Apply {{count}} filters",
+    "filtersViewAll": "View all songs",
+    "filterGroupHinhThuc": "VOCAL FORMAT",
+    "filterGroupTongGiong": "VOICE RANGE",
+    "filterGroupTheLoai": "GENRE",
+    "statusNowPlaying": "Now playing",
+    "statusQueued": "In queue · #{{pos}}",
+    "statusJustAdded": "Just added",
+    "voiceListenHint": "Sing or say the song name"
   },
   "queue": {
     "title": "Queue",
@@ -138,7 +150,9 @@
   },
   "toast": {
     "addedToQueue": "Added to queue",
-    "viewQueue": "View"
+    "viewQueue": "View",
+    "undo": "Undo",
+    "queuePosition": "Position #{{pos}}"
   },
   "autoRandom": {
     "toggleLabel": "Auto-random next song",

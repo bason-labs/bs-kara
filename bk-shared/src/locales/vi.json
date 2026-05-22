@@ -75,7 +75,19 @@
     "errorGenericTitle": "Lỗi kết nối",
     "errorGenericSubtitle": "Kiểm tra mạng và thử lại",
     "inQueue": "Trong DS",
-    "nowPlayingLabel": "Đang phát"
+    "nowPlayingLabel": "Đang phát",
+    "filtersTriggerAriaLabel": "Mở bộ lọc",
+    "filtersSheetTitle": "Bộ lọc bài hát",
+    "filtersReset": "Đặt lại",
+    "filtersApply": "Áp dụng {{count}} bộ lọc",
+    "filtersViewAll": "Xem tất cả bài hát",
+    "filterGroupHinhThuc": "HÌNH THỨC HÁT",
+    "filterGroupTongGiong": "TÔNG GIỌNG",
+    "filterGroupTheLoai": "THỂ LOẠI",
+    "statusNowPlaying": "Đang phát",
+    "statusQueued": "Trong hàng chờ · #{{pos}}",
+    "statusJustAdded": "Vừa thêm",
+    "voiceListenHint": "Hát to lên hoặc đọc tên bài hát"
   },
   "queue": {
     "title": "Hàng chờ",
@@ -138,7 +150,9 @@
   },
   "toast": {
     "addedToQueue": "Đã thêm vào hàng chờ",
-    "viewQueue": "Xem"
+    "viewQueue": "Xem",
+    "undo": "Hoàn tác",
+    "queuePosition": "Vị trí thứ {{pos}}"
   },
   "autoRandom": {
     "toggleLabel": "Tự động phát ngẫu nhiên",
