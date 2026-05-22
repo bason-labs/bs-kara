@@ -5,6 +5,7 @@ import {
   useState,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useCallback,
   type CSSProperties,
@@ -12,11 +13,13 @@ import {
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { LogOut, Search, ListMusic, Disc3, Settings } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useRoom } from '@bs-kara/shared/hooks';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { useTransientNotice } from '@bs-kara/shared/hooks';
 import { primeAudio } from '@/hooks/useAIVoice';
+import { TopBar } from '@/features/remote/components/TopBar';
+import { BottomNav, type NavTab } from '@/features/remote/components/BottomNav';
 import { SearchPanel } from '@/features/remote/components/SearchPanel';
 import { ClientQueue } from '@/features/remote/components/ClientQueue';
 import { RemoteControls } from '@/features/remote/components/RemoteControls';
@@ -54,8 +57,6 @@ const SettingsSheet = dynamic(
   { ssr: false },
 );
 
-type Tab = 'search' | 'queue' | 'player';
-
 function RemoteInner() {
   const { t } = useTranslation();
   const {
@@ -71,7 +72,7 @@ function RemoteInner() {
   const { timedOut, rejoinReason, resetActivity, rejoin } = useInactivityTimeout(roomCode);
   const { profile: hostProfile, loading: hostLoading } = useCurrentHost();
 
-  const [tab, setTab] = useState<Tab>('search');
+  const [tab, setTab] = useState<NavTab>('search');
   const [playerOpen, setPlayerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const emojiLayerRef = useRef<EmojiLayerHandle>(null);
@@ -268,6 +269,10 @@ function RemoteInner() {
   );
 
   const queuedMap = useQueuedMap(roomData.queue);
+  const queuePositionMap = useMemo(
+    () => new Map(roomData.queue.map((item, i) => [item.id, i + 1])),
+    [roomData.queue],
+  );
   const currentPlayingId = roomData.currentPlaying?.id ?? null;
 
   // Enrich the toast song with queueId + queue position so AddedToast can
@@ -448,12 +453,6 @@ function RemoteInner() {
     );
   }
 
-  const tabs: { id: Tab; labelKey: string; Icon: typeof Search }[] = [
-    { id: 'search', labelKey: 'tabs.search', Icon: Search },
-    { id: 'queue', labelKey: 'tabs.queue', Icon: ListMusic },
-    { id: 'player', labelKey: 'tabs.player', Icon: Disc3 },
-  ];
-
   return (
     <main
       className="relative h-[100dvh] w-full flex flex-col overflow-hidden bg-bg text-fg"
@@ -465,7 +464,7 @@ function RemoteInner() {
       <header
         ref={headerRef}
         style={headerStyle}
-        className={`absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 bg-surface/70 backdrop-blur-md border-b border-border will-change-transform lg:static lg:z-auto lg:shrink-0 lg:[transform:none]! ${
+        className={`absolute top-0 left-0 right-0 z-30 flex items-center gap-2 bg-surface/70 backdrop-blur-md border-b border-border will-change-transform lg:static lg:z-auto lg:shrink-0 lg:[transform:none]! ${
           headerSnap
             ? 'transition-transform duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] lg:transition-none!'
             : ''
@@ -473,41 +472,16 @@ function RemoteInner() {
       >
         <button
           onClick={handleLeave}
-          className="-m-2 p-2 sm:m-0 sm:p-0 flex items-center gap-1.5 text-sm text-muted hover:text-danger transition-colors"
+          className="ml-2 -m-2 p-2 flex items-center gap-1.5 text-sm text-muted hover:text-danger transition-colors"
+          aria-label={t('header.leaveButton')}
         >
           <LogOut size={16} />
           <span className="hidden sm:inline">{t('header.leaveButton')}</span>
         </button>
 
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-[0.25em] text-muted">
-            {t('header.roomLabel')}
-          </span>
-          <span
-            className="tabular px-3 py-1 text-sm font-bold text-white bg-gradient-brand rounded-full tracking-[0.3em] shadow-glow"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            {roomCode}
-          </span>
+        <div className="flex-1 min-w-0">
+          <TopBar roomCode={roomCode} />
         </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            setHasOpenedSettings(true);
-            setSettingsOpen(true);
-          }}
-          aria-label={t('settings.openLabel')}
-          className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted hover:text-fg hover:bg-surface-2 active:scale-95 transition"
-        >
-          <Settings size={18} strokeWidth={2.2} />
-          {roomData.isAutoRandomMode && (
-            <span
-              aria-hidden
-              className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-gradient-brand shadow-glow"
-            />
-          )}
-        </button>
       </header>
 
       {/* Main content: mobile shows one tab at a time; lg+ shows two columns */}
@@ -525,6 +499,7 @@ function RemoteInner() {
           <SearchPanel
             onAdd={handleAddToQueue}
             queuedMap={queuedMap}
+            queuePositionMap={queuePositionMap}
             currentPlayingId={currentPlayingId}
             headerHeight={headerHeight}
             onChromeChange={handleChromeChange}
@@ -705,35 +680,21 @@ function RemoteInner() {
       />
 
       {/* Mobile bottom tab bar */}
-      <nav
-        role="tablist"
-        aria-label="Sections"
-        className="lg:hidden shrink-0 grid grid-cols-3 bg-surface/85 backdrop-blur-md border-t border-border"
-      >
-        {tabs.map(({ id, labelKey, Icon }) => {
-          const active = tab === id;
-          return (
-            <button
-              key={id}
-              role="tab"
-              aria-selected={active}
-              onClick={() => setTab(id)}
-              className={`relative flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors ${
-                active ? 'text-fg' : 'text-muted hover:text-fg'
-              }`}
-            >
-              {active && (
-                <span
-                  aria-hidden
-                  className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-10 rounded-full bg-gradient-brand shadow-glow"
-                />
-              )}
-              <Icon size={20} strokeWidth={active ? 2.4 : 2} />
-              <span className={active ? 'text-gradient-brand' : ''}>{t(labelKey)}</span>
-            </button>
-          );
-        })}
-      </nav>
+      <div className="lg:hidden">
+        <BottomNav
+          activeTab={tab}
+          queueLength={roomData.queue.length}
+          isPlaying={displayedIsPlaying}
+          onTabChange={(t) => {
+            if (t === 'settings') {
+              setHasOpenedSettings(true);
+              setSettingsOpen(true);
+            } else {
+              setTab(t);
+            }
+          }}
+        />
+      </div>
 
       {hasOpenedSettings && (
         <SettingsSheet
