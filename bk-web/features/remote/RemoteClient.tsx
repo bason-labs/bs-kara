@@ -512,11 +512,8 @@ function RemoteInner() {
         >
           <SearchPanel
             onAdd={handleAddToQueue}
-            onRemove={removeSong}
-            onPlayNow={handleRequestPlayNowFromSearch}
             queuedMap={queuedMap}
             currentPlayingId={currentPlayingId}
-            isQueueLoading={isLoading}
             headerHeight={headerHeight}
             onChromeChange={handleChromeChange}
           />

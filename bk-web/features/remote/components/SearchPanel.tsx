@@ -222,13 +222,9 @@ const SearchResults = memo(function SearchResults({
 
 interface SearchPanelProps {
   onAdd: (video: YouTubeVideo) => void;
-  onRemove?: (queueId: string) => void;
-  onPlayNow?: (video: YouTubeVideo) => void;
   queuedMap?: Map<string, string>;
   queuePositionMap?: Map<string, number>;
   currentPlayingId?: string | null;
-  isQueueLoading?: boolean;
-  onNavigateToQueue?: () => void;
   /* Height of the (separately rendered) header above the SearchPanel. */
   headerHeight?: number;
   onChromeChange?: (offset: number, snap: boolean) => void;
@@ -266,6 +262,8 @@ export function SearchPanel({
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsScrollRef = useRef<HTMLDivElement>(null);
   const searchBarRef = useRef<HTMLDivElement>(null);
+  const justAddedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [searchBarHeight, setSearchBarHeight] = useState(0);
 
   // Measure the search-bar wrapper once it mounts so the offset can clamp
@@ -399,14 +397,26 @@ export function SearchPanel({
 
   // Transient "just added" highlight — clears after 1.7s so the celebration
   // animation can complete and the card settles into the queued state.
+  // The ref guards against a second add clobbering the first timer, and the
+  // cleanup effect below prevents a state update on an unmounted component.
   const handleAdd = useCallback(
     (video: YouTubeVideo) => {
       onAdd(video);
+      if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current);
       setJustAddedId(video.id);
-      setTimeout(() => setJustAddedId(null), 1700);
+      justAddedTimerRef.current = setTimeout(() => setJustAddedId(null), 1700);
     },
     [onAdd],
   );
+
+  // Cleanup both pending timers on unmount so they can't fire after the
+  // component has been removed from the tree.
+  useEffect(() => {
+    return () => {
+      if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current);
+      if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+    };
+  }, []);
 
   // Display state machine. These five booleans are mutually exclusive in
   // practice; downstream JSX renders only the active section.
@@ -494,7 +504,8 @@ export function SearchPanel({
                 // Delay so a click on a suggestion can take effect before the
                 // dropdown closes. We re-check activeElement to keep focus
                 // styles when focus stays on the input.
-                setTimeout(() => {
+                if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+                blurTimerRef.current = setTimeout(() => {
                   if (document.activeElement !== inputRef.current) {
                     setIsFocused(false);
                   }
