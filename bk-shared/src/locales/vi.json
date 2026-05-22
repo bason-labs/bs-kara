@@ -67,7 +67,15 @@
     "addedToQueueButton": "Đã thêm",
     "filtersGroupAriaLabel": "Bộ lọc nhanh",
     "clearFilters": "Xoá lọc ({{count}})",
-    "clearFiltersAriaLabel": "Xoá tất cả bộ lọc"
+    "clearFiltersAriaLabel": "Xoá tất cả bộ lọc",
+    "errorQuotaTitle": "Hết lượt tìm kiếm",
+    "errorQuotaSubtitle": "Vui lòng thử lại sau ít phút",
+    "errorNoResultsTitle": "Không tìm thấy bài hát",
+    "errorNoResultsSubtitle": "Thử từ khoá khác",
+    "errorGenericTitle": "Lỗi kết nối",
+    "errorGenericSubtitle": "Kiểm tra mạng và thử lại",
+    "inQueue": "Trong DS",
+    "nowPlayingLabel": "Đang phát"
   },
   "queue": {
     "title": "Hàng chờ",
@@ -233,6 +241,16 @@
     "tierLabel": "Hạng",
     "toggleLabel": "AI chấm điểm",
     "toggleHelp": "Hiển thị điểm cho mỗi bài hát ở 8 giây cuối, dựa trên reactions từ phòng"
+  },
+  "addedToast": {
+    "added": "Đã thêm vào danh sách",
+    "viewQueue": "Xem DS"
+  },
+  "voice": {
+    "listening": "Đang nghe...",
+    "hint": "Nói tên bài hát bạn muốn tìm",
+    "recognizing": "Chữ hiển thị trong khi nhận dạng giọng nói",
+    "unsupported": "Thiết bị không hỗ trợ"
   },
   "auth": {
     "title": "Tạo phòng karaoke",

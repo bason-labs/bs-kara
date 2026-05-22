@@ -67,7 +67,15 @@
     "addedToQueueButton": "Added",
     "filtersGroupAriaLabel": "Quick filters",
     "clearFilters": "Clear ({{count}})",
-    "clearFiltersAriaLabel": "Clear all filters"
+    "clearFiltersAriaLabel": "Clear all filters",
+    "errorQuotaTitle": "Search limit reached",
+    "errorQuotaSubtitle": "Please try again in a moment",
+    "errorNoResultsTitle": "No songs found",
+    "errorNoResultsSubtitle": "Try a different keyword",
+    "errorGenericTitle": "Connection error",
+    "errorGenericSubtitle": "Check your connection and retry",
+    "inQueue": "In queue",
+    "nowPlayingLabel": "Now playing"
   },
   "queue": {
     "title": "Queue",
@@ -233,6 +241,16 @@
     "tierLabel": "Tier",
     "toggleLabel": "AI Scoring",
     "toggleHelp": "Show a score for each song in the last 8 seconds, based on room reactions"
+  },
+  "addedToast": {
+    "added": "Added to queue",
+    "viewQueue": "View queue"
+  },
+  "voice": {
+    "listening": "Listening...",
+    "hint": "Say the song name you want to find",
+    "recognizing": "Text shown while recognizing speech",
+    "unsupported": "Device not supported"
   },
   "auth": {
     "title": "Create your karaoke room",

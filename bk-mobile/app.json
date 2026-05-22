@@ -20,7 +20,8 @@
       "package": "com.bskara.app"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "@react-native-voice/voice"
     ],
     "experiments": {
       "typedRoutes": true
