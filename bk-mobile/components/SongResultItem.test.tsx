@@ -2,6 +2,17 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { SongResultItem } from './SongResultItem';
 
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const map: Record<string, string> = {
+        'search.addedToQueueButton': 'Đã thêm',
+      };
+      return map[key] ?? key;
+    },
+  }),
+}));
+
 const mockVideo = {
   id: 'abc123',
   title: 'Test Song Karaoke',

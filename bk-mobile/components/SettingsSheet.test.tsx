@@ -7,8 +7,10 @@ jest.mock('react-i18next', () => ({
     t: (key: string) => {
       const translations: Record<string, string> = {
         'settings.title': 'Cài đặt',
+        'settings.sections.autoRandom': 'Tự động phát',
         'settings.sections.queue': 'Hàng chờ',
         'settings.sections.aiMc': 'MC',
+        'settings.sections.room': 'Phòng',
         'settings.dragDropLabel': 'Kéo thả sắp xếp',
         'settings.dragDropHint': 'Cho phép kéo thả để thay đổi thứ tự bài hát trong hàng chờ.',
         'settings.requesterPromptLabel': 'Hỏi tên ca sĩ',
@@ -17,6 +19,24 @@ jest.mock('react-i18next', () => ({
         'settings.guestCanRemoveHint': 'Khách tham gia có thể xóa bài trong hàng chờ.',
         'settings.aiMcLabel': 'Bật/Tắt MC',
         'settings.aiMcHint': 'Trước mỗi bài, MC sẽ đọc lời giới thiệu ngắn bằng tiếng Việt qua loa TV.',
+        'settings.mcVoiceLabel': 'Giọng MC',
+        'settings.roomCodeLabel': 'Mã phòng hiện tại',
+        'autoRandom.toggleLabel': 'Tự động phát ngẫu nhiên',
+        'autoRandom.onBadge': 'Đang bật',
+        'autoRandom.offBadge': 'Đang tắt',
+        'autoRandom.description': 'Khi hàng chờ trống, hệ thống sẽ tự chọn bài mới.',
+        'autoRandom.genreLabel': 'Thể loại',
+        'autoRandom.typeLabel': 'Kiểu hát',
+        'autoRandom.toneLabel': 'Tông giọng',
+        'autoRandom.genre.all': 'Tất cả',
+        'autoRandom.type.all': 'Tất cả',
+        'autoRandom.tone.all': 'Tất cả',
+        'scoring.toggleLabel': 'AI chấm điểm',
+        'scoring.toggleHelp': 'Hiển thị điểm cho mỗi bài hát ở 8 giây cuối.',
+        'settings.mcVoiceOptions.neural2A': 'Nữ trung (Dễ thương)',
+        'settings.mcVoiceOptions.wavenetC': 'Nữ trầm (Trưởng thành)',
+        'settings.mcVoiceOptions.neural2D': 'Nam trầm (Ấm áp)',
+        'settings.mcVoiceOptions.wavenetB': 'Nam trung (Năng động)',
       };
       return translations[key] ?? key;
     },
@@ -24,12 +44,13 @@ jest.mock('react-i18next', () => ({
 }));
 
 const mockRoom = {
+  roomCode: '1234',
   roomData: {
     isAutoRandomMode: false,
     dragDropEnabled: true,
     requesterPromptEnabled: true,
     isMCEnabled: true,
-    mcVoice: 'neural2A',
+    mcVoice: 'vi-VN-Neural2-A',
     guestCanRemove: false,
     aiScoringEnabled: false,
     randomFilters: { type: 'all', tone: 'all', genre: 'all' },
