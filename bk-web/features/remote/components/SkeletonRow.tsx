@@ -1,5 +1,3 @@
-'use client';
-
 const shimmer =
   'animate-shimmer bg-[length:200%_100%] bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2';
 
