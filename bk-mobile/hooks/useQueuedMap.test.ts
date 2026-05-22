@@ -19,7 +19,8 @@ describe('useQueuedMap', () => {
   });
 
   it('updates map when queue changes', () => {
-    const { result, rerender } = renderHook(
+    type Props = { queue: ReturnType<typeof makeItem>[] };
+    const { result, rerender } = renderHook<Map<string, string>, Props>(
       ({ queue }) => useQueuedMap(queue),
       { initialProps: { queue: [makeItem('vid1', 'q1')] } }
     );
