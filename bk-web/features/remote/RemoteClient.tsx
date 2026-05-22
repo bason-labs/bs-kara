@@ -148,9 +148,6 @@ function RemoteInner() {
     video: YouTubeVideo;
     queueId?: string;
   } | null>(null);
-  const handleRequestPlayNowFromSearch = useCallback((video: YouTubeVideo) => {
-    setPendingPlayNow({ video });
-  }, []);
   const handleRequestPlayNowFromQueue = useCallback((item: QueueItem) => {
     setPendingPlayNow({ video: item, queueId: item.queueId });
   }, []);
@@ -370,8 +367,7 @@ function RemoteInner() {
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       }
-      void release();
-      setPlayerOpen(false);
+      void release().then(() => setPlayerOpen(false));
     }
   }, [roomData.isTvActive, iAmFullscreenOwner, release]);
 

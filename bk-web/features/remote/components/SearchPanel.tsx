@@ -530,7 +530,7 @@ export function SearchPanel({
                   inputRef.current?.focus();
                 }}
                 aria-label={t('search.clearAriaLabel')}
-                className="w-10 h-10 flex items-center justify-center text-muted hover:text-fg flex-shrink-0"
+                className="w-11 h-11 flex items-center justify-center text-muted hover:text-fg flex-shrink-0"
               >
                 <X size={18} />
               </button>
@@ -541,7 +541,7 @@ export function SearchPanel({
                 type="button"
                 aria-label={t('search.filtersTriggerAriaLabel')}
                 onClick={() => setShowFiltersSheet(true)}
-                className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors ${
+                className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors ${
                   activeChips.size > 0
                     ? 'bg-glow/14 text-glow'
                     : 'text-muted hover:text-fg'
@@ -561,7 +561,7 @@ export function SearchPanel({
               onClick={startVoiceSearch}
               disabled={isListening}
               aria-label={t('search.voiceAriaLabel')}
-              className={`w-10 h-10 flex items-center justify-center rounded-full border flex-shrink-0 transition-colors ${
+              className={`w-11 h-11 flex items-center justify-center rounded-full border flex-shrink-0 transition-colors ${
                 isListening
                   ? 'bg-gradient-brand text-white border-transparent animate-mic-pulse'
                   : 'bg-surface-2 text-fg border-border'
@@ -607,7 +607,7 @@ export function SearchPanel({
                       removeHistoryEntry(item.q);
                     }}
                     aria-label={t('search.removeHistoryAriaLabel')}
-                    className="p-1 rounded-full text-muted hover:text-fg hover:bg-surface cursor-pointer flex-shrink-0"
+                    className="w-9 h-9 flex items-center justify-center rounded-full text-muted hover:text-fg hover:bg-surface cursor-pointer flex-shrink-0"
                   >
                     <X size={16} />
                   </button>
@@ -640,7 +640,7 @@ export function SearchPanel({
                 key={chip.id}
                 type="button"
                 onClick={() => handleChipToggle(chip.id)}
-                className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-brand text-white text-xs font-medium shadow-glow"
+                className="flex-shrink-0 flex items-center gap-1 px-3 min-h-[44px] rounded-full bg-gradient-brand text-white text-xs font-medium shadow-glow"
               >
                 {chip.label}
                 <X size={13} strokeWidth={2.4} />
