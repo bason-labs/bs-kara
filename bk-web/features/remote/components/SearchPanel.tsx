@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowUpLeft, History, Mic, Search, SearchX, X } from 'lucide-react';
 import type { SearchError, YouTubeVideo } from '@bs-kara/shared';
 import { searchYouTube } from '@/lib/youtube/client';
+import { FILTER_CHIPS, type FilterChipId, buildChipKeywords } from '@/lib/filters';
 import { useSearchHistory } from '@/features/remote/hooks/useSearchHistory';
 import { useSearchSuggestions } from '@/features/remote/hooks/useSearchSuggestions';
 import { useVoiceSearch } from '@/features/remote/hooks/useVoiceSearch';
@@ -28,27 +29,6 @@ import { PlayNowButton } from './PlayNowButton';
 // keystroke. The contents (6 nulls) are never read — only the length is
 // used to spread into 6 SkeletonRow elements.
 const SEARCH_SKELETONS = Array.from({ length: 6 });
-
-// Quick-filter chips. Labels are domain terms — kept in Vietnamese for both
-// locales. The keyword is appended verbatim to the user query before hitting
-// the BFF (same keyword-AND approach used by lib/random/picker.ts), so the
-// final search becomes "<user query> <chip keywords>".
-const FILTER_CHIPS = [
-  { id: 'song-ca', label: 'Song ca', keyword: 'song ca' },
-  { id: 'tone-nam', label: 'Tone nam', keyword: 'tone nam' },
-  { id: 'tone-nu', label: 'Tone nữ', keyword: 'tone nữ' },
-  { id: 'tru-tinh', label: 'Trữ tình', keyword: 'trữ tình' },
-  { id: 'ca-co', label: 'Ca cổ', keyword: 'ca cổ' },
-  { id: 'nhac-tre', label: 'Nhạc trẻ', keyword: 'nhạc trẻ' },
-] as const;
-
-type FilterChipId = (typeof FILTER_CHIPS)[number]['id'];
-
-function buildChipKeywords(chips: Set<FilterChipId>): string {
-  return FILTER_CHIPS.filter((c) => chips.has(c.id))
-    .map((c) => c.keyword)
-    .join(' ');
-}
 
 interface SearchResultsProps {
   results: YouTubeVideo[];
