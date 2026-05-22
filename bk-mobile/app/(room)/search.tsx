@@ -131,27 +131,28 @@ export default function SearchScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 8 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}
       >
-        {FILTER_CHIPS.map((chip) => {
+        {FILTER_CHIPS.map((chip, i) => {
           const isActive = activeChip === chip.id;
+          const marginRight = i < FILTER_CHIPS.length - 1 ? 8 : 0;
           if (isActive) {
             return (
-              <TouchableOpacity
+              <LinearGradient
                 key={chip.id}
-                onPress={() => handleChipPress(chip)}
-                activeOpacity={0.8}
-                style={{ borderRadius: 999, overflow: 'hidden' }}
+                colors={['#008b8b', '#006d6f', '#0d98ba']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ borderRadius: 999, marginRight }}
               >
-                <LinearGradient
-                  colors={['#008b8b', '#006d6f', '#0d98ba']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+                <TouchableOpacity
+                  onPress={() => handleChipPress(chip)}
+                  activeOpacity={0.8}
                   style={{ paddingHorizontal: 14, paddingVertical: 6 }}
                 >
-                  <Text className="text-white text-xs font-semibold">{chip.label}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{chip.label}</Text>
+                </TouchableOpacity>
+              </LinearGradient>
             );
           }
           return (
@@ -159,9 +160,17 @@ export default function SearchScreen() {
               key={chip.id}
               onPress={() => handleChipPress(chip)}
               activeOpacity={0.7}
-              className="bg-[#0e1c1c] border border-[#1f3a3a] rounded-full px-3.5 py-1.5"
+              style={{
+                backgroundColor: '#0e1c1c',
+                borderWidth: 1,
+                borderColor: '#1f3a3a',
+                borderRadius: 999,
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                marginRight,
+              }}
             >
-              <Text className="text-[#7aa8a8] text-xs">{chip.label}</Text>
+              <Text style={{ color: '#7aa8a8', fontSize: 12 }}>{chip.label}</Text>
             </TouchableOpacity>
           );
         })}

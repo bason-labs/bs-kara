@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native'; // View used in center cluster
 import { LogOut, Settings } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
@@ -35,14 +35,15 @@ export function RoomHeader({ roomCode, onLeave, onSettings }: RoomHeaderProps) {
         </LinearGradient>
       </View>
 
-      {/* Right — settings or spacer */}
-      {onSettings ? (
-        <TouchableOpacity onPress={onSettings} activeOpacity={0.7} className="p-2 -mr-2">
-          <Settings size={20} color="#7aa8a8" />
-        </TouchableOpacity>
-      ) : (
-        <View style={{ width: 36 }} />
-      )}
+      {/* Right — settings (invisible spacer when not provided) */}
+      <TouchableOpacity
+        onPress={onSettings}
+        disabled={!onSettings}
+        activeOpacity={0.7}
+        style={{ padding: 8, marginRight: -8, opacity: onSettings ? 1 : 0 }}
+      >
+        <Settings size={20} color="#7aa8a8" />
+      </TouchableOpacity>
     </View>
   );
 }

@@ -28,11 +28,17 @@ export function SongResultItem({ video, onAdd, added }: SongResultItemProps) {
         onPress={onAdd}
         disabled={added}
         activeOpacity={0.7}
-        className="px-3 py-2 rounded-full border border-[#008b8b]"
-        style={{ opacity: added ? 0.6 : 1 }}
+        style={{
+          borderWidth: 1,
+          borderColor: '#008b8b',
+          borderRadius: 999,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          opacity: added ? 0.6 : 1,
+        }}
       >
-        <Text className="text-[#008b8b] text-xs font-semibold">
-          {added ? t('search.addedToQueueButton') : t('search.addToQueueButton')}
+        <Text style={{ color: '#008b8b', fontSize: 12, fontWeight: '600' }}>
+          {added ? t('search.addedToQueueButton') : '+ Thêm'}
         </Text>
       </TouchableOpacity>
     </View>
