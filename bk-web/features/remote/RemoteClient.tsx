@@ -270,6 +270,18 @@ function RemoteInner() {
   const queuedMap = useQueuedMap(roomData.queue);
   const currentPlayingId = roomData.currentPlaying?.id ?? null;
 
+  // Enrich the toast song with queueId + queue position so AddedToast can
+  // display position and offer an undo action. Look up by video id in the
+  // live queue snapshot; falls back to null if the song isn't in the queue
+  // yet (e.g. it went straight to currentPlaying).
+  const toastSongWithMeta = (() => {
+    if (!toastSong) return null;
+    const idx = roomData.queue.findIndex((q) => q.id === toastSong.id);
+    if (idx === -1) return null;
+    const item = roomData.queue[idx];
+    return { ...toastSong, queueId: item.queueId, queuePos: idx + 1 };
+  })();
+
   const { deviceId, claim, release } = useFullscreenOwnership(roomCode);
 
   // Cluster-wide view: any device (TV or a phone holding the
@@ -758,12 +770,15 @@ function RemoteInner() {
       />
 
       <AddedToast
-        song={toastSong}
+        song={toastSongWithMeta}
+        onUndo={(queueId) => {
+          removeSong(queueId);
+          dismissToast();
+        }}
         onViewQueue={() => {
           setTab('queue');
           dismissToast();
         }}
-        onDismiss={dismissToast}
       />
 
       <ConfirmDialog

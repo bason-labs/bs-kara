@@ -1,65 +1,76 @@
 'use client';
 
 import Image from 'next/image';
-import { CheckCircle2 } from 'lucide-react';
+import { Check, Sparkles, Undo, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { YouTubeVideo } from '@bs-kara/shared';
 
-type AddedToastSong = {
-  title: string;
-  thumbnail: string;
-};
-
-type AddedToastProps = {
-  song: AddedToastSong | null;
+interface AddedToastProps {
+  song: (YouTubeVideo & { queueId: string; queuePos: number }) | null;
+  onUndo: (queueId: string) => void;
   onViewQueue: () => void;
-  onDismiss: () => void;
-};
+}
 
-export function AddedToast({ song, onViewQueue, onDismiss }: AddedToastProps) {
+export function AddedToast({ song, onUndo, onViewQueue }: AddedToastProps) {
   const { t } = useTranslation();
-  const visible = song !== null;
 
   return (
     <div
       aria-live="polite"
-      role="status"
-      className={`lg:hidden pointer-events-none fixed inset-x-0 z-40 flex justify-center px-3 transition-all duration-300 ${
-        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+      aria-atomic="true"
+      className={`fixed left-4 right-4 bottom-[84px] z-20 transition-all duration-300 ${
+        song
+          ? 'opacity-100 translate-y-0 animate-toast-in'
+          : 'opacity-0 translate-y-4 pointer-events-none'
       }`}
-      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4.25rem)' }}
     >
       {song && (
-        <div
-          onClick={onDismiss}
-          className="pointer-events-auto w-full max-w-sm flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-surface text-fg border border-border shadow-glow"
-        >
-          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-surface-2">
+        <div className="grid grid-cols-[auto_1fr_auto] gap-3 p-3 bg-surface border border-border rounded-[14px] shadow-[0_18px_36px_-10px_rgba(0,0,0,0.55)] shadow-glow">
+          {/* Column 1 — Thumbnail */}
+          <div className="relative w-11 h-11 flex-shrink-0">
             <Image
               src={song.thumbnail}
               alt=""
               fill
-              sizes="40px"
-              className="object-cover"
+              className="object-cover rounded-[10px]"
               unoptimized
             />
+            {/* Check badge */}
+            <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-accent text-[#001a1a] border-2 border-surface flex items-center justify-center">
+              <Check size={11} strokeWidth={3} />
+            </span>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-brand">
-              <CheckCircle2 size={12} />
-              {t('toast.addedToQueue')}
+
+          {/* Column 2 — Meta */}
+          <div className="min-w-0 flex flex-col justify-center">
+            <div className="flex items-center gap-1 mb-0.5">
+              <Sparkles size={11} className="text-accent flex-shrink-0" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-accent">
+                {t('toast.queuePosition', { pos: song.queuePos })}
+              </span>
             </div>
-            <p className="text-sm text-fg truncate">{song.title}</p>
+            <p className="text-[13px] font-medium text-fg truncate">{song.title}</p>
           </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewQueue();
-            }}
-            className="shrink-0 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-brand rounded-full"
-          >
-            {t('toast.viewQueue')}
-          </button>
+
+          {/* Column 3 — Actions */}
+          <div className="flex flex-col items-end justify-center gap-1.5 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => onUndo(song.queueId)}
+              className="flex items-center gap-1 text-[12px] font-semibold text-muted bg-transparent"
+            >
+              <Undo size={14} />
+              {t('toast.undo')}
+            </button>
+            <button
+              type="button"
+              onClick={onViewQueue}
+              className="flex items-center gap-1 text-[12px] font-semibold text-fg bg-surface-2 border border-border rounded-full px-2 py-1"
+            >
+              {t('toast.viewQueue')}
+              <ChevronRight size={13} />
+            </button>
+          </div>
         </div>
       )}
     </div>

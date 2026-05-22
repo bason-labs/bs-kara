@@ -3,53 +3,54 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AddedToast } from './AddedToast';
 
+const baseSong = {
+  id: 'vid123',
+  title: 'Hello',
+  channel: 'Adele',
+  thumbnail: 'https://example.com/x.jpg',
+  duration: '3:45',
+  queueId: 'q-abc',
+  queuePos: 2,
+};
+
 describe('AddedToast', () => {
-  it('renders the song title and the view-queue button when song is set', () => {
+  it('renders song title and queue position when song is set', () => {
     render(
-      <AddedToast
-        song={{ title: 'Hello', thumbnail: 'https://example.com/x.jpg' }}
-        onViewQueue={() => {}}
-        onDismiss={() => {}}
-      />,
+      <AddedToast song={baseSong} onUndo={() => {}} onViewQueue={() => {}} />,
     );
     expect(screen.getByText('Hello')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'toast.viewQueue' })).toBeInTheDocument();
+    // i18n mock returns key with {{pos}} replaced → "toast.queuePosition" with pos=2
+    expect(screen.getByText('toast.queuePosition')).toBeInTheDocument();
   });
 
-  it('renders nothing when song is null', () => {
+  it('renders nothing visible when song is null', () => {
     const { container } = render(
-      <AddedToast song={null} onViewQueue={() => {}} onDismiss={() => {}} />,
+      <AddedToast song={null} onUndo={() => {}} onViewQueue={() => {}} />,
     );
     expect(container.querySelector('img')).toBeNull();
+    expect(screen.queryByRole('button')).toBeNull();
   });
 
-  it('clicking the body fires onDismiss', async () => {
+  it('calls onUndo with the song queueId when undo button clicked', async () => {
     const user = userEvent.setup();
-    const onDismiss = vi.fn();
+    const onUndo = vi.fn();
     render(
-      <AddedToast
-        song={{ title: 'Hello', thumbnail: '' }}
-        onViewQueue={() => {}}
-        onDismiss={onDismiss}
-      />,
+      <AddedToast song={baseSong} onUndo={onUndo} onViewQueue={() => {}} />,
     );
-    await user.click(screen.getByText('Hello'));
-    expect(onDismiss).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', { name: /toast\.undo/i }));
+    expect(onUndo).toHaveBeenCalledTimes(1);
+    expect(onUndo).toHaveBeenCalledWith('q-abc');
   });
 
-  it('clicking the view-queue button fires onViewQueue without onDismiss', async () => {
+  it('calls onViewQueue when the view button is clicked and does not call onUndo', async () => {
     const user = userEvent.setup();
     const onViewQueue = vi.fn();
-    const onDismiss = vi.fn();
+    const onUndo = vi.fn();
     render(
-      <AddedToast
-        song={{ title: 'X', thumbnail: '' }}
-        onViewQueue={onViewQueue}
-        onDismiss={onDismiss}
-      />,
+      <AddedToast song={baseSong} onUndo={onUndo} onViewQueue={onViewQueue} />,
     );
-    await user.click(screen.getByRole('button', { name: 'toast.viewQueue' }));
+    await user.click(screen.getByRole('button', { name: /toast\.viewQueue/i }));
     expect(onViewQueue).toHaveBeenCalledTimes(1);
-    expect(onDismiss).not.toHaveBeenCalled();
+    expect(onUndo).not.toHaveBeenCalled();
   });
 });
