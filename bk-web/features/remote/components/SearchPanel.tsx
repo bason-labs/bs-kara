@@ -20,14 +20,14 @@ import { useSearchSuggestions } from '@/features/remote/hooks/useSearchSuggestio
 import { useVoiceSearch } from '@/features/remote/hooks/useVoiceSearch';
 import { useHotHits } from '@/features/remote/hooks/useHotHits';
 import { useScrollOffset } from '@/hooks/useScrollOffset';
-import { SongSkeleton } from './SongSkeleton';
+import { SkeletonRow } from './SkeletonRow';
 import { AddToQueueButton } from './AddToQueueButton';
 import { PlayNowButton } from './PlayNowButton';
 
 // Hoisted out of the render function so the array isn't recreated on every
-// keystroke. The contents (8 nulls) are never read — only the length is
-// used to spread into 8 SongSkeleton elements.
-const SEARCH_SKELETONS = Array.from({ length: 8 });
+// keystroke. The contents (6 nulls) are never read — only the length is
+// used to spread into 6 SkeletonRow elements.
+const SEARCH_SKELETONS = Array.from({ length: 6 });
 
 // Quick-filter chips. Labels are domain terms — kept in Vietnamese for both
 // locales. The keyword is appended verbatim to the user query before hitting
@@ -696,7 +696,7 @@ export function SearchPanel({
           style={{ height: 'calc(var(--header-h) + var(--searchbar-h))' }}
         />
         {(isInitialLoading || loading) &&
-          SEARCH_SKELETONS.map((_, i) => <SongSkeleton key={i} />)}
+          SEARCH_SKELETONS.map((_, i) => <SkeletonRow key={i} />)}
 
         {!isInitialLoading && !loading && showingHotHits && displayedResults.length > 0 && (
           <div className="flex items-center gap-2 px-1 pb-1">
