@@ -1,11 +1,14 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/tests/msw/server';
 import { SearchPanel } from './SearchPanel';
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  localStorage.clear();
+});
 
 // The MSW default handler for /api/youtube/search returns a "Mock result for
 // <query>" item, so we can verify the exact query string the BFF received by
@@ -87,6 +90,39 @@ describe('SearchPanel', () => {
     await waitFor(() =>
       expect(screen.getByText('search.errorQuota')).toBeInTheDocument(),
     );
+  });
+
+  describe('search history', () => {
+    beforeEach(() => {
+      // Seed localStorage so useSearchHistory returns one entry on mount.
+      localStorage.setItem(
+        'searchHistory',
+        JSON.stringify([{ q: 'Duyên phận' }]),
+      );
+    });
+
+    it('shows history delete button without requiring hover', async () => {
+      // The old design used opacity-0 group-hover:opacity-100 to hide the
+      // delete button until the row was hovered. The new design removes those
+      // classes so the button is always visible without simulating hover.
+      const user = userEvent.setup();
+      render(<SearchPanel onAdd={() => {}} />);
+      // Focus the (empty) input to make the history list appear.
+      await user.click(screen.getByPlaceholderText('search.placeholder'));
+      // Both mobile inline list and desktop dropdown render the delete button
+      // (JSDOM doesn't apply CSS media-query classes like lg:hidden). Check
+      // that every rendered delete button lacks opacity-hiding classes.
+      await waitFor(() => {
+        const deleteBtns = screen.getAllByRole('button', {
+          name: 'search.removeHistoryAriaLabel',
+        });
+        expect(deleteBtns.length).toBeGreaterThan(0);
+        for (const btn of deleteBtns) {
+          expect(btn.className).not.toMatch(/opacity-0/);
+          expect(btn.className).not.toMatch(/group-hover/);
+        }
+      });
+    });
   });
 
   describe('filters sheet', () => {
