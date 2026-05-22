@@ -60,28 +60,6 @@ export default function SearchScreen() {
   const { suggestions, clear: clearSuggestions } = useSearchSuggestions(isFocused ? query : '');
   const queuedMap = useQueuedMap(roomData?.queue ?? []);
 
-  const { isListening, interimTranscript, start: startVoice } = useVoiceSearch({
-    onFinal: (text) => {
-      setQuery(text);
-      setIsFocused(false);
-      const chipKeywords = FILTER_CHIPS
-        .filter((c) => activeChips.has(c.id))
-        .map((c) => c.keyword)
-        .join(' ');
-      const term = [text.trim(), chipKeywords].filter(Boolean).join(' ') || 'nhạc trẻ karaoke';
-      void search(term);
-    },
-    onUnsupported: () => setSearchError('generic'),
-  });
-
-  function handleChipToggle(chip: typeof FILTER_CHIPS[number]) {
-    setActiveChips((prev) => {
-      const next = new Set(prev);
-      next.has(chip.id) ? next.delete(chip.id) : next.add(chip.id);
-      return next;
-    });
-  }
-
   const buildTerm = useCallback((q: string, chips: Set<string>) => {
     const chipKeywords = FILTER_CHIPS
       .filter((c) => chips.has(c.id))
@@ -116,6 +94,15 @@ export default function SearchScreen() {
       setIsSearching(false);
     }
   }, []);
+
+  const { isListening, interimTranscript, start: startVoice, stop: stopVoice } = useVoiceSearch({
+    onFinal: (text) => {
+      setQuery(text);
+      setIsFocused(false);
+      void search(buildTerm(text, activeChips));
+    },
+    onUnsupported: () => setSearchError('generic'),
+  });
 
   useEffect(() => {
     void search(buildTerm('', new Set()));
@@ -488,7 +475,7 @@ export default function SearchScreen() {
       <VoiceSearchModal
         visible={isListening}
         interimTranscript={interimTranscript}
-        onClose={() => {/* stop handled by onFinal/onSpeechError */}}
+        onClose={stopVoice}
       />
 
       {/* Added toast */}

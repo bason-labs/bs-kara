@@ -6,7 +6,7 @@ import { CheckCircle2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { YouTubeVideo } from '@bs-kara/shared';
 
-const TAB_BAR_HEIGHT = 52;
+const TAB_BAR_HEIGHT = 64;
 
 interface AddedToastProps {
   video: YouTubeVideo;

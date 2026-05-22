@@ -34,6 +34,7 @@ export function useVoiceSearch({ onFinal, onUnsupported }: UseVoiceSearchOptions
           require('../assets/audio/ding.mp3')
         );
         await sound.playAsync();
+        sound.unloadAsync().catch(() => {}); // fire-and-forget cleanup
       } catch {}
       onFinalRef.current(text);
       setIsListening(false);
@@ -60,6 +61,7 @@ export function useVoiceSearch({ onFinal, onUnsupported }: UseVoiceSearchOptions
         require('../assets/audio/pop.mp3')
       );
       await sound.playAsync();
+      sound.unloadAsync().catch(() => {}); // fire-and-forget cleanup
     } catch {}
     await Voice.start('vi-VN');
     setIsListening(true);
