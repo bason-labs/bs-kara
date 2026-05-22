@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, SafeAreaView } from 'react-native';
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
-import { Settings } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useRoomContext } from '@/context/RoomContext';
-import { NowPlayingCard } from '@/components/NowPlayingCard';
+import { RoomHeader } from '@/components/RoomHeader';
 import { QueueItemRow } from '@/components/QueueItemRow';
 import { EmojiPad } from '@/components/EmojiPad';
 import { SettingsSheet } from '@/components/SettingsSheet';
@@ -12,9 +12,10 @@ import type { QueueItem } from '@bs-kara/shared';
 
 export default function QueueScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const {
     roomData,
-    togglePlayPause,
+    roomCode,
     removeSong,
     reorderQueue,
     sendEmoji,
@@ -27,24 +28,20 @@ export default function QueueScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#06100f]">
-      {/* Header */}
-      <View className="flex-row items-center px-4 pt-4 pb-2">
-        <Text className="text-[#e0ffff] text-lg font-bold flex-1">{t('queue.title')}</Text>
-        <TouchableOpacity
-          onPress={() => setSettingsVisible(true)}
-          activeOpacity={0.7}
-          className="p-2"
-        >
-          <Settings size={20} color="#7aa8a8" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Now playing card */}
-      <NowPlayingCard
-        song={roomData.currentPlaying}
-        isPlaying={roomData.isPlaying}
-        onToggle={() => togglePlayPause(roomData.isPlaying)}
+      {/* Shared header */}
+      <RoomHeader
+        roomCode={roomCode}
+        onLeave={() => router.replace('/join' as never)}
+        onSettings={() => setSettingsVisible(true)}
       />
+
+      {/* Queue title with count */}
+      <View className="px-4 pb-2">
+        <Text className="text-[#e0ffff] text-lg font-bold">
+          {t('queue.title')}
+          {roomData.queue.length > 0 ? ` (${roomData.queue.length})` : ''}
+        </Text>
+      </View>
 
       {/* Queue list */}
       {roomData.queue.length === 0 ? (
@@ -56,9 +53,10 @@ export default function QueueScreen() {
           data={roomData.queue}
           keyExtractor={(item) => item.queueId}
           onDragEnd={handleDragEnd}
-          renderItem={({ item, drag }: RenderItemParams<QueueItem>) => (
+          renderItem={({ item, drag, getIndex }: RenderItemParams<QueueItem>) => (
             <QueueItemRow
               item={item}
+              index={getIndex() ?? 0}
               onRemove={() => removeSong(item.queueId)}
               drag={drag}
               dragEnabled={roomData.dragDropEnabled}

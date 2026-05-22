@@ -1,6 +1,5 @@
 import { View, Text, Switch, TouchableOpacity, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { ThemeToggle } from './ThemeToggle';
 import { useRoomContext } from '@/context/RoomContext';
 
 interface SettingsSheetProps {
@@ -33,7 +32,6 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
       <View className="bg-[#0e1c1c] rounded-t-3xl px-6 pt-6 pb-10">
         <View className="flex-row items-center mb-6">
           <Text className="text-[#e0ffff] text-xl font-bold flex-1">{t('settings.title')}</Text>
-          <ThemeToggle />
         </View>
         <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
           {/* Queue section */}

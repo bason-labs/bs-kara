@@ -14,7 +14,7 @@ const mockItem = {
 describe('QueueItemRow', () => {
   it('renders the song title', () => {
     const { getByText } = render(
-      <QueueItemRow item={mockItem} onRemove={jest.fn()} drag={jest.fn()} />
+      <QueueItemRow item={mockItem} index={0} onRemove={jest.fn()} drag={jest.fn()} />
     );
     expect(getByText('Song Title')).toBeTruthy();
   });
@@ -22,7 +22,7 @@ describe('QueueItemRow', () => {
   it('calls onRemove when remove button is pressed', () => {
     const onRemove = jest.fn();
     const { getByTestId } = render(
-      <QueueItemRow item={mockItem} onRemove={onRemove} drag={jest.fn()} />
+      <QueueItemRow item={mockItem} index={0} onRemove={onRemove} drag={jest.fn()} />
     );
     fireEvent.press(getByTestId('remove-button'));
     expect(onRemove).toHaveBeenCalledTimes(1);

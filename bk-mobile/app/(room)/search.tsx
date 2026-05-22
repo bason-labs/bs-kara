@@ -8,21 +8,35 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRoomContext } from '@/context/RoomContext';
 import { SongResultItem } from '@/components/SongResultItem';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { RoomHeader } from '@/components/RoomHeader';
 import type { YouTubeVideo } from '@bs-kara/shared';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 
+const FILTER_CHIPS = [
+  { id: 'song-ca', label: 'Song ca', keyword: 'song ca' },
+  { id: 'tone-nam', label: 'Tone nam', keyword: 'tone nam' },
+  { id: 'tone-nu', label: 'Tone nữ', keyword: 'tone nữ' },
+  { id: 'tru-tinh', label: 'Trữ tình', keyword: 'trữ tình' },
+  { id: 'ca-co', label: 'Ca cổ', keyword: 'ca cổ' },
+  { id: 'nhac-tre', label: 'Nhạc trẻ', keyword: 'nhạc trẻ' },
+] as const;
+
 export default function SearchScreen() {
   const { t } = useTranslation();
-  const { addSongToQueue, roomData } = useRoomContext();
+  const router = useRouter();
+  const { addSongToQueue, roomData, roomCode } = useRoomContext();
 
   const [query, setQuery] = useState('');
+  const [activeChip, setActiveChip] = useState<string | null>(null);
   const [results, setResults] = useState<YouTubeVideo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [added, setAdded] = useState<Set<string>>(new Set());
@@ -31,8 +45,9 @@ export default function SearchScreen() {
   const [requesterName, setRequesterName] = useState('');
   const pendingVideoRef = useRef<YouTubeVideo | null>(null);
 
-  const search = useCallback(async (q: string) => {
-    const term = q.trim() || 'nhạc trẻ karaoke';
+  const search = useCallback(async (q: string, chipKeyword?: string) => {
+    const base = q.trim() || 'nhạc trẻ karaoke';
+    const term = chipKeyword ? `${base} ${chipKeyword}` : base;
     setIsSearching(true);
     try {
       const res = await fetch(
@@ -50,6 +65,28 @@ export default function SearchScreen() {
   useEffect(() => {
     search('');
   }, [search]);
+
+  function handleChipPress(chip: typeof FILTER_CHIPS[number]) {
+    if (activeChip === chip.id) {
+      setActiveChip(null);
+      search(query);
+    } else {
+      setActiveChip(chip.id);
+      search(query, chip.keyword);
+    }
+  }
+
+  function handleSearchSubmit() {
+    const chip = FILTER_CHIPS.find((c) => c.id === activeChip);
+    search(query, chip?.keyword);
+  }
+
+  function handleQueryChange(text: string) {
+    setQuery(text);
+    if (text.trim() === '') {
+      setActiveChip(null);
+    }
+  }
 
   function handleAddPress(video: YouTubeVideo) {
     if (roomData.requesterPromptEnabled) {
@@ -71,24 +108,64 @@ export default function SearchScreen() {
   return (
     <SafeAreaView className="flex-1 bg-[#06100f]">
       {/* Header */}
-      <View className="flex-row items-center px-4 pt-4 pb-2 gap-3">
-        <Text className="text-[#e0ffff] text-lg font-bold flex-1">BS Kara</Text>
-        <ThemeToggle />
-      </View>
+      <RoomHeader
+        roomCode={roomCode}
+        onLeave={() => router.replace('/join' as never)}
+      />
 
       {/* Search bar */}
-      <View className="flex-row items-center mx-4 mb-3 bg-[#0e1c1c] border border-[#1f3a3a] rounded-2xl px-4 py-3 gap-2">
+      <View className="flex-row items-center mx-4 mb-2 bg-[#0e1c1c] border border-[#1f3a3a] rounded-2xl px-4 py-3 gap-2">
         <Search size={18} color="#7aa8a8" />
         <TextInput
           value={query}
-          onChangeText={setQuery}
-          onSubmitEditing={() => search(query)}
+          onChangeText={handleQueryChange}
+          onSubmitEditing={handleSearchSubmit}
           returnKeyType="search"
           placeholder={t('search.placeholder')}
           placeholderTextColor="#7aa8a8"
           className="flex-1 text-[#e0ffff] text-sm"
         />
       </View>
+
+      {/* Filter chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 8 }}
+      >
+        {FILTER_CHIPS.map((chip) => {
+          const isActive = activeChip === chip.id;
+          if (isActive) {
+            return (
+              <TouchableOpacity
+                key={chip.id}
+                onPress={() => handleChipPress(chip)}
+                activeOpacity={0.8}
+                style={{ borderRadius: 999, overflow: 'hidden' }}
+              >
+                <LinearGradient
+                  colors={['#008b8b', '#006d6f', '#0d98ba']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ paddingHorizontal: 14, paddingVertical: 6 }}
+                >
+                  <Text className="text-white text-xs font-semibold">{chip.label}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            );
+          }
+          return (
+            <TouchableOpacity
+              key={chip.id}
+              onPress={() => handleChipPress(chip)}
+              activeOpacity={0.7}
+              className="bg-[#0e1c1c] border border-[#1f3a3a] rounded-full px-3.5 py-1.5"
+            >
+              <Text className="text-[#7aa8a8] text-xs">{chip.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
       {/* Loading */}
       {isSearching && (
@@ -112,9 +189,9 @@ export default function SearchScreen() {
           data={results}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
-            !query.trim() ? (
+            !query.trim() && !activeChip ? (
               <Text className="text-xs uppercase tracking-[3px] text-[#7aa8a8] px-4 pt-2 pb-3">
-                {t('search.hotHitsLabel')}
+                {'🔥 '}{t('search.hotHitsLabel')}
               </Text>
             ) : null
           }
