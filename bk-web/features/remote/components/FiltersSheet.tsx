@@ -57,7 +57,7 @@ export function FiltersSheet({
       {/* Scrim */}
       <button
         type="button"
-        aria-label={t('settings.closeLabel')}
+        aria-label={t('search.filtersSheetTitle')}
         tabIndex={open ? 0 : -1}
         onClick={onClose}
         className={`absolute inset-0 bg-black/55 backdrop-blur-sm transition-opacity duration-200 ${
@@ -85,12 +85,12 @@ export function FiltersSheet({
             onClick={onReset}
             className="text-[13px] font-semibold text-muted px-2.5 py-2 rounded-lg hover:bg-surface-2 transition-colors"
           >
-            Đặt lại
+            {t('search.filtersReset')}
           </button>
         </div>
 
         {/* Scrollable filter groups */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-4">
           {FILTER_GROUPS.map((group) => (
             <div key={group.key}>
               <p className="text-[12px] font-bold tracking-widest text-muted uppercase mb-2">
