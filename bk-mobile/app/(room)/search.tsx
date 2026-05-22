@@ -134,7 +134,8 @@ export default function SearchScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 6 }}
+        style={{ flexShrink: 0, overflow: 'visible' }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, alignItems: 'center' }}
       >
         {FILTER_CHIPS.map((chip, i) => {
           const isActive = activeChip === chip.id;
