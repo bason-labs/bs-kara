@@ -14,6 +14,7 @@
   --bg: #f7f8fa;            /* page */
   --surface: #ffffff;       /* cards, inputs */
   --surface-2: #f1f4f8;     /* hover, inset, skeletons */
+  --surface-3: #e8edf3;     /* deeper inset, voice overlay bg */
   --border: #e3e7ec;        /* dividers, card outlines */
 
   /* Text */
@@ -38,6 +39,7 @@
   --bg: #06100f;
   --surface: #0e1c1c;
   --surface-2: #152a2a;
+  --surface-3: #1a3535;
   --border: #1f3a3a;
 
   /* Text */
@@ -62,6 +64,7 @@
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-border: var(--border);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
@@ -73,6 +76,21 @@
 
   --font-sans: var(--font-sans), "Segoe UI", Arial, sans-serif;
   --font-display: var(--font-display), var(--font-sans), sans-serif;
+
+  /* Animation utilities — map keyframe names to `animate-*` classes. */
+  --animate-voice-pulse: voicePulse 2s ease-in-out infinite;
+  --animate-voice-pulse-delayed: voicePulse 2s ease-in-out 0.8s infinite;
+  --animate-eq-bar: eqBar 1s ease-in-out infinite;
+  --animate-eq-bar-1: eqBar 1s ease-in-out 0.2s infinite;
+  --animate-eq-bar-2: eqBar 1s ease-in-out 0.1s infinite;
+  --animate-eq-bar-3: eqBar 1s ease-in-out 0.3s infinite;
+  --animate-pulse-dot: pulseDot 2.2s ease-in-out infinite;
+  --animate-pulse-dot-fast: pulseDot 1.4s ease-in-out infinite;
+  --animate-mic-pulse: micPulse 1.6s ease-in-out infinite;
+  --animate-toast-in: toastIn 500ms cubic-bezier(.2,.9,.3,1.2) forwards;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-blink: blink 1s steps(2) infinite;
+  --animate-just-added: justAdded 1.6s ease-out forwards;
 }
 
 body {
@@ -637,5 +655,62 @@ input:disabled {
   .emoji-tap-bounce {
     animation: none;
   }
+}
+
+/* ─── SearchPanel & UI animation keyframes ──────────────────────────────── */
+
+/* Pulse rings for the voice overlay. */
+@keyframes voicePulse {
+  0%   { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+/* Equalizer bars in the now-playing thumbnail. */
+@keyframes eqBar {
+  0%, 100% { transform: scaleY(0.4); }
+  50%       { transform: scaleY(1); }
+}
+
+/* Accent dot in TopBar room chip and now-playing status. */
+@keyframes pulseDot {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  50% {
+    transform: scale(0.8);
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+
+/* Mic button recording-state glow. */
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0  color-mix(in srgb, var(--glow) 65%, transparent); }
+  50%       { box-shadow: 0 0 0 10px transparent; }
+}
+
+/* AddedToast slide-up entrance. */
+@keyframes toastIn {
+  from { transform: translateY(80px) scale(0.95); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+/* Skeleton loading shimmer. */
+@keyframes shimmer {
+  from { background-position:  200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* Cursor blink in voice overlay transcript. */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* Glow ring flash when a song is just added to the queue. */
+@keyframes justAdded {
+  0%   { box-shadow: 0 0 0 0  color-mix(in srgb, var(--accent) 65%, transparent); }
+  50%  { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 30%, transparent); }
+  100% { box-shadow: 0 0 0 10px transparent; }
 }
 
