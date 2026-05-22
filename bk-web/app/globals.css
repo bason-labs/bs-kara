@@ -678,8 +678,8 @@ input:disabled {
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent);
   }
   50% {
-    transform: scale(0.8);
-    box-shadow: 0 0 0 4px transparent;
+    transform: scale(1.05);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 0%, transparent);
   }
 }
 
@@ -696,6 +696,7 @@ input:disabled {
 }
 
 /* Skeleton loading shimmer. */
+/* requires background-size >= 200% on the element */
 @keyframes shimmer {
   from { background-position:  200% 0; }
   to   { background-position: -200% 0; }
@@ -703,8 +704,8 @@ input:disabled {
 
 /* Cursor blink in voice overlay transcript. */
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
+  0%  { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 /* Glow ring flash when a song is just added to the queue. */
