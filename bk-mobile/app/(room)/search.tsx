@@ -117,7 +117,7 @@ export default function SearchScreen() {
       />
 
       {/* Search bar */}
-      <View className="flex-row items-center mx-4 mb-2 bg-[#0e1c1c] border border-[#1f3a3a] rounded-2xl px-4 py-3 gap-2">
+      <View className="flex-row items-center mx-4 mb-2 bg-[#0e1c1c] border border-[#1f3a3a] rounded-2xl px-4 py-2 gap-2">
         <Search size={18} color="#7aa8a8" />
         <TextInput
           value={query}
@@ -134,7 +134,7 @@ export default function SearchScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 6 }}
       >
         {FILTER_CHIPS.map((chip, i) => {
           const isActive = activeChip === chip.id;
