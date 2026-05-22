@@ -6,12 +6,14 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { QrCode } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useCurrentHost } from '@/hooks/useCurrentHost';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 const CODE_LENGTH = 4;
@@ -21,6 +23,7 @@ type JoinError = 'room_not_found' | 'subscription_expired' | 'guests_not_allowed
 export default function JoinScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { profile, loading: hostLoading } = useCurrentHost();
   const inputRef = useRef<TextInput>(null);
   const [code, setCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
@@ -84,23 +87,35 @@ export default function JoinScreen() {
           </Text>
         </View>
 
-        {/* Primary CTA — navigate to host auth */}
-        <TouchableOpacity
-          onPress={() => router.push('/register' as never)}
-          activeOpacity={0.8}
-          className="w-full rounded-full overflow-hidden mb-4"
-        >
-          <LinearGradient
-            colors={['#008b8b', '#006d6f', '#0d98ba']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            className="py-4 items-center"
+        {/* Primary CTA — "Go to my room" if logged in, else "Login / Create room" */}
+        {hostLoading ? (
+          <View className="w-full py-4 items-center mb-4">
+            <ActivityIndicator color="#40e0d0" size="small" />
+          </View>
+        ) : (
+          <TouchableOpacity
+            onPress={() => {
+              if (profile) {
+                router.replace({ pathname: '/(room)/search', params: { roomCode: profile.roomCode } });
+              } else {
+                router.push('/register' as never);
+              }
+            }}
+            activeOpacity={0.8}
+            className="w-full rounded-full overflow-hidden mb-4"
           >
-            <Text className="text-[#e0ffff] font-semibold text-base tracking-wide">
-              {t('auth.loginOrRegister')}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={['#008b8b', '#006d6f', '#0d98ba']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              className="py-4 items-center"
+            >
+              <Text className="text-[#e0ffff] font-semibold text-base tracking-wide">
+                {profile ? t('auth.goToMyRoom') : t('auth.loginOrRegister')}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         {/* Divider */}
         <View className="flex-row items-center gap-3 w-full mb-4">
