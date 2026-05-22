@@ -87,7 +87,8 @@
     "statusNowPlaying": "Đang phát",
     "statusQueued": "Trong hàng chờ · #{{pos}}",
     "statusJustAdded": "Vừa thêm",
-    "voiceListenHint": "Hát to lên hoặc đọc tên bài hát"
+    "voiceListenHint": "Hát to lên hoặc đọc tên bài hát",
+    "addAriaLabel": "Thêm vào hàng chờ"
   },
   "queue": {
     "title": "Hàng chờ",

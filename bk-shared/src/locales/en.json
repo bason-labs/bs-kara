@@ -87,7 +87,8 @@
     "statusNowPlaying": "Now playing",
     "statusQueued": "In queue · #{{pos}}",
     "statusJustAdded": "Just added",
-    "voiceListenHint": "Sing or say the song name"
+    "voiceListenHint": "Sing or say the song name",
+    "addAriaLabel": "Add to queue"
   },
   "queue": {
     "title": "Queue",
