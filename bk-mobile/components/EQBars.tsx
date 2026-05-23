@@ -22,7 +22,7 @@ function Bar({ delay, minH, maxH, color }: BarProps) {
     return () => clearTimeout(timer);
   }, [delay, minH, maxH, h]);
   const style = useAnimatedStyle(() => ({ height: h.value }));
-  return <Animated.View testID="eq-bar" style={[{ width: 3, borderRadius: 1.5, backgroundColor: color }, style]} />;
+  return <Animated.View testID="eq-bar" pointerEvents="none" style={[{ width: 3, borderRadius: 1.5, backgroundColor: color }, style]} />;
 }
 
 interface EQBarsProps { color?: string; }
