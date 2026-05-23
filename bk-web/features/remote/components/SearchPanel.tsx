@@ -737,9 +737,12 @@ export function SearchPanel({
           </ul>
         )}
 
-        {/* Idle (no search yet): hot hits header + cards. */}
-        {showIdle && !isInitialLoading && idleResults.length > 0 && (
-          <>
+        {/* Idle (no search yet): hot hits header + cards.
+            On desktop the history dropdown is absolute-positioned above this
+            content so both can show simultaneously. On mobile the inline
+            history list replaces this area, so hide it when showHistory. */}
+        {(showIdle || showHistory) && !isInitialLoading && idleResults.length > 0 && (
+          <div className={showHistory ? 'hidden lg:block' : undefined}>
             <div className="flex items-center gap-2 px-1 pb-1">
               <span className="text-base">🔥</span>
               <h2 className="text-sm font-semibold text-fg">{t('search.hotHitsLabel')}</h2>
@@ -752,11 +755,14 @@ export function SearchPanel({
               justAddedId={justAddedId}
               onAdd={handleAdd}
             />
-          </>
+          </div>
         )}
 
-        {showIdle && isInitialLoading &&
-          SEARCH_SKELETONS.map((_, i) => <SkeletonRow key={i} />)}
+        {(showIdle || showHistory) && isInitialLoading && (
+          <div className={showHistory ? 'hidden lg:block' : undefined}>
+            {SEARCH_SKELETONS.map((_, i) => <SkeletonRow key={i} />)}
+          </div>
+        )}
 
         {showResults && results.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
