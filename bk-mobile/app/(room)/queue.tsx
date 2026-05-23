@@ -1,49 +1,44 @@
+import { useState } from 'react';
 import { View, Text, SafeAreaView } from 'react-native';
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
-import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useRoomContext } from '@/context/RoomContext';
-import { RoomHeader } from '@/components/RoomHeader';
+import { TopBar } from '@/components/TopBar';
 import { QueueItemRow } from '@/components/QueueItemRow';
-import { useSettingsContext } from '@/context/SettingsContext';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { QueueItem } from '@bs-kara/shared';
 
 export default function QueueScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
   const {
     roomData,
     roomCode,
     removeSong,
     reorderQueue,
+    playSongNow,
+    isHost,
   } = useRoomContext();
-  const { openSettings } = useSettingsContext();
+
+  const [pendingPlayNow, setPendingPlayNow] = useState<QueueItem | null>(null);
 
   function handleDragEnd({ from, to }: { data: QueueItem[]; from: number; to: number }) {
     reorderQueue(from, to);
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#06100f]">
-      {/* Shared header */}
-      <RoomHeader
-        roomCode={roomCode}
-        onLeave={() => router.replace('/join' as never)}
-        onSettings={openSettings}
-      />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#06100f' }}>
+      <TopBar roomCode={roomCode} />
 
-      {/* Queue title with count */}
-      <View className="px-4 pb-2">
-        <Text className="text-[#e0ffff] text-lg font-bold">
+      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+        <Text style={{ color: '#e0ffff', fontSize: 18, fontWeight: '700' }}>
           {t('queue.title')}
           {roomData.queue.length > 0 ? ` (${roomData.queue.length})` : ''}
         </Text>
       </View>
 
-      {/* Queue list */}
       {roomData.queue.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-[#7aa8a8] text-sm">{t('queue.emptyMessage')}</Text>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#7aa8a8', fontSize: 14 }}>{t('queue.emptyMessage')}</Text>
         </View>
       ) : (
         <DraggableFlatList
@@ -54,14 +49,32 @@ export default function QueueScreen() {
             <QueueItemRow
               item={item}
               index={getIndex() ?? 0}
+              queuePosition={(getIndex() ?? 0) + 1}
               onRemove={() => removeSong(item.queueId)}
               drag={drag}
               dragEnabled={roomData.dragDropEnabled}
+              isHost={isHost}
+              guestCanRemove={roomData.guestCanRemove ?? false}
+              onPlayNow={isHost ? () => setPendingPlayNow(item) : undefined}
             />
           )}
         />
       )}
 
+      <ConfirmDialog
+        open={pendingPlayNow !== null}
+        title={t('playNow.title')}
+        message={t('playNow.message', { title: pendingPlayNow?.title ?? '' })}
+        confirmLabel={t('playNow.confirm')}
+        cancelLabel={t('playNow.cancel')}
+        onConfirm={() => {
+          if (pendingPlayNow) {
+            void playSongNow(pendingPlayNow, pendingPlayNow.queueId);
+            setPendingPlayNow(null);
+          }
+        }}
+        onCancel={() => setPendingPlayNow(null)}
+      />
     </SafeAreaView>
   );
 }

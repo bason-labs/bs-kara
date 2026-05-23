@@ -1,7 +1,8 @@
 import React, { createContext, useContext } from 'react';
 import { useRoom } from '@bs-kara/shared/hooks';
+import { useCurrentHost } from '@/hooks/useCurrentHost';
 
-type RoomContextValue = ReturnType<typeof useRoom> & { roomCode: string };
+type RoomContextValue = ReturnType<typeof useRoom> & { roomCode: string; isHost: boolean };
 
 const RoomContext = createContext<RoomContextValue | null>(null);
 
@@ -13,7 +14,9 @@ export function RoomProvider({
   children: React.ReactNode;
 }) {
   const room = useRoom(roomCode);
-  return <RoomContext.Provider value={{ ...room, roomCode }}>{children}</RoomContext.Provider>;
+  const { profile } = useCurrentHost();
+  const isHost = profile !== null;
+  return <RoomContext.Provider value={{ ...room, roomCode, isHost }}>{children}</RoomContext.Provider>;
 }
 
 export function useRoomContext(): RoomContextValue {

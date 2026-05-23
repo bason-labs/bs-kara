@@ -94,6 +94,7 @@
     "title": "Queue",
     "emptyMessage": "Your queue is empty. Add a song to get started!",
     "removeAriaLabel": "Remove from queue",
+    "eta": "Position #{{n}} · ~{{eta}} min",
     "removeConfirm": {
       "title": "Remove this song?",
       "message": "This song will be removed from the queue.",

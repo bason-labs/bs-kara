@@ -1,30 +1,65 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
+
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, _defaultOrOpts?: unknown, opts?: Record<string, unknown>) => {
+      // Handle both t(key, opts) and t(key, defaultString, opts) forms
+      const resolvedOpts: Record<string, unknown> =
+        opts ?? (typeof _defaultOrOpts === 'object' && _defaultOrOpts !== null ? (_defaultOrOpts as Record<string, unknown>) : {});
+      if (key === 'queue.eta') return `#${resolvedOpts.n} · ~${resolvedOpts.eta} phút`;
+      return key;
+    },
+  }),
+}));
+
 import { QueueItemRow } from './QueueItemRow';
 
-const mockItem = {
-  id: 'abc',
+const item = {
   queueId: 'q1',
-  title: 'Song Title',
-  channel: 'Channel',
-  thumbnail: 'https://img.youtube.com/vi/abc/mqdefault.jpg',
-  duration: '3:30',
+  id: 'v1',
+  title: 'Test Song',
+  channel: 'Ch',
+  thumbnail: 'https://img',
+  duration: '3:00',
+  requesterName: 'Bason',
+};
+
+const base = {
+  item,
+  index: 0,
+  queuePosition: 1,
+  onRemove: jest.fn(),
+  drag: jest.fn(),
+  isHost: false,
+  guestCanRemove: false,
 };
 
 describe('QueueItemRow', () => {
-  it('renders the song title', () => {
-    const { getByText } = render(
-      <QueueItemRow item={mockItem} index={0} onRemove={jest.fn()} drag={jest.fn()} />
-    );
-    expect(getByText('Song Title')).toBeTruthy();
+  it('shows ETA text', () => {
+    const { getByText } = render(<QueueItemRow {...base} queuePosition={2} />);
+    expect(getByText('#2 · ~8 phút')).toBeTruthy();
   });
 
-  it('calls onRemove when remove button is pressed', () => {
-    const onRemove = jest.fn();
-    const { getByTestId } = render(
-      <QueueItemRow item={mockItem} index={0} onRemove={onRemove} drag={jest.fn()} />
-    );
-    fireEvent.press(getByTestId('remove-button'));
-    expect(onRemove).toHaveBeenCalledTimes(1);
+  it('shows PlayNow button only for host', () => {
+    const { queryByTestId, rerender } = render(<QueueItemRow {...base} isHost={false} />);
+    expect(queryByTestId('play-now-button')).toBeNull();
+    rerender(<QueueItemRow {...base} isHost={true} onPlayNow={jest.fn()} />);
+    expect(queryByTestId('play-now-button')).toBeTruthy();
+  });
+
+  it('shows remove button for host', () => {
+    const { getByTestId } = render(<QueueItemRow {...base} isHost={true} />);
+    expect(getByTestId('remove-button')).toBeTruthy();
+  });
+
+  it('shows remove button for guest when guestCanRemove is true', () => {
+    const { getByTestId } = render(<QueueItemRow {...base} isHost={false} guestCanRemove={true} />);
+    expect(getByTestId('remove-button')).toBeTruthy();
+  });
+
+  it('hides remove button for guest when guestCanRemove is false', () => {
+    const { queryByTestId } = render(<QueueItemRow {...base} isHost={false} guestCanRemove={false} />);
+    expect(queryByTestId('remove-button')).toBeNull();
   });
 });

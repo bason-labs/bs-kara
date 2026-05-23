@@ -94,6 +94,7 @@
     "title": "Hàng chờ",
     "emptyMessage": "Hàng đợi đang trống. Hãy thêm bài hát nhé!",
     "removeAriaLabel": "Xoá khỏi hàng chờ",
+    "eta": "Vị trí #{{n}} · ~{{eta}} phút",
     "removeConfirm": {
       "title": "Xoá bài này?",
       "message": "Bài hát sẽ bị xoá khỏi hàng chờ.",

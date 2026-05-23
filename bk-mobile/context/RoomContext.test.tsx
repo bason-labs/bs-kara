@@ -58,6 +58,10 @@ jest.mock('@bs-kara/shared/hooks', () => ({
   i18n: {},
 }));
 
+jest.mock('@/hooks/useCurrentHost', () => ({
+  useCurrentHost: () => ({ user: null, profile: null, loading: false }),
+}));
+
 function Consumer() {
   const { roomData } = useRoomContext();
   return <Text testID="queue-len">{roomData.queue.length}</Text>;
