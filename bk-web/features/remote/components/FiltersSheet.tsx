@@ -52,7 +52,7 @@ export function FiltersSheet({
       aria-modal="true"
       aria-label={t('search.filtersSheetTitle')}
       inert={!open}
-      className={`fixed inset-0 z-50 ${open ? '' : 'pointer-events-none'}`}
+      className={`fixed inset-0 z-50 flex items-end lg:items-center lg:justify-center ${open ? '' : 'pointer-events-none'}`}
     >
       {/* Scrim */}
       <button
@@ -65,15 +65,20 @@ export function FiltersSheet({
         }`}
       />
 
-      {/* Sheet */}
+      {/* Sheet (mobile) / Modal (desktop) */}
       <div
-        className={`absolute bottom-0 left-0 right-0 bg-surface rounded-t-3xl border-t border-border max-h-[78%] flex flex-col transition-transform duration-300 ease-out ${
-          visible ? 'translate-y-0' : 'translate-y-full'
-        }`}
+        className={`relative w-full bg-surface flex flex-col
+          rounded-t-3xl border-t border-border max-h-[78%]
+          lg:rounded-2xl lg:border lg:max-w-md lg:max-h-[80vh] lg:shadow-2xl
+          transition-[transform,opacity] duration-300 ease-out
+          ${visible
+            ? 'translate-y-0 opacity-100 lg:scale-100'
+            : 'translate-y-full opacity-0 lg:translate-y-0 lg:scale-95'
+          }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Drag handle — decorative */}
-        <div className="mx-auto mt-1.5 w-11 h-[5px] rounded-full bg-border" aria-hidden />
+        {/* Drag handle — mobile only */}
+        <div className="lg:hidden mx-auto mt-1.5 w-11 h-[5px] rounded-full bg-border" aria-hidden />
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
