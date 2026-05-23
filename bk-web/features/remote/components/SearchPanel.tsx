@@ -12,6 +12,7 @@ import {
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import {
+  ArrowLeft,
   ArrowUpLeft,
   Check,
   History,
@@ -489,12 +490,28 @@ export function SearchPanel({
         }`}
       >
         <div ref={wrapperRef} className="relative px-4 pt-3 pb-3">
-          <div
-            className={`flex items-center gap-2 h-[52px] px-4 bg-surface border rounded-full transition-colors ${
-              isFocused ? 'border-glow ring-1 ring-glow/35' : 'border-border'
-            }`}
-          >
-            <Search size={20} className="text-muted flex-shrink-0" />
+          <div className="flex items-center gap-2">
+            {/* Back button — mobile only, slides in when the input is focused */}
+            {isFocused && (
+              <button
+                type="button"
+                aria-label={t('search.backAriaLabel')}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  inputRef.current?.blur();
+                  setIsFocused(false);
+                }}
+                className="lg:hidden w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full text-muted hover:text-fg active:scale-95 transition-colors"
+              >
+                <ArrowLeft size={22} />
+              </button>
+            )}
+            <div
+              className={`flex items-center gap-2 h-[52px] px-4 bg-surface border rounded-full transition-colors flex-1 ${
+                isFocused ? 'border-glow ring-1 ring-glow/35' : 'border-border'
+              }`}
+            >
+              <Search size={20} className="text-muted flex-shrink-0" />
             <input
               ref={inputRef}
               type="text"
@@ -575,7 +592,8 @@ export function SearchPanel({
             >
               <Mic size={20} />
             </button>
-          </div>
+            </div>{/* end pill */}
+          </div>{/* end back-button + pill row */}
 
           {/* Desktop suggestion / history dropdown — anchored to the search
               bar wrapper so it overlays the results without disturbing
