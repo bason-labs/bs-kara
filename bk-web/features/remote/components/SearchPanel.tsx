@@ -792,10 +792,11 @@ export function SearchPanel({
       <FiltersSheet
         open={showFiltersSheet}
         activeChips={activeChips}
-        onToggle={handleChipToggle}
-        onReset={handleClearChips}
-        onApply={() => {
-          if (query.trim() || activeChips.size > 0) runSearch(query, activeChips);
+        onApply={(chips) => {
+          setActiveChips(chips);
+          const trimmed = query.trim();
+          if (trimmed || chips.size > 0) runSearch(query, chips);
+          else { setSearched(false); setResults([]); setSearchError(null); }
         }}
         onClose={() => setShowFiltersSheet(false)}
       />

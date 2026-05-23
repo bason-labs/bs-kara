@@ -144,7 +144,7 @@ describe('SearchPanel', () => {
       expect(chip).toHaveAttribute('aria-pressed', 'true');
     });
 
-    it('toggling a chip on its own (no query) triggers a search using just the chip keyword', async () => {
+    it('clicking Apply after toggling a chip triggers a search using just the chip keyword', async () => {
       const user = userEvent.setup();
       render(<SearchPanel onAdd={() => {}} />);
       await waitFor(() =>
@@ -154,6 +154,11 @@ describe('SearchPanel', () => {
         screen.getByRole('button', { name: 'search.filtersTriggerAriaLabel' }),
       );
       await user.click(await screen.findByRole('button', { name: 'Song ca' }));
+      // Toggling alone must NOT trigger a search — only Apply should.
+      expect(screen.queryByText(/Mock result for song ca/)).not.toBeInTheDocument();
+      await user.click(
+        screen.getByRole('button', { name: /search\.filtersApply|search\.filtersViewAll/ }),
+      );
       await waitFor(() =>
         expect(screen.getByText(/Mock result for song ca/)).toBeInTheDocument(),
       );
@@ -170,13 +175,15 @@ describe('SearchPanel', () => {
       await waitFor(() =>
         expect(screen.getByText(/Mock result for hello/)).toBeInTheDocument(),
       );
-      // Open filters and toggle two chips while the query is still active —
-      // each toggle re-runs the search with all active terms.
+      // Open filters, toggle two chips, then Apply — search only fires on Apply.
       await user.click(
         screen.getByRole('button', { name: 'search.filtersTriggerAriaLabel' }),
       );
       await user.click(await screen.findByRole('button', { name: 'Tone nam' }));
       await user.click(screen.getByRole('button', { name: 'Trữ tình' }));
+      await user.click(
+        screen.getByRole('button', { name: /search\.filtersApply|search\.filtersViewAll/ }),
+      );
       await waitFor(() =>
         expect(
           screen.getByText('Mock result for hello tone nam trữ tình'),
@@ -190,12 +197,15 @@ describe('SearchPanel', () => {
       await waitFor(() =>
         expect(screen.getByText(/Mock result for bolero/)).toBeInTheDocument(),
       );
-      // Open sheet, toggle two chips
+      // Open sheet, toggle two chips, Apply — badge only updates on Apply.
       await user.click(
         screen.getByRole('button', { name: 'search.filtersTriggerAriaLabel' }),
       );
       await user.click(await screen.findByRole('button', { name: 'Song ca' }));
       await user.click(screen.getByRole('button', { name: 'Tone nam' }));
+      await user.click(
+        screen.getByRole('button', { name: /search\.filtersApply|search\.filtersViewAll/ }),
+      );
       // The trigger button now has a small badge with the count ("2").
       const trigger = screen.getByRole('button', {
         name: 'search.filtersTriggerAriaLabel',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { FILTER_GROUPS, type FilterChipId } from '@/lib/filters';
@@ -8,28 +8,37 @@ import { FILTER_GROUPS, type FilterChipId } from '@/lib/filters';
 interface FiltersSheetProps {
   open: boolean;
   activeChips: Set<FilterChipId>;
-  onToggle: (id: FilterChipId) => void;
-  onReset: () => void;
-  onApply: () => void;
+  onApply: (chips: Set<FilterChipId>) => void;
   onClose: () => void;
 }
 
 export function FiltersSheet({
   open,
   activeChips,
-  onToggle,
-  onReset,
   onApply,
   onClose,
 }: FiltersSheetProps) {
   const { t } = useTranslation();
 
-  // Defer visible by one frame so slide-up animation has an off-screen
-  // starting point even when the component mounts with open=true.
   const [visible, setVisible] = useState(false);
+  // Draft chips — local to the sheet. Committed chips only update when the
+  // user clicks Apply, so toggling chips inside the sheet never triggers a
+  // search prematurely.
+  const [draftChips, setDraftChips] = useState<Set<FilterChipId>>(
+    () => new Set(activeChips),
+  );
+
+  // Always holds the latest committed chips without being a dep of the open
+  // effect (adding activeChips to that dep would reset the draft on every
+  // parent re-render while the sheet is already open).
+  const committedRef = useRef(activeChips);
+  committedRef.current = activeChips;
 
   useEffect(() => {
     if (!open) return;
+    // Initialise draft from committed state each time the sheet opens so the
+    // user sees their previously-applied filters checked.
+    setDraftChips(new Set(committedRef.current));
     const id = requestAnimationFrame(() => setVisible(true));
     return () => {
       cancelAnimationFrame(id);
@@ -45,6 +54,22 @@ export function FiltersSheet({
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [open, onClose]);
+
+  const handleToggle = (id: FilterChipId) => {
+    setDraftChips((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleReset = () => setDraftChips(new Set());
+
+  const handleApply = () => {
+    onApply(draftChips);
+    onClose();
+  };
 
   return (
     <div
@@ -87,7 +112,7 @@ export function FiltersSheet({
           </h2>
           <button
             type="button"
-            onClick={onReset}
+            onClick={handleReset}
             className="text-[13px] font-semibold text-muted px-2.5 py-2 rounded-lg hover:bg-surface-2 transition-colors"
           >
             {t('search.filtersReset')}
@@ -103,13 +128,13 @@ export function FiltersSheet({
               </p>
               <div className="flex flex-wrap gap-2">
                 {group.chips.map((chip) => {
-                  const active = activeChips.has(chip.id);
+                  const active = draftChips.has(chip.id);
                   return (
                     <button
                       key={chip.id}
                       type="button"
                       aria-pressed={active}
-                      onClick={() => onToggle(chip.id)}
+                      onClick={() => handleToggle(chip.id)}
                       className={`px-3 py-1.5 rounded-full text-sm border transition-colors min-h-[44px] flex items-center gap-1.5 ${
                         active
                           ? 'bg-gradient-brand text-white border-transparent shadow-glow'
@@ -130,14 +155,11 @@ export function FiltersSheet({
         <div className="p-4 border-t border-border">
           <button
             type="button"
-            onClick={() => {
-              onApply();
-              onClose();
-            }}
+            onClick={handleApply}
             className="w-full py-4 rounded-full bg-gradient-brand shadow-glow text-white font-[family-name:var(--font-display)] text-[15px] font-semibold"
           >
-            {activeChips.size > 0
-              ? t('search.filtersApply', { count: activeChips.size })
+            {draftChips.size > 0
+              ? t('search.filtersApply', { count: draftChips.size })
               : t('search.filtersViewAll')}
           </button>
         </div>
