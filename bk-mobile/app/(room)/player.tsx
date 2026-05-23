@@ -7,8 +7,7 @@ import { useRoomContext } from '@/context/RoomContext';
 import { RoomHeader } from '@/components/RoomHeader';
 import { TransportControls } from '@/components/TransportControls';
 import { EmojiPad } from '@/components/EmojiPad';
-import { SettingsSheet } from '@/components/SettingsSheet';
-import { useState } from 'react';
+import { useSettingsContext } from '@/context/SettingsContext';
 
 const { width } = Dimensions.get('window');
 const THUMB_HEIGHT = (width - 48) * (9 / 16);
@@ -18,7 +17,7 @@ export default function PlayerScreen() {
   const router = useRouter();
   const { roomData, roomCode, togglePlayPause, playNext, playPrevious, sendEmoji } = useRoomContext();
   const { currentPlaying, isPlaying } = roomData;
-  const [settingsVisible, setSettingsVisible] = useState(false);
+  const { openSettings } = useSettingsContext();
 
   if (!currentPlaying) {
     return (
@@ -26,14 +25,13 @@ export default function PlayerScreen() {
         <RoomHeader
           roomCode={roomCode}
           onLeave={() => router.replace('/join' as never)}
-          onSettings={() => setSettingsVisible(true)}
+          onSettings={openSettings}
         />
         <View className="flex-1 items-center justify-center">
           <Text className="text-[#7aa8a8] text-sm text-center px-6">
             {t('player.idleHint')}
           </Text>
         </View>
-        <SettingsSheet isOpen={settingsVisible} onClose={() => setSettingsVisible(false)} />
       </SafeAreaView>
     );
   }
@@ -51,7 +49,7 @@ export default function PlayerScreen() {
       <RoomHeader
         roomCode={roomCode}
         onLeave={() => router.replace('/join' as never)}
-        onSettings={() => setSettingsVisible(true)}
+        onSettings={openSettings}
       />
 
       {/* Hero thumbnail */}
@@ -105,7 +103,6 @@ export default function PlayerScreen() {
         onNext={playNext}
       />
 
-      <SettingsSheet isOpen={settingsVisible} onClose={() => setSettingsVisible(false)} />
     </SafeAreaView>
   );
 }

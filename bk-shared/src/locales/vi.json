@@ -120,7 +120,8 @@
   "tabs": {
     "search": "Tìm bài",
     "queue": "Hàng chờ",
-    "player": "Đang phát"
+    "player": "Đang phát",
+    "settings": "Cài đặt"
   },
   "playNow": {
     "title": "Phát bài này ngay?",

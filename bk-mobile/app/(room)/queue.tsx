@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { View, Text, SafeAreaView } from 'react-native';
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
 import { useRouter } from 'expo-router';
@@ -7,7 +6,7 @@ import { useRoomContext } from '@/context/RoomContext';
 import { RoomHeader } from '@/components/RoomHeader';
 import { QueueItemRow } from '@/components/QueueItemRow';
 import { EmojiPad } from '@/components/EmojiPad';
-import { SettingsSheet } from '@/components/SettingsSheet';
+import { useSettingsContext } from '@/context/SettingsContext';
 import type { QueueItem } from '@bs-kara/shared';
 
 export default function QueueScreen() {
@@ -20,7 +19,7 @@ export default function QueueScreen() {
     reorderQueue,
     sendEmoji,
   } = useRoomContext();
-  const [settingsVisible, setSettingsVisible] = useState(false);
+  const { openSettings } = useSettingsContext();
 
   function handleDragEnd({ from, to }: { data: QueueItem[]; from: number; to: number }) {
     reorderQueue(from, to);
@@ -32,7 +31,7 @@ export default function QueueScreen() {
       <RoomHeader
         roomCode={roomCode}
         onLeave={() => router.replace('/join' as never)}
-        onSettings={() => setSettingsVisible(true)}
+        onSettings={openSettings}
       />
 
       {/* Queue title with count */}
@@ -67,9 +66,6 @@ export default function QueueScreen() {
 
       {/* Emoji reactions */}
       <EmojiPad onSend={sendEmoji} />
-
-      {/* Settings sheet */}
-      <SettingsSheet isOpen={settingsVisible} onClose={() => setSettingsVisible(false)} />
     </SafeAreaView>
   );
 }

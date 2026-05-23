@@ -1,49 +1,40 @@
+import { useState } from 'react';
 import { Tabs, useLocalSearchParams } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { Search, ListMusic, Disc3 } from 'lucide-react-native';
 import { RoomProvider, useRoomContext } from '@/context/RoomContext';
+import { BottomNav, type NavTab } from '@/components/BottomNav';
+import { SettingsSheet } from '@/components/SettingsSheet';
+import { SettingsContext } from '@/context/SettingsContext';
 
 function TabBarLayout() {
-  const { t } = useTranslation();
   const { roomData } = useRoomContext();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#0e1c1c',
-          borderTopColor: '#1f3a3a',
-          height: 64,
-        },
-        tabBarActiveTintColor: '#40e0d0',
-        tabBarInactiveTintColor: '#7aa8a8',
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
-      }}
-    >
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: t('tabs.search'),
-          tabBarIcon: ({ color }) => <Search size={22} color={color} />,
+    <SettingsContext.Provider value={{ openSettings: () => setSettingsOpen(true) }}>
+      <Tabs
+        screenOptions={{ headerShown: false }}
+        tabBar={(props) => {
+          const routeName = (props.state.routes[props.state.index]?.name ?? 'search') as NavTab;
+          return (
+            <BottomNav
+              activeTab={routeName}
+              isPlaying={roomData.isPlaying}
+              queueLength={roomData.queue.length}
+              onTabChange={(tab) => {
+                const route = props.state.routes.find((r) => r.name === tab);
+                if (route) props.navigation.navigate(route.name);
+              }}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          );
         }}
-      />
-      <Tabs.Screen
-        name="queue"
-        options={{
-          title: t('tabs.queue'),
-          tabBarIcon: ({ color }) => <ListMusic size={22} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="player"
-        options={{
-          title: t('tabs.player'),
-          tabBarIcon: ({ color }) => <Disc3 size={22} color={color} />,
-          href: roomData.isTvActive ? null : undefined,
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen name="search" />
+        <Tabs.Screen name="queue" />
+        <Tabs.Screen name="player" />
+      </Tabs>
+      <SettingsSheet isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+    </SettingsContext.Provider>
   );
 }
 

@@ -16,7 +16,7 @@ import { SearchSkeleton } from '@/components/SearchSkeleton';
 import { AddedToast } from '@/components/AddedToast';
 import { VoiceSearchModal } from '@/components/VoiceSearchModal';
 import { RoomHeader } from '@/components/RoomHeader';
-import { SettingsSheet } from '@/components/SettingsSheet';
+import { useSettingsContext } from '@/context/SettingsContext';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { useSearchSuggestions } from '@/hooks/useSearchSuggestions';
 import { useQueuedMap } from '@/hooks/useQueuedMap';
@@ -48,8 +48,8 @@ export default function SearchScreen() {
   const [searchError, setSearchError] = useState<'quota' | 'generic' | null>(null);
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [isFocused, setIsFocused] = useState(false);
+  const { openSettings } = useSettingsContext();
   const [toastVideo, setToastVideo] = useState<YouTubeVideo | null>(null);
-  const [settingsVisible, setSettingsVisible] = useState(false);
   const [requesterModalVisible, setRequesterModalVisible] = useState(false);
   const [requesterName, setRequesterName] = useState('');
 
@@ -254,7 +254,7 @@ export default function SearchScreen() {
         <RoomHeader
           roomCode={roomCode}
           onLeave={() => router.replace('/join' as never)}
-          onSettings={() => setSettingsVisible(true)}
+          onSettings={openSettings}
         />
       )}
 
@@ -486,8 +486,6 @@ export default function SearchScreen() {
           onDismiss={() => setToastVideo(null)}
         />
       )}
-
-      <SettingsSheet isOpen={settingsVisible} onClose={() => setSettingsVisible(false)} />
 
       {/* Requester modal */}
       <Modal visible={requesterModalVisible} transparent animationType="slide"

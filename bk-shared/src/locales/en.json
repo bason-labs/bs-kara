@@ -120,7 +120,8 @@
   "tabs": {
     "search": "Search",
     "queue": "Queue",
-    "player": "Player"
+    "player": "Player",
+    "settings": "Settings"
   },
   "playNow": {
     "title": "Play this song now?",
