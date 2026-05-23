@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -52,8 +52,11 @@ interface FiltersSheetProps {
 
 export function FiltersSheet({ visible, selected, onApply, onClose }: FiltersSheetProps) {
   const { t } = useTranslation();
-  const sheetRef = useRef<BottomSheet>(null);
   const [draft, setDraft] = useState<Set<string>>(new Set(selected));
+
+  useEffect(() => {
+    if (visible) setDraft(new Set(selected));
+  }, [visible]); // intentionally not including 'selected' — only reset on open
 
   if (!visible) return null;
 
@@ -68,7 +71,7 @@ export function FiltersSheet({ visible, selected, onApply, onClose }: FiltersShe
   const count = draft.size;
 
   return (
-    <BottomSheet ref={sheetRef} snapPoints={['60%']} enablePanDownToClose onClose={onClose}
+    <BottomSheet snapPoints={['60%']} enablePanDownToClose onClose={onClose}
       backgroundStyle={{ backgroundColor: '#0e1c1c' }} handleIndicatorStyle={{ backgroundColor: '#4a7a7a' }}>
       <BottomSheetView style={{ flex: 1, paddingHorizontal: 20, paddingBottom: 24 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>

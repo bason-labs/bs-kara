@@ -66,6 +66,7 @@ export function AddedToast({ video, onViewQueue, onDismiss, queuePos, onUndo }: 
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={{ borderRadius: 999, flexShrink: 0 }}>
               <TouchableOpacity onPress={onViewQueue} activeOpacity={0.8}
+                accessibilityRole="button"
                 style={{ height: 32, paddingHorizontal: 12,
                   alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ fontSize: 11, color: '#fff', fontWeight: '600',
@@ -76,7 +77,13 @@ export function AddedToast({ video, onViewQueue, onDismiss, queuePos, onUndo }: 
             </LinearGradient>
           </View>
           {onUndo && (
-            <TouchableOpacity onPress={onUndo} activeOpacity={0.7} style={{ alignSelf: 'flex-start', paddingHorizontal: 4, marginTop: 6 }}>
+            <TouchableOpacity
+              onPress={onUndo}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+              style={{ alignSelf: 'flex-start', paddingHorizontal: 4, paddingVertical: 6, marginTop: 6 }}
+            >
               <Text style={{ fontSize: 12, color: '#7aa8a8', textDecorationLine: 'underline' }}>
                 {t('toast.undo', 'Hoàn tác')}
               </Text>

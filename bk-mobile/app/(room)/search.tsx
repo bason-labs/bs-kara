@@ -106,6 +106,12 @@ export default function SearchScreen() {
     if (isFocused) panelInputRef.current?.focus();
   }, [isFocused]);
 
+  useEffect(() => {
+    return () => {
+      if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current);
+    };
+  }, []);
+
   function handleSearchSubmit() {
     const term = buildTerm(query, activeChips);
     if (query.trim()) pushHistory(query.trim(), results[0]?.thumbnail);
@@ -181,7 +187,13 @@ export default function SearchScreen() {
     if (!toastVideo) return;
     const match = roomData?.queue.find((item) => item.id === toastVideo.id);
     if (match) removeSong(match.queueId);
+    setAdded((prev) => {
+      const next = new Set(prev);
+      next.delete(toastVideo.id);
+      return next;
+    });
     setToastVideo(null);
+    setToastQueuePos(null);
   }
 
   function renderErrorState() {

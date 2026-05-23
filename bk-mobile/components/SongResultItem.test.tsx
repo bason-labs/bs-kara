@@ -1,7 +1,4 @@
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
-import { SongResultItem } from './SongResultItem';
-
+// mocks first
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -20,6 +17,11 @@ jest.mock('react-i18next', () => ({
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children }: { children: React.ReactNode }) => children,
 }));
+
+// then imports
+import React from 'react';
+import { render, fireEvent } from '@testing-library/react-native';
+import { SongResultItem } from './SongResultItem';
 
 const mockVideo = {
   id: 'abc123',
