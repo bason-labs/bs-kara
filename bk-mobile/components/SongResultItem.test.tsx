@@ -2,6 +2,7 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { SongResultItem } from './SongResultItem';
 
+jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => {
@@ -9,6 +10,7 @@ jest.mock('react-i18next', () => ({
         'search.addedToQueueButton': 'Đã thêm',
         'search.inQueue': 'Trong DS',
         'search.nowPlayingLabel': 'Đang phát',
+        'search.statusJustAdded': 'Vừa thêm',
       };
       return map[key] ?? key;
     },
@@ -96,5 +98,19 @@ describe('SongResultItem', () => {
         isCurrentlyPlaying={true} onPlayNow={jest.fn()} />
     );
     expect(queryByTestId('play-now-button')).toBeNull();
+  });
+
+  it('shows Vừa thêm pill when isJustAdded is true', () => {
+    const { getByText } = render(
+      <SongResultItem video={mockVideo} onAdd={jest.fn()} added={true} isJustAdded={true} />
+    );
+    expect(getByText('Vừa thêm')).toBeTruthy();
+  });
+
+  it('does not show Vừa thêm pill when isJustAdded is false', () => {
+    const { queryByText } = render(
+      <SongResultItem video={mockVideo} onAdd={jest.fn()} added={false} isJustAdded={false} />
+    );
+    expect(queryByText('Vừa thêm')).toBeNull();
   });
 });

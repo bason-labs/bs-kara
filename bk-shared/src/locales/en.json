@@ -154,7 +154,11 @@
     "addedToQueue": "Added to queue",
     "viewQueue": "View",
     "undo": "Undo",
-    "queuePosition": "Position #{{pos}}"
+    "queuePosition": "Position #{{pos}}",
+    "queuePositionEta": "Position {{pos}} · ~{{eta}} min"
+  },
+  "row": {
+    "stateAdded": "Just added"
   },
   "autoRandom": {
     "toggleLabel": "Auto-random next song",

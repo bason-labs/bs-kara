@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { Play } from 'lucide-react-native';
+import { Play, Sparkles } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { YouTubeVideo } from '@bs-kara/shared';
 
@@ -10,13 +12,22 @@ interface SongResultItemProps {
   added: boolean;
   queued?: boolean;
   isCurrentlyPlaying?: boolean;
+  isJustAdded?: boolean;
   onPlayNow?: () => void;
 }
 
 export function SongResultItem({
-  video, onAdd, added, queued, isCurrentlyPlaying, onPlayNow,
+  video, onAdd, added, queued, isCurrentlyPlaying, isJustAdded, onPlayNow,
 }: SongResultItemProps) {
   const { t } = useTranslation();
+
+  const glowOpacity = useSharedValue(isJustAdded ? 1 : 0);
+  useEffect(() => {
+    glowOpacity.value = isJustAdded ? withTiming(0, { duration: 1600 }) : 0;
+  }, [isJustAdded, glowOpacity]);
+  const glowStyle = useAnimatedStyle(() => ({
+    borderColor: `rgba(125,249,255,${glowOpacity.value})`,
+  }));
 
   // Priority order: playing > queued > added > default
   const buttonState = isCurrentlyPlaying ? 'playing'
@@ -27,6 +38,18 @@ export function SongResultItem({
   const showPlayNow = !!onPlayNow && !isCurrentlyPlaying;
 
   function renderAddButton() {
+    if (isJustAdded) {
+      return (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4,
+          borderWidth: 1, borderColor: '#7df9ff', borderRadius: 999,
+          paddingHorizontal: 10, paddingVertical: 6 }}>
+          <Sparkles size={11} color="#7df9ff" />
+          <Text style={{ color: '#7df9ff', fontSize: 12, fontWeight: '600' }}>
+            {t('search.statusJustAdded')}
+          </Text>
+        </View>
+      );
+    }
     if (buttonState === 'playing') {
       return (
         <View testID="add-button"
@@ -75,9 +98,13 @@ export function SongResultItem({
   }
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10,
-      paddingHorizontal: 16, paddingVertical: 10,
-      borderBottomWidth: 1, borderBottomColor: '#1f3a3a' }}>
+    <Animated.View style={[
+      { flexDirection: 'row', alignItems: 'center', gap: 10,
+        paddingHorizontal: 16, paddingVertical: 10,
+        borderBottomWidth: 1, borderBottomColor: '#1f3a3a',
+        borderWidth: 1, borderRadius: 8 },
+      glowStyle,
+    ]}>
       <Image source={{ uri: video.thumbnail }}
         style={{ width: 72, height: 44, borderRadius: 6, backgroundColor: '#152a2a' }}
         resizeMode="cover" />
@@ -102,6 +129,6 @@ export function SongResultItem({
         )}
         {renderAddButton()}
       </View>
-    </View>
+    </Animated.View>
   );
 }

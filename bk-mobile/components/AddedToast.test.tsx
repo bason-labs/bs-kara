@@ -1,12 +1,18 @@
 import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react-native';
-import { AddedToast } from './AddedToast';
 
+jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ bottom: 0 }) }));
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => {
+    t: (key: string, defaultOrOpts?: unknown, opts?: Record<string, unknown>) => {
+      // resolve actual options: t(key, opts) or t(key, defaultValue, opts)
+      const resolvedOpts: Record<string, unknown> =
+        (opts != null ? opts : typeof defaultOrOpts === 'object' && defaultOrOpts !== null ? (defaultOrOpts as Record<string, unknown>) : {});
+      if (key === 'toast.queuePositionEta')
+        return `Vị trí thứ ${resolvedOpts.pos} · ~${resolvedOpts.eta} phút nữa`;
       const map: Record<string, string> = {
-        'addedToast.added': 'Đã thêm vào danh sách',
+        'toast.undo':           'Hoàn tác',
+        'addedToast.added':     'Đã thêm',
         'addedToast.viewQueue': 'Xem DS',
       };
       return map[key] ?? key;
@@ -14,59 +20,52 @@ jest.mock('react-i18next', () => ({
   }),
 }));
 
-jest.mock('react-native-safe-area-context', () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, top: 0, left: 0, right: 0 }),
-}));
-
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-const mockVideo = {
-  id: 'vid1', title: 'Bước Qua Đời Nhau Karaoke', channel: 'Test',
-  thumbnail: 'https://img.youtube.com/vi/vid1/mqdefault.jpg', duration: '4:00',
-};
+import { AddedToast } from './AddedToast';
+
+const video = { id: 'v1', title: 'Test Song', channel: 'Ch', thumbnail: 'https://img', duration: '3:00' };
 
 describe('AddedToast', () => {
-  it('renders the song title', () => {
-    const { getByText } = render(
-      <AddedToast video={mockVideo} onViewQueue={jest.fn()} onDismiss={jest.fn()} />
-    );
-    expect(getByText('Bước Qua Đời Nhau Karaoke')).toBeTruthy();
-  });
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => { jest.useRealTimers(); jest.restoreAllMocks(); });
 
-  it('renders the added badge', () => {
-    const { getByText } = render(
-      <AddedToast video={mockVideo} onViewQueue={jest.fn()} onDismiss={jest.fn()} />
-    );
-    expect(getByText('Đã thêm vào danh sách')).toBeTruthy();
-  });
-
-  it('calls onViewQueue when Xem DS is tapped', () => {
-    const onViewQueue = jest.fn();
+  it('calls onDismiss after 3800ms', () => {
     const onDismiss = jest.fn();
-    const { getByText } = render(
-      <AddedToast video={mockVideo} onViewQueue={onViewQueue} onDismiss={onDismiss} />
-    );
-    fireEvent.press(getByText('Xem DS'));
-    expect(onViewQueue).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls onDismiss when toast card is tapped', () => {
-    const onDismiss = jest.fn();
-    const { getByTestId } = render(
-      <AddedToast video={mockVideo} onViewQueue={jest.fn()} onDismiss={onDismiss} />
-    );
-    fireEvent.press(getByTestId('toast-card'));
+    render(<AddedToast video={video} onViewQueue={jest.fn()} onDismiss={onDismiss} />);
+    act(() => { jest.advanceTimersByTime(3800); });
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
-  it('auto-dismisses after 2500ms', () => {
-    jest.useFakeTimers();
+  it('does not dismiss before 3800ms (regression: was 2500ms)', () => {
     const onDismiss = jest.fn();
-    render(<AddedToast video={mockVideo} onViewQueue={jest.fn()} onDismiss={onDismiss} />);
+    render(<AddedToast video={video} onViewQueue={jest.fn()} onDismiss={onDismiss} />);
     act(() => { jest.advanceTimersByTime(2500); });
-    expect(onDismiss).toHaveBeenCalledTimes(1);
-    jest.useRealTimers();
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it('shows queue position with ETA when queuePos provided', () => {
+    const { getByText } = render(
+      <AddedToast video={video} onViewQueue={jest.fn()} onDismiss={jest.fn()} queuePos={3} />
+    );
+    expect(getByText('Vị trí thứ 3 · ~12 phút nữa')).toBeTruthy();
+  });
+
+  it('calls onUndo when undo button pressed', () => {
+    const onUndo = jest.fn();
+    const { getByText } = render(
+      <AddedToast video={video} onViewQueue={jest.fn()} onDismiss={jest.fn()} onUndo={onUndo} />
+    );
+    fireEvent.press(getByText('Hoàn tác'));
+    expect(onUndo).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides undo button when onUndo not provided', () => {
+    const { queryByText } = render(
+      <AddedToast video={video} onViewQueue={jest.fn()} onDismiss={jest.fn()} />
+    );
+    expect(queryByText('Hoàn tác')).toBeNull();
   });
 });

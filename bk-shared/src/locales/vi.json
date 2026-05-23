@@ -154,7 +154,11 @@
     "addedToQueue": "Đã thêm vào hàng chờ",
     "viewQueue": "Xem",
     "undo": "Hoàn tác",
-    "queuePosition": "Vị trí thứ {{pos}}"
+    "queuePosition": "Vị trí thứ {{pos}}",
+    "queuePositionEta": "Vị trí thứ {{pos}} · ~{{eta}} phút nữa"
+  },
+  "row": {
+    "stateAdded": "Vừa thêm"
   },
   "autoRandom": {
     "toggleLabel": "Tự động phát ngẫu nhiên",

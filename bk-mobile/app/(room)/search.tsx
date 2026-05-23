@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   AlertCircle, ArrowLeft, ArrowUpLeft, History,
-  Mic, Search, SearchX, WifiOff, X,
+  Mic, Search, SearchX, Sliders, WifiOff, X,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoomContext } from '@/context/RoomContext';
@@ -15,7 +15,8 @@ import { SongResultItem } from '@/components/SongResultItem';
 import { SearchSkeleton } from '@/components/SearchSkeleton';
 import { AddedToast } from '@/components/AddedToast';
 import { VoiceSearchModal } from '@/components/VoiceSearchModal';
-import { RoomHeader } from '@/components/RoomHeader';
+import { TopBar } from '@/components/TopBar';
+import { FiltersSheet, ALL_FILTER_OPTIONS, buildKeywordsFromFilters } from '@/components/FiltersSheet';
 import { useSettingsContext } from '@/context/SettingsContext';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { useSearchSuggestions } from '@/hooks/useSearchSuggestions';
@@ -25,19 +26,10 @@ import type { YouTubeVideo } from '@bs-kara/shared';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 
-const FILTER_CHIPS = [
-  { id: 'song-ca', label: 'Song ca', keyword: 'song ca' },
-  { id: 'tone-nam', label: 'Tone nam', keyword: 'tone nam' },
-  { id: 'tone-nu', label: 'Tone nữ', keyword: 'tone nữ' },
-  { id: 'tru-tinh', label: 'Trữ tình', keyword: 'trữ tình' },
-  { id: 'ca-co', label: 'Ca cổ', keyword: 'ca cổ' },
-  { id: 'nhac-tre', label: 'Nhạc trẻ', keyword: 'nhạc trẻ' },
-] as const;
-
 export default function SearchScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { addSongToQueue, roomData, roomCode } = useRoomContext();
+  const { addSongToQueue, removeSong, roomData, roomCode } = useRoomContext();
   const { history, push: pushHistory, remove: removeHistory } = useSearchHistory();
 
   const [query, setQuery] = useState('');
@@ -53,6 +45,11 @@ export default function SearchScreen() {
   const [requesterModalVisible, setRequesterModalVisible] = useState(false);
   const [requesterName, setRequesterName] = useState('');
 
+  const [showFiltersSheet, setShowFiltersSheet] = useState(false);
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
+  const [toastQueuePos, setToastQueuePos] = useState<number | null>(null);
+  const justAddedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const pendingVideoRef = useRef<YouTubeVideo | null>(null);
   const inputRef = useRef<TextInput>(null);
   const panelInputRef = useRef<TextInput>(null);
@@ -61,11 +58,8 @@ export default function SearchScreen() {
   const queuedMap = useQueuedMap(roomData?.queue ?? []);
 
   const buildTerm = useCallback((q: string, chips: Set<string>) => {
-    const chipKeywords = FILTER_CHIPS
-      .filter((c) => chips.has(c.id))
-      .map((c) => c.keyword)
-      .join(' ');
-    return [q.trim(), chipKeywords].filter(Boolean).join(' ') || 'nhạc trẻ karaoke';
+    const keywords = buildKeywordsFromFilters(chips);
+    return [q.trim(), keywords].filter(Boolean).join(' ') || 'nhạc trẻ karaoke';
   }, []);
 
   const search = useCallback(async (term: string) => {
@@ -173,36 +167,21 @@ export default function SearchScreen() {
   function confirmAdd(video: YouTubeVideo, name: string | null) {
     addSongToQueue(video, name ?? null);
     setAdded((prev) => new Set(prev).add(video.id));
+    setJustAddedId(video.id);
+    if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current);
+    justAddedTimerRef.current = setTimeout(() => setJustAddedId(null), 1700);
+    const queuePos = (roomData?.queue.length ?? 0) + 1;
+    setToastQueuePos(queuePos);
     setToastVideo(video);
     setRequesterModalVisible(false);
     pendingVideoRef.current = null;
   }
 
-  function renderChips(chips: Set<string>, onToggle: (chip: typeof FILTER_CHIPS[number]) => void) {
-    return FILTER_CHIPS.map((chip, i) => {
-      const isActive = chips.has(chip.id);
-      const marginRight = i < FILTER_CHIPS.length - 1 ? 8 : 0;
-      if (isActive) {
-        return (
-          <LinearGradient key={chip.id}
-            colors={['#008b8b', '#006d6f', '#0d98ba']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={{ borderRadius: 999, marginRight }}>
-            <TouchableOpacity onPress={() => onToggle(chip)} activeOpacity={0.8}
-              style={{ paddingHorizontal: 14, paddingVertical: 6 }}>
-              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{chip.label}</Text>
-            </TouchableOpacity>
-          </LinearGradient>
-        );
-      }
-      return (
-        <TouchableOpacity key={chip.id} onPress={() => onToggle(chip)} activeOpacity={0.7}
-          style={{ backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a',
-            borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6, marginRight }}>
-          <Text style={{ color: '#7aa8a8', fontSize: 12 }}>{chip.label}</Text>
-        </TouchableOpacity>
-      );
-    });
+  function handleUndo() {
+    if (!toastVideo) return;
+    const match = roomData?.queue.find((item) => item.id === toastVideo.id);
+    if (match) removeSong(match.queueId);
+    setToastVideo(null);
   }
 
   function renderErrorState() {
@@ -250,13 +229,7 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#06100f' }}>
-      {!isFocused && (
-        <RoomHeader
-          roomCode={roomCode}
-          onLeave={() => router.replace('/join' as never)}
-          onSettings={openSettings}
-        />
-      )}
+      {!isFocused && <TopBar roomCode={roomCode} />}
 
       {/* Search bar */}
       <View style={{ flexDirection: 'row', alignItems: 'center',
@@ -281,9 +254,16 @@ export default function SearchScreen() {
               <X size={16} color="#7aa8a8" />
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity onPress={handleSearchSubmit} activeOpacity={0.7}>
-              <Search size={18} color="#7aa8a8" />
-            </TouchableOpacity>
+            <View style={{ position: 'relative' }}>
+              <TouchableOpacity onPress={() => setShowFiltersSheet(true)} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Sliders size={18} color={activeChips.size > 0 ? '#7df9ff' : '#7aa8a8'} />
+              </TouchableOpacity>
+              {activeChips.size > 0 && (
+                <View style={{ position: 'absolute', top: -4, right: -4, width: 14, height: 14, borderRadius: 7, backgroundColor: '#40e0d0', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 8, fontWeight: '700', color: '#001a1a' }}>{activeChips.size}</Text>
+                </View>
+              )}
+            </View>
           )}
         </View>
         <TouchableOpacity activeOpacity={0.7} onPress={() => void startVoice()}
@@ -294,30 +274,32 @@ export default function SearchScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Filter chips — main screen */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}
-        style={{ flexShrink: 0, overflow: 'visible' }}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4,
-          paddingBottom: 12, alignItems: 'center' }}>
-        {renderChips(activeChips, (chip) => {
-          const next = new Set(activeChips);
-          next.has(chip.id) ? next.delete(chip.id) : next.add(chip.id);
-          setActiveChips(next);
-          void search(buildTerm(query, next));
-        })}
-        {activeChips.size > 0 && (
-          <TouchableOpacity onPress={() => {
-            setActiveChips(new Set());
-            void search(buildTerm(query, new Set()));
-          }} activeOpacity={0.7}
-            style={{ marginLeft: 4, paddingHorizontal: 12, paddingVertical: 6,
-              borderRadius: 999, borderWidth: 1, borderColor: '#4a7a7a' }}>
-            <Text style={{ color: '#4a7a7a', fontSize: 12 }}>
-              {t('search.clearFilters', { count: activeChips.size })}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </ScrollView>
+      {/* Active filter pills */}
+      {activeChips.size > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8, alignItems: 'center' }}>
+          {Array.from(activeChips).map((chipId) => {
+            const opt = ALL_FILTER_OPTIONS.find((o) => o.id === chipId);
+            if (!opt) return null;
+            return (
+              <LinearGradient key={chipId} colors={['#008b8b', '#006d6f', '#0d98ba']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 999 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    const next = new Set(activeChips);
+                    next.delete(chipId);
+                    setActiveChips(next);
+                    void search(buildTerm(query, next));
+                  }}
+                  activeOpacity={0.8}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6 }}>
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{opt.label}</Text>
+                  <X size={12} color="#fff" />
+                </TouchableOpacity>
+              </LinearGradient>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {/* Loading skeleton */}
       {isSearching && <SearchSkeleton />}
@@ -346,6 +328,7 @@ export default function SearchScreen() {
               added={added.has(item.id)}
               queued={queuedMap.has(item.id)}
               isCurrentlyPlaying={roomData?.currentPlaying?.id === item.id}
+              isJustAdded={justAddedId === item.id}
             />
           )}
         />
@@ -392,18 +375,6 @@ export default function SearchScreen() {
               )}
             </View>
 
-            {/* Chip row in overlay */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              style={{ flexShrink: 0, borderBottomWidth: 1, borderBottomColor: '#1f3a3a' }}
-              contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8, alignItems: 'center' }}>
-              {renderChips(activeChips, (chip) => {
-                const next = new Set(activeChips);
-                next.has(chip.id) ? next.delete(chip.id) : next.add(chip.id);
-                setActiveChips(next);
-                void search(buildTerm(query, next));
-              })}
-            </ScrollView>
 
             {/* History list */}
             {query.trim() === '' && (
@@ -482,8 +453,10 @@ export default function SearchScreen() {
       {toastVideo && (
         <AddedToast
           video={toastVideo}
+          queuePos={toastQueuePos ?? undefined}
           onViewQueue={() => { router.navigate('/(room)/queue'); setToastVideo(null); }}
-          onDismiss={() => setToastVideo(null)}
+          onDismiss={() => { setToastVideo(null); setToastQueuePos(null); }}
+          onUndo={handleUndo}
         />
       )}
 
@@ -525,6 +498,13 @@ export default function SearchScreen() {
           </View>
         </View>
       </Modal>
+
+      <FiltersSheet
+        visible={showFiltersSheet}
+        selected={activeChips}
+        onApply={(next) => { setActiveChips(next); void search(buildTerm(query, next)); }}
+        onClose={() => setShowFiltersSheet(false)}
+      />
     </SafeAreaView>
   );
 }

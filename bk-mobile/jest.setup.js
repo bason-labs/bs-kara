@@ -2,6 +2,15 @@
 // React Native's setup.js is already loaded in setupFiles
 // This file runs after that and can add additional mocks if needed
 
+jest.mock('@gorhom/bottom-sheet', () => {
+  const { View } = require('react-native');
+  const BottomSheet = ({ children }) => <View>{children}</View>;
+  BottomSheet.displayName = 'BottomSheet';
+  const BottomSheetView = ({ children, style }) => <View style={style}>{children}</View>;
+  BottomSheetView.displayName = 'BottomSheetView';
+  return { __esModule: true, default: BottomSheet, BottomSheetView };
+});
+
 jest.mock('expo-linear-gradient', () => {
   const { View } = require('react-native');
   return {
