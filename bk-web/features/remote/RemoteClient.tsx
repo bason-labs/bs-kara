@@ -96,8 +96,18 @@ function RemoteInner() {
     setChromeSnap(snap);
   }, []);
 
-  const headerShift =
-    tab === 'search' ? Math.min(headerHeight, Math.max(0, chromeOffset)) : 0;
+  // When the search input is focused on mobile we want to reclaim every pixel
+  // for the keyboard + results: the header slides fully off-screen and the
+  // spacer inside SearchPanel (which reserves room for the absolute header)
+  // shrinks to zero. On desktop (lg+) the header is static and unaffected.
+  const searchFocusHide = tab === 'search' && isSearchFocused;
+  // The spacer that SearchPanel adds for the absolute header must be 0 when
+  // we've hidden it; otherwise the top of the results list has dead space.
+  const effectiveHeaderHeight = searchFocusHide ? 0 : headerHeight;
+
+  const headerShift = searchFocusHide
+    ? headerHeight // fully above viewport
+    : tab === 'search' ? Math.min(headerHeight, Math.max(0, chromeOffset)) : 0;
   const headerSnap = tab === 'search' && chromeSnap;
   // Header is absolutely positioned on mobile (see className below) and
   // floats above the list on its own layer, so retraction is pure
@@ -461,11 +471,9 @@ function RemoteInner() {
       <header
         ref={headerRef}
         style={headerStyle}
-        className={`absolute top-0 left-0 right-0 z-30 flex items-center bg-surface/70 backdrop-blur-md border-b border-border will-change-transform lg:static lg:z-auto lg:shrink-0 lg:[transform:none]! transition-opacity duration-200 ${
-          tab === 'search' && isSearchFocused ? 'opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto' : ''
-        } ${
-          headerSnap
-            ? 'transition-transform duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] lg:transition-none!'
+        className={`absolute top-0 left-0 right-0 z-30 flex items-center bg-surface/70 backdrop-blur-md border-b border-border will-change-transform lg:static lg:z-auto lg:shrink-0 lg:[transform:none]! ${
+          searchFocusHide || headerSnap
+            ? `transition-transform lg:transition-none! ${headerSnap ? 'duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]' : 'duration-200'}`
             : ''
         }`}
       >
@@ -486,7 +494,7 @@ function RemoteInner() {
 
       {/* Main content: mobile shows one tab at a time; lg+ shows two columns */}
       <div
-        style={{ '--header-h': `${headerHeight}px` } as CSSProperties}
+        style={{ '--header-h': `${effectiveHeaderHeight}px` } as CSSProperties}
         className="flex-1 min-h-0 overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_460px] xl:grid-cols-[minmax(0,1fr)_500px]"
       >
         {/* Search column */}
@@ -501,7 +509,7 @@ function RemoteInner() {
             queuedMap={queuedMap}
             queuePositionMap={queuePositionMap}
             currentPlayingId={currentPlayingId}
-            headerHeight={headerHeight}
+            headerHeight={effectiveHeaderHeight}
             onChromeChange={handleChromeChange}
             onFocusChange={setIsSearchFocused}
           />
