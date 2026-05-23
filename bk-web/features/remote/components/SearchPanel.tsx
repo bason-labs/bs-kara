@@ -495,7 +495,7 @@ export function SearchPanel({
                 when focus fires (a conditional mount causes layout shift
                 mid-focus which can lose the keyboard on some mobile
                 browsers). Width-clips to 0 when idle, expands on focus. */}
-            <div className={`lg:hidden overflow-hidden flex-shrink-0 transition-[width] duration-150 ${
+            <div className={`lg:hidden overflow-hidden flex-shrink-0 flex items-center transition-[width] duration-150 ${
               isFocused ? 'w-11' : 'w-0'
             }`}>
               <button
@@ -507,7 +507,7 @@ export function SearchPanel({
                   inputRef.current?.blur();
                   setIsFocused(false);
                 }}
-                className="w-11 h-11 flex items-center justify-center rounded-full text-muted hover:text-fg active:scale-95 transition-colors"
+                className="flex items-center justify-center rounded-full p-2.5 text-muted hover:text-fg active:scale-95 transition-colors"
               >
                 <ArrowLeft size={22} />
               </button>
