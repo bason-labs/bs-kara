@@ -491,21 +491,27 @@ export function SearchPanel({
       >
         <div ref={wrapperRef} className="relative px-4 pt-3 pb-3">
           <div className="flex items-center gap-2">
-            {/* Back button — mobile only, slides in when the input is focused */}
-            {isFocused && (
+            {/* Back button — always in the DOM so the pill width is stable
+                when focus fires (a conditional mount causes layout shift
+                mid-focus which can lose the keyboard on some mobile
+                browsers). Width-clips to 0 when idle, expands on focus. */}
+            <div className={`lg:hidden overflow-hidden flex-shrink-0 transition-[width] duration-150 ${
+              isFocused ? 'w-11' : 'w-0'
+            }`}>
               <button
                 type="button"
                 aria-label={t('search.backAriaLabel')}
+                tabIndex={isFocused ? undefined : -1}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   inputRef.current?.blur();
                   setIsFocused(false);
                 }}
-                className="lg:hidden w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full text-muted hover:text-fg active:scale-95 transition-colors"
+                className="w-11 h-11 flex items-center justify-center rounded-full text-muted hover:text-fg active:scale-95 transition-colors"
               >
                 <ArrowLeft size={22} />
               </button>
-            )}
+            </div>
             <div
               className={`flex items-center gap-2 h-[52px] px-4 bg-surface border rounded-full transition-colors flex-1 ${
                 isFocused ? 'border-glow ring-1 ring-glow/35' : 'border-border'
