@@ -148,7 +148,8 @@
     "mute": "Mute",
     "unmute": "Unmute",
     "idleHint": "Nothing playing yet — pick a song from Search and tap add.",
-    "idleFullscreenHint": "Waiting for next song — pick one to play"
+    "idleFullscreenHint": "Waiting for next song — pick one to play",
+    "rotateHint": "↻ Rotate your phone"
   },
   "toast": {
     "addedToQueue": "Added to queue",

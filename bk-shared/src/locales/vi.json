@@ -148,7 +148,8 @@
     "mute": "Tắt tiếng",
     "unmute": "Bật tiếng",
     "idleHint": "Chưa có bài nào đang phát — vào Tìm bài để chọn.",
-    "idleFullscreenHint": "Đang chờ bài tiếp theo — chọn bài để phát"
+    "idleFullscreenHint": "Đang chờ bài tiếp theo — chọn bài để phát",
+    "rotateHint": "↻ Xoay điện thoại"
   },
   "toast": {
     "addedToQueue": "Đã thêm vào hàng chờ",

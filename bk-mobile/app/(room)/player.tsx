@@ -1,34 +1,28 @@
-import { View, Text, SafeAreaView, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { useState } from 'react';
+import { View, Text, SafeAreaView } from 'react-native';
 import YoutubeIframe from 'react-native-youtube-iframe';
-import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Mic } from 'lucide-react-native';
 import { useRoomContext } from '@/context/RoomContext';
-import { RoomHeader } from '@/components/RoomHeader';
-import { TransportControls } from '@/components/TransportControls';
-import { EmojiPad } from '@/components/EmojiPad';
 import { useSettingsContext } from '@/context/SettingsContext';
-
-const { width } = Dimensions.get('window');
-const THUMB_HEIGHT = (width - 48) * (9 / 16);
+import { TopBar } from '@/components/TopBar';
+import { NowPlayingCard } from '@/components/NowPlayingCard';
+import { RemoteControls } from '@/components/RemoteControls';
+import { FullscreenPlayer } from '@/components/FullscreenPlayer';
+import { EmojiPad } from '@/components/EmojiPad';
 
 export default function PlayerScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
   const { roomData, roomCode, togglePlayPause, playNext, playPrevious, sendEmoji } = useRoomContext();
-  const { currentPlaying, isPlaying } = roomData;
-  const { openSettings } = useSettingsContext();
+  const { currentPlaying, isPlaying, isTvActive, history, queue } = roomData;
+  const [fullscreenOpen, setFullscreenOpen] = useState(false);
+  useSettingsContext(); // consumed by TopBar via context; kept here to satisfy the hook pattern
 
   if (!currentPlaying) {
     return (
-      <SafeAreaView className="flex-1 bg-[#06100f]">
-        <RoomHeader
-          roomCode={roomCode}
-          onLeave={() => router.replace('/join' as never)}
-          onSettings={openSettings}
-        />
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-[#7aa8a8] text-sm text-center px-6">
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#06100f' }}>
+        <TopBar roomCode={roomCode} />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#7aa8a8', fontSize: 14, textAlign: 'center', paddingHorizontal: 24 }}>
             {t('player.idleHint')}
           </Text>
         </View>
@@ -37,72 +31,41 @@ export default function PlayerScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#06100f]">
-      {/* Hidden YouTube iframe — audio/video plays here */}
-      <YoutubeIframe
-        videoId={currentPlaying.id}
-        height={0}
-        width={0}
-        play={isPlaying}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#06100f' }}>
+      {!isTvActive && (
+        <YoutubeIframe videoId={currentPlaying.id} height={0} width={0} play={isPlaying} />
+      )}
+
+      <TopBar roomCode={roomCode} />
+
+      <NowPlayingCard
+        song={currentPlaying}
+        isPlaying={isPlaying}
+        onToggle={() => togglePlayPause(isPlaying)}
+        variant="hero"
+        onExpand={() => setFullscreenOpen(true)}
+        isTvActive={isTvActive}
+        onSkip={playNext}
       />
 
-      <RoomHeader
-        roomCode={roomCode}
-        onLeave={() => router.replace('/join' as never)}
-        onSettings={openSettings}
-      />
-
-      {/* Hero thumbnail */}
-      <View className="mx-6 mt-2 mb-4 rounded-3xl overflow-hidden" style={{ height: THUMB_HEIGHT }}>
-        <Image
-          source={{ uri: currentPlaying.thumbnail }}
-          style={{ width: '100%', height: '100%' }}
-          resizeMode="cover"
-        />
-        {/* ĐANG PHÁT overlay */}
-        <View className="absolute bottom-3 left-3 bg-black/50 rounded-full px-3 py-1">
-          <Text className="text-[#40e0d0] text-[10px] uppercase tracking-[3px] font-semibold">
-            {t('nowPlaying.label')}
-          </Text>
-        </View>
-      </View>
-
-      {/* Song info */}
-      <View className="px-6 gap-1 mb-2">
-        <Text className="text-[#e0ffff] text-base font-semibold" numberOfLines={2}>
-          {currentPlaying.title}
-        </Text>
-        {currentPlaying.channel ? (
-          <Text className="text-[#7aa8a8] text-xs">{currentPlaying.channel}</Text>
-        ) : null}
-        {currentPlaying.requesterName ? (
-          <View className="flex-row items-center gap-1 self-start bg-[#008b8b26] rounded-full px-2 py-0.5 mt-1">
-            <Mic size={11} color="#40e0d0" />
-            <Text className="text-[#40e0d0] text-xs">{currentPlaying.requesterName}</Text>
-          </View>
-        ) : null}
-      </View>
-
-      {/* Skip current */}
-      <TouchableOpacity
-        onPress={playNext}
-        activeOpacity={0.7}
-        className="px-6 mb-3"
-      >
-        <Text className="text-[#7aa8a8] text-xs">{t('nowPlaying.removeAriaLabel')}</Text>
-      </TouchableOpacity>
-
-      {/* Emoji reactions */}
       <EmojiPad onSend={sendEmoji} />
 
-      {/* Transport controls */}
-      <TransportControls
+      <RemoteControls
         isPlaying={isPlaying}
+        hasHistory={(history?.length ?? 0) > 0}
+        hasQueue={queue.length > 0}
         onPlayPause={() => togglePlayPause(isPlaying)}
         onPrev={playPrevious}
         onNext={playNext}
       />
 
+      {fullscreenOpen && !isTvActive && (
+        <FullscreenPlayer
+          videoId={currentPlaying.id}
+          isPlaying={isPlaying}
+          onClose={() => setFullscreenOpen(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }

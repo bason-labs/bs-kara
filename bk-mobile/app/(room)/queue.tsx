@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { useRoomContext } from '@/context/RoomContext';
 import { RoomHeader } from '@/components/RoomHeader';
 import { QueueItemRow } from '@/components/QueueItemRow';
-import { EmojiPad } from '@/components/EmojiPad';
 import { useSettingsContext } from '@/context/SettingsContext';
 import type { QueueItem } from '@bs-kara/shared';
 
@@ -17,7 +16,6 @@ export default function QueueScreen() {
     roomCode,
     removeSong,
     reorderQueue,
-    sendEmoji,
   } = useRoomContext();
   const { openSettings } = useSettingsContext();
 
@@ -64,8 +62,6 @@ export default function QueueScreen() {
         />
       )}
 
-      {/* Emoji reactions */}
-      <EmojiPad onSend={sendEmoji} />
     </SafeAreaView>
   );
 }
