@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { LogOut, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { RandomFilters } from '@bs-kara/shared';
 import { AutoRandomSection } from './sections/AutoRandomSection';
@@ -31,6 +31,7 @@ interface SettingsSheetProps {
   isHost: boolean;
   guestCanRemove: boolean;
   onGuestCanRemoveToggle: (enabled: boolean) => void;
+  onLeave?: () => void;
 }
 
 export function SettingsSheet({
@@ -54,6 +55,7 @@ export function SettingsSheet({
   isHost,
   guestCanRemove,
   onGuestCanRemoveToggle,
+  onLeave,
 }: SettingsSheetProps) {
   const { t } = useTranslation();
   // Mirrors RequesterDialog / ConfirmDialog: when the parent lazy-mounts
@@ -181,6 +183,20 @@ export function SettingsSheet({
               <ThemeSection />
 
               <RoomSection code={roomCode} isHost={isHost} />
+
+              {/* Leave room — danger zone, always at the bottom */}
+              {onLeave && (
+                <div className="pt-2 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={onLeave}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-danger hover:bg-danger/8 transition-colors"
+                  >
+                    <LogOut size={16} />
+                    {t('header.leaveButton')}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

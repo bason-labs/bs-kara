@@ -13,7 +13,7 @@ import {
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { LogOut } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { useRoom } from '@bs-kara/shared/hooks';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { useTransientNotice } from '@bs-kara/shared/hooks';
@@ -460,24 +460,25 @@ function RemoteInner() {
       <header
         ref={headerRef}
         style={headerStyle}
-        className={`absolute top-0 left-0 right-0 z-30 flex items-center gap-2 bg-surface/70 backdrop-blur-md border-b border-border will-change-transform lg:static lg:z-auto lg:shrink-0 lg:[transform:none]! ${
+        className={`absolute top-0 left-0 right-0 z-30 flex items-center bg-surface/70 backdrop-blur-md border-b border-border will-change-transform lg:static lg:z-auto lg:shrink-0 lg:[transform:none]! ${
           headerSnap
             ? 'transition-transform duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] lg:transition-none!'
             : ''
         }`}
       >
-        <button
-          onClick={handleLeave}
-          className="ml-2 -m-2 p-2 flex items-center gap-1.5 text-sm text-muted hover:text-danger transition-colors"
-          aria-label={t('header.leaveButton')}
-        >
-          <LogOut size={16} />
-          <span className="hidden sm:inline">{t('header.leaveButton')}</span>
-        </button>
-
         <div className="flex-1 min-w-0">
           <TopBar roomCode={roomCode} />
         </div>
+
+        {/* Settings trigger — desktop only (mobile uses BottomNav "Cài đặt" tab) */}
+        <button
+          type="button"
+          onClick={() => { setHasOpenedSettings(true); setSettingsOpen(true); }}
+          aria-label={t('settings.title')}
+          className="hidden lg:flex mr-3 w-9 h-9 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-fg transition-colors"
+        >
+          <Settings size={18} />
+        </button>
       </header>
 
       {/* Main content: mobile shows one tab at a time; lg+ shows two columns */}
@@ -714,6 +715,7 @@ function RemoteInner() {
           isHost={isHost}
           guestCanRemove={roomData.guestCanRemove}
           onGuestCanRemoveToggle={setGuestCanRemove}
+          onLeave={handleLeave}
         />
       )}
 
