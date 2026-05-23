@@ -1,21 +1,21 @@
-import { useState } from 'react';
-import { Tabs, useLocalSearchParams } from 'expo-router';
+import { Tabs, useLocalSearchParams, useRouter } from 'expo-router';
 import { RoomProvider, useRoomContext } from '@/context/RoomContext';
 import { BottomNav, type NavTab } from '@/components/BottomNav';
-import { SettingsSheet } from '@/components/SettingsSheet';
 import { SettingsContext } from '@/context/SettingsContext';
+
+const NAV_TABS = new Set<NavTab>(['search', 'queue', 'player']);
 
 function TabBarLayout() {
   const { roomData } = useRoomContext();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const router = useRouter();
 
   return (
-    <SettingsContext.Provider value={{ openSettings: () => setSettingsOpen(true) }}>
+    <SettingsContext.Provider value={{ openSettings: () => router.push('/(room)/settings') }}>
       <Tabs
         screenOptions={{ headerShown: false }}
         tabBar={(props) => {
-          const NAV_TABS = new Set<NavTab>(['search', 'queue', 'player']);
           const rawName = props.state.routes[props.state.index]?.name ?? 'search';
+          if (rawName === 'settings') return null;
           const routeName: NavTab = NAV_TABS.has(rawName as NavTab) ? (rawName as NavTab) : 'search';
           return (
             <BottomNav
@@ -33,8 +33,8 @@ function TabBarLayout() {
         <Tabs.Screen name="search" />
         <Tabs.Screen name="queue" />
         <Tabs.Screen name="player" />
+        <Tabs.Screen name="settings" options={{ href: null }} />
       </Tabs>
-      <SettingsSheet isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </SettingsContext.Provider>
   );
 }
