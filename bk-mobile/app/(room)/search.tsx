@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, FlatList, Image, Modal,
   TouchableOpacity, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform,
@@ -56,6 +56,10 @@ export default function SearchScreen() {
 
   const { suggestions, clear: clearSuggestions } = useSearchSuggestions(isFocused ? query : '');
   const queuedMap = useQueuedMap(roomData?.queue ?? []);
+  const queuePositionMap = useMemo(
+    () => new Map((roomData?.queue ?? []).map((item, i) => [item.id, i + 1])),
+    [roomData?.queue],
+  );
 
   const buildTerm = useCallback((q: string, chips: Set<string>) => {
     const keywords = buildKeywordsFromFilters(chips);
@@ -339,6 +343,7 @@ export default function SearchScreen() {
               onAdd={() => handleAddPress(item)}
               added={added.has(item.id)}
               queued={queuedMap.has(item.id)}
+              queuePosition={queuePositionMap.get(item.id)}
               isCurrentlyPlaying={roomData?.currentPlaying?.id === item.id}
               isJustAdded={justAddedId === item.id}
             />
