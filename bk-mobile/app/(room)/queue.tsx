@@ -22,7 +22,7 @@ export default function QueueScreen() {
   const [pendingPlayNow, setPendingPlayNow] = useState<QueueItem | null>(null);
 
   function handleDragEnd({ from, to }: { from: number; to: number }) {
-    reorderQueue(from, to);
+    void reorderQueue(from, to);
   }
 
   return (

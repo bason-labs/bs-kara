@@ -171,7 +171,7 @@ export default function SearchScreen() {
   }
 
   function confirmAdd(video: YouTubeVideo, name: string | null) {
-    addSongToQueue(video, name ?? null);
+    void addSongToQueue(video, name ?? null);
     setAdded((prev) => new Set(prev).add(video.id));
     setJustAddedId(video.id);
     if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current);

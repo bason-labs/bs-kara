@@ -39,7 +39,7 @@ export default function PlayerScreen() {
       <NowPlayingCard
         song={currentPlaying}
         isPlaying={isPlaying}
-        onToggle={() => togglePlayPause(isPlaying)}
+        onToggle={() => void togglePlayPause(isPlaying)}
         variant="hero"
         onExpand={() => setFullscreenOpen(true)}
         isTvActive={isTvActive}
@@ -52,7 +52,7 @@ export default function PlayerScreen() {
         isPlaying={isPlaying}
         hasHistory={(history?.length ?? 0) > 0}
         hasQueue={queue.length > 0}
-        onPlayPause={() => togglePlayPause(isPlaying)}
+        onPlayPause={() => void togglePlayPause(isPlaying)}
         onPrev={playPrevious}
         onNext={playNext}
       />
