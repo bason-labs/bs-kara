@@ -204,7 +204,7 @@ const SearchResults = memo(function SearchResults({
   onAdd,
 }: SearchResultsProps) {
   return (
-    <>
+    <div className="space-y-3">
       {results.map((video) => (
         <ResultRow
           key={video.id}
@@ -216,7 +216,7 @@ const SearchResults = memo(function SearchResults({
           onAdd={onAdd}
         />
       ))}
-    </>
+    </div>
   );
 });
 
