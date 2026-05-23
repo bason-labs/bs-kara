@@ -15,8 +15,9 @@ const base = {
 
 describe('ConfirmDialog', () => {
   it('renders nothing when open is false', () => {
-    const { toJSON } = render(<ConfirmDialog {...base} open={false} />);
-    expect(toJSON()).toBeNull();
+    const { queryByText } = render(<ConfirmDialog {...base} open={false} />);
+    expect(queryByText('Phát ngay')).toBeNull();
+    expect(queryByText('Huỷ')).toBeNull();
   });
 
   it('calls onConfirm when confirm button pressed', () => {

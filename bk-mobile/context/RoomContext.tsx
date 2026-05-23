@@ -14,8 +14,8 @@ export function RoomProvider({
   children: React.ReactNode;
 }) {
   const room = useRoom(roomCode);
-  const { profile } = useCurrentHost();
-  const isHost = profile !== null;
+  const { profile, loading } = useCurrentHost();
+  const isHost = !loading && profile !== null;
   return <RoomContext.Provider value={{ ...room, roomCode, isHost }}>{children}</RoomContext.Provider>;
 }
 

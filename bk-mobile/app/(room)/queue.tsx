@@ -21,7 +21,7 @@ export default function QueueScreen() {
 
   const [pendingPlayNow, setPendingPlayNow] = useState<QueueItem | null>(null);
 
-  function handleDragEnd({ from, to }: { data: QueueItem[]; from: number; to: number }) {
+  function handleDragEnd({ from, to }: { from: number; to: number }) {
     reorderQueue(from, to);
   }
 

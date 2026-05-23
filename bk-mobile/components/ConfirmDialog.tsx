@@ -20,10 +20,9 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  if (!open) return null;
-
   return (
     <Modal
+      visible={open}
       transparent
       animationType="fade"
       onRequestClose={onCancel}
