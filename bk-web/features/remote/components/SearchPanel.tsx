@@ -496,7 +496,7 @@ export function SearchPanel({
                 mid-focus which can lose the keyboard on some mobile
                 browsers). Width-clips to 0 when idle, expands on focus. */}
             <div className={`lg:hidden overflow-hidden flex-shrink-0 flex items-center transition-[width] duration-150 ${
-              isFocused ? 'w-11' : 'w-0'
+              isFocused ? 'w-9' : 'w-0'
             }`}>
               <button
                 type="button"
@@ -517,7 +517,7 @@ export function SearchPanel({
                 isFocused ? 'border-glow ring-1 ring-glow/35' : 'border-border'
               }`}
             >
-              <Search size={20} className="text-muted flex-shrink-0" />
+              <Search size={20} className={`flex-shrink-0 text-muted ${isFocused ? 'hidden lg:block' : ''}`} />
             <input
               ref={inputRef}
               type="text"
