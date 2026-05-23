@@ -228,6 +228,7 @@ interface SearchPanelProps {
   /* Height of the (separately rendered) header above the SearchPanel. */
   headerHeight?: number;
   onChromeChange?: (offset: number, snap: boolean) => void;
+  onFocusChange?: (focused: boolean) => void;
 }
 
 export function SearchPanel({
@@ -237,6 +238,7 @@ export function SearchPanel({
   currentPlayingId,
   headerHeight = 0,
   onChromeChange,
+  onFocusChange,
 }: SearchPanelProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -287,6 +289,10 @@ export function SearchPanel({
   useEffect(() => {
     onChromeChange?.(chromeOffset, chromeSnap);
   }, [chromeOffset, chromeSnap, onChromeChange]);
+
+  useEffect(() => {
+    onFocusChange?.(isFocused);
+  }, [isFocused, onFocusChange]);
 
   const searchBarStyle: CSSProperties = {
     transform: `translateY(-${searchBarShift}px)`,

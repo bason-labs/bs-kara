@@ -75,6 +75,7 @@ function RemoteInner() {
   const [tab, setTab] = useState<NavTab>('search');
   const [playerOpen, setPlayerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const emojiLayerRef = useRef<EmojiLayerHandle>(null);
   // Scroll-coupled chrome auto-hide. SearchPanel's results scroll drives a
   // px offset (0..headerHeight + searchBarHeight) that translates the
@@ -460,7 +461,9 @@ function RemoteInner() {
       <header
         ref={headerRef}
         style={headerStyle}
-        className={`absolute top-0 left-0 right-0 z-30 flex items-center bg-surface/70 backdrop-blur-md border-b border-border will-change-transform lg:static lg:z-auto lg:shrink-0 lg:[transform:none]! ${
+        className={`absolute top-0 left-0 right-0 z-30 flex items-center bg-surface/70 backdrop-blur-md border-b border-border will-change-transform lg:static lg:z-auto lg:shrink-0 lg:[transform:none]! transition-opacity duration-200 ${
+          tab === 'search' && isSearchFocused ? 'opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto' : ''
+        } ${
           headerSnap
             ? 'transition-transform duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] lg:transition-none!'
             : ''
@@ -500,6 +503,7 @@ function RemoteInner() {
             currentPlayingId={currentPlayingId}
             headerHeight={headerHeight}
             onChromeChange={handleChromeChange}
+            onFocusChange={setIsSearchFocused}
           />
         </section>
 
@@ -676,8 +680,11 @@ function RemoteInner() {
         onRejoin={() => { void rejoin(); }}
       />
 
-      {/* Mobile bottom tab bar */}
-      <div className="lg:hidden">
+      {/* Mobile bottom tab bar — collapses when the search input is focused
+          so the keyboard + results have maximum vertical space. */}
+      <div className={`lg:hidden overflow-hidden transition-[max-height] duration-200 ease-out ${
+        tab === 'search' && isSearchFocused ? 'max-h-0' : 'max-h-24'
+      }`}>
         <BottomNav
           activeTab={tab}
           queueLength={roomData.queue.length}
