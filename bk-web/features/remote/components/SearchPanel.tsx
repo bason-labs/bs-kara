@@ -568,8 +568,8 @@ export function SearchPanel({
                 <X size={18} />
               </button>
             )}
-            {/* Filter trigger */}
-            <div className="relative flex-shrink-0">
+            {/* Filter trigger — hidden while the user is typing so only the X shows */}
+            <div className={`relative flex-shrink-0 ${query.length > 0 ? 'hidden' : ''}`}>
               <button
                 type="button"
                 aria-label={t('search.filtersTriggerAriaLabel')}
