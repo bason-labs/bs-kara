@@ -44,12 +44,12 @@ Visual details:
 **Modified `bk-mobile/app/(room)/_layout.tsx`**
 - Add `settingsOpen` state (lifted from individual screens)
 - Render `<SettingsSheet isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />` once here
-- Expose `openSettings` via a new minimal `SettingsContext`:
+- Expose `openSettings` via a new minimal context at `bk-mobile/context/SettingsContext.tsx`:
   ```ts
   const SettingsContext = createContext<{ openSettings: () => void }>({ openSettings: () => {} })
   ```
 - Replace expo-router's default tab bar with a custom `tabBar` prop rendering `<BottomNav />`
-- Track active tab via state in layout; expo-router navigation still drives the actual screen content
+- Derive `activeTab` from `usePathname()` (expo-router) inside `BottomNav` — no separate state needed; pathname `/[roomCode]/search` → `'search'`, etc.
 
 **Modified `bk-mobile/app/(room)/search.tsx`, `queue.tsx`, `player.tsx`**
 - Remove `settingsVisible` state and `SettingsSheet` import from each screen
@@ -75,7 +75,7 @@ Visual details:
 - Left: "BS Kara" wordmark (Space Grotesk 600, `text-fg`) + room-code pill (`bg-surface`, border, rounded-full, `text-muted` 12px)
 - Pulsing dot inside pill: Reanimated scale loop (`1 → 0.6 → 1`, 2200ms, ease-in-out), reduced-motion aware
 - Right: nothing — Settings is in BottomNav; leave room is in SettingsSheet
-- Replace `<RoomHeader>` in each screen with `<TopBar roomCode={roomCode} />` (or render once in layout header area)
+- Replace `<RoomHeader>` at the top of each screen (`search.tsx`, `queue.tsx`, `player.tsx`) with `<TopBar roomCode={roomCode} />`; TopBar renders inside the screen, not in the layout
 
 **New `bk-mobile/components/FiltersSheet.tsx`**
 - Uses `@gorhom/bottom-sheet` (already installed)
@@ -227,6 +227,7 @@ Visual details:
 |---|---|---|
 | Create | `bk-mobile/components/BottomNav.tsx` | 1 |
 | Create | `bk-mobile/components/EQBars.tsx` | 1 |
+| Create | `bk-mobile/context/SettingsContext.tsx` | 1 |
 | Modify | `bk-mobile/app/(room)/_layout.tsx` | 1 |
 | Create | `bk-mobile/components/TopBar.tsx` | 2 |
 | Create | `bk-mobile/components/FiltersSheet.tsx` | 2 |
