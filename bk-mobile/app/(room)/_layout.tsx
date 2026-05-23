@@ -14,7 +14,9 @@ function TabBarLayout() {
       <Tabs
         screenOptions={{ headerShown: false }}
         tabBar={(props) => {
-          const routeName = (props.state.routes[props.state.index]?.name ?? 'search') as NavTab;
+          const NAV_TABS = new Set<NavTab>(['search', 'queue', 'player']);
+          const rawName = props.state.routes[props.state.index]?.name ?? 'search';
+          const routeName: NavTab = NAV_TABS.has(rawName as NavTab) ? (rawName as NavTab) : 'search';
           return (
             <BottomNav
               activeTab={routeName}
@@ -24,7 +26,6 @@ function TabBarLayout() {
                 const route = props.state.routes.find((r) => r.name === tab);
                 if (route) props.navigation.navigate(route.name);
               }}
-              onOpenSettings={() => setSettingsOpen(true)}
             />
           );
         }}

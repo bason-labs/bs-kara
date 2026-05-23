@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { ListMusic, Play, Search, Settings } from 'lucide-react-native';
 import { EQBars } from './EQBars';
+import { useSettingsContext } from '@/context/SettingsContext';
 
 export type NavTab = 'search' | 'queue' | 'player';
 
@@ -11,10 +12,10 @@ interface BottomNavProps {
   isPlaying: boolean;
   queueLength: number;
   onTabChange: (tab: NavTab) => void;
-  onOpenSettings: () => void;
 }
 
-export function BottomNav({ activeTab, isPlaying, queueLength, onTabChange, onOpenSettings }: BottomNavProps) {
+export function BottomNav({ activeTab, isPlaying, queueLength, onTabChange }: BottomNavProps) {
+  const { openSettings } = useSettingsContext();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const GLOW = '#7df9ff';
@@ -39,7 +40,7 @@ export function BottomNav({ activeTab, isPlaying, queueLength, onTabChange, onOp
         const active = activeTab === tab.id;
         return (
           <Pressable key={tab.id} testID={`tab-${tab.id}`} onPress={() => onTabChange(tab.id)} accessibilityRole="tab" accessibilityState={{ selected: active }}
-            style={{ flex: 1, alignItems: 'center', paddingTop: 8, paddingBottom: 4, minHeight: 44, position: tab.id === 'queue' ? 'relative' : undefined }}>
+            style={{ flex: 1, alignItems: 'center', paddingTop: 8, paddingBottom: 4, minHeight: 44 }}>
             <View style={{ width: 56, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: active ? 'rgba(125,249,255,0.2)' : 'transparent' }}>
               {renderIcon(tab.id, active)}
             </View>
@@ -52,7 +53,7 @@ export function BottomNav({ activeTab, isPlaying, queueLength, onTabChange, onOp
           </Pressable>
         );
       })}
-      <Pressable testID="tab-settings" onPress={onOpenSettings} accessibilityRole="button" accessibilityLabel={t('tabs.settings', 'Cài đặt')}
+      <Pressable testID="tab-settings" onPress={openSettings} accessibilityRole="button" accessibilityLabel={t('tabs.settings', 'Cài đặt')}
         style={{ flex: 1, alignItems: 'center', paddingTop: 8, paddingBottom: 4, minHeight: 44 }}>
         <View style={{ width: 56, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}>
           <Settings size={20} color={MUTED} />
