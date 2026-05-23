@@ -39,7 +39,7 @@ export function PlayNowButton({
       }}
       aria-label={t('playNow.aria')}
       title={t('playNow.aria')}
-      className="shrink-0 inline-flex items-center justify-center text-muted hover:text-fg transition-colors w-10 h-10 rounded-full bg-surface-2 lg:w-auto lg:h-auto lg:p-1.5 lg:rounded-md lg:bg-transparent lg:hover:bg-surface-2 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100 lg:transition-opacity"
+      className="hidden lg:inline-flex shrink-0 items-center justify-center text-muted hover:text-fg transition-colors lg:w-auto lg:h-auto lg:p-1.5 lg:rounded-md lg:bg-transparent lg:hover:bg-surface-2 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100 lg:transition-opacity"
     >
       <PlayCircle className="w-5 h-5 lg:w-4 lg:h-4" strokeWidth={2.2} />
     </button>

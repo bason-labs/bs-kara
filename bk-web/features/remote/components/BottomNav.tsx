@@ -40,7 +40,7 @@ export function BottomNav({
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-10 grid grid-cols-4 backdrop-blur-xl bg-bg/65 border-t border-border pb-[env(safe-area-inset-bottom)]"
+      className="grid grid-cols-4 shrink-0 backdrop-blur-xl bg-bg/65 border-t border-border pb-[env(safe-area-inset-bottom)]"
       aria-label="Bottom navigation"
     >
       {tabs.map((tab) => {
