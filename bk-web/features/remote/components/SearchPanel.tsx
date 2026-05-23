@@ -584,13 +584,16 @@ export function SearchPanel({
                 </span>
               )}
             </div>
-            {/* Mic */}
+            </div>{/* end pill */}
+
+            {/* Mic — outside the pill so the pill stays fully in-screen
+                even when the back button is visible on mobile. */}
             <button
               type="button"
               onClick={startVoiceSearch}
               disabled={isListening}
               aria-label={t('search.voiceAriaLabel')}
-              className={`w-11 h-11 flex items-center justify-center rounded-full border flex-shrink-0 transition-colors ${
+              className={`flex-shrink-0 flex items-center justify-center p-2.5 rounded-full border transition-colors ${
                 isListening
                   ? 'bg-gradient-brand text-white border-transparent animate-mic-pulse'
                   : 'bg-surface-2 text-fg border-border'
@@ -598,8 +601,7 @@ export function SearchPanel({
             >
               <Mic size={20} />
             </button>
-            </div>{/* end pill */}
-          </div>{/* end back-button + pill row */}
+          </div>{/* end back-button + pill + mic row */}
 
           {/* Desktop suggestion / history dropdown — anchored to the search
               bar wrapper so it overlays the results without disturbing
