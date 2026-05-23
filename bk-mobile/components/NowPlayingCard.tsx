@@ -1,9 +1,7 @@
-import { View, Text, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, Image, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { Mic, Play, Pause, Maximize2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import type { YouTubeVideo } from '@bs-kara/shared';
-
-const HERO_HEIGHT = (Dimensions.get('window').width - 48) * (9 / 16);
 
 interface NowPlayingCardProps {
   song: YouTubeVideo | null;
@@ -25,6 +23,8 @@ export function NowPlayingCard({
   onSkip,
 }: NowPlayingCardProps) {
   const { t } = useTranslation();
+  const { width: windowWidth } = useWindowDimensions();
+  const heroHeight = (windowWidth - 48) * (9 / 16);
 
   if (!song) return null;
 
@@ -32,7 +32,7 @@ export function NowPlayingCard({
     return (
       <View testID="now-playing-card-hero" style={{ paddingHorizontal: 24, gap: 12 }}>
         {/* Full-width 16:9 thumbnail */}
-        <View style={{ borderRadius: 16, overflow: 'hidden', height: HERO_HEIGHT }}>
+        <View style={{ borderRadius: 16, overflow: 'hidden', height: heroHeight }}>
           <Image
             source={{ uri: song.thumbnail }}
             style={{ width: '100%', height: '100%' }}
@@ -72,6 +72,8 @@ export function NowPlayingCard({
               testID="expand-button"
               onPress={onExpand}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Mở toàn màn hình"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={{
                 position: 'absolute',
@@ -146,7 +148,13 @@ export function NowPlayingCard({
           <Text className="text-[#7aa8a8] text-xs">{song.requesterName}</Text>
         ) : null}
       </View>
-      <TouchableOpacity onPress={onToggle} activeOpacity={0.7} className="p-2">
+      <TouchableOpacity
+        onPress={onToggle}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        style={{ padding: 8 }}
+      >
         {isPlaying ? <Pause size={20} color="#40e0d0" /> : <Play size={20} color="#40e0d0" />}
       </TouchableOpacity>
     </View>

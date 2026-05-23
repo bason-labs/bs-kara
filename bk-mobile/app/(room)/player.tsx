@@ -3,7 +3,6 @@ import { View, Text, SafeAreaView } from 'react-native';
 import YoutubeIframe from 'react-native-youtube-iframe';
 import { useTranslation } from 'react-i18next';
 import { useRoomContext } from '@/context/RoomContext';
-import { useSettingsContext } from '@/context/SettingsContext';
 import { TopBar } from '@/components/TopBar';
 import { NowPlayingCard } from '@/components/NowPlayingCard';
 import { RemoteControls } from '@/components/RemoteControls';
@@ -15,7 +14,6 @@ export default function PlayerScreen() {
   const { roomData, roomCode, togglePlayPause, playNext, playPrevious, sendEmoji } = useRoomContext();
   const { currentPlaying, isPlaying, isTvActive, history, queue } = roomData;
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
-  useSettingsContext(); // consumed by TopBar via context; kept here to satisfy the hook pattern
 
   if (!currentPlaying) {
     return (

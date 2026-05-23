@@ -4,9 +4,9 @@ import {
   View,
   TouchableOpacity,
   Text,
-  Dimensions,
   SafeAreaView,
   AccessibilityInfo,
+  useWindowDimensions,
 } from 'react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,20 +26,24 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
   const { t } = useTranslation();
   const [showHint, setShowHint] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
-  const { height, width } = Dimensions.get('window');
+  const { height, width } = useWindowDimensions();
   const playerWidth = Math.max(width, height);
   const playerHeight = Math.min(width, height);
 
   useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((val) => {
+      if (mounted) setReduceMotion(val);
+    });
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT);
     AsyncStorage.getItem(ROTATE_HINT_KEY).then((seen) => {
-      if (!seen) {
+      if (!seen && mounted) {
         setShowHint(true);
         void AsyncStorage.setItem(ROTATE_HINT_KEY, '1');
       }
     });
     return () => {
+      mounted = false;
       void ScreenOrientation.unlockAsync();
     };
   }, []);
@@ -66,6 +70,7 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
             onPress={onClose}
             activeOpacity={0.7}
             accessibilityRole="button"
+            accessibilityLabel="Đóng"
             style={{
               margin: 12,
               width: 44,

@@ -27,10 +27,11 @@ describe('RemoteControls', () => {
     expect(flat.opacity).toBe(0.3);
   });
 
-  it('renders prev button without reduced opacity when hasHistory is true', () => {
+  it('renders prev button at full opacity when hasHistory is true', () => {
     const { getByTestId } = render(<RemoteControls {...base} hasHistory={true} />);
     const style = getByTestId('prev-button').props.style;
     const flat = Array.isArray(style) ? Object.assign({}, ...style) : style;
-    expect(flat.opacity).not.toBe(0.3);
+    // StyleSheet resolves to opacity 1 (full) — not the 0.3 disabled value
+    expect(flat.opacity).toBe(1);
   });
 });
