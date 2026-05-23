@@ -528,6 +528,9 @@ export function SearchPanel({
               }}
               onFocus={() => {
                 setIsFocused(true);
+                // Tapping into the input after results are showing should
+                // return to history/typing mode, not stay on stale results.
+                setSearched(false);
               }}
               onBlur={() => {
                 // Delay so a click on a suggestion can take effect before the
@@ -555,6 +558,7 @@ export function SearchPanel({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   setQuery('');
+                  setSearched(false);
                   clearSuggestions();
                   inputRef.current?.focus();
                 }}

@@ -303,4 +303,50 @@ describe('SearchPanel', () => {
       vi.useRealTimers();
     });
   });
+
+  describe('re-focus after search', () => {
+    it('shows history after clearing the query following a search', async () => {
+      // The bug: after a search, `searched` stayed true, so clearing the
+      // query kept showResults=true and history never appeared.
+      localStorage.setItem(
+        'searchHistory',
+        JSON.stringify([{ q: 'Duyên phận' }]),
+      );
+      const user = userEvent.setup();
+      render(<SearchPanel onAdd={() => {}} />);
+      const input = screen.getByPlaceholderText('search.placeholder');
+      await user.type(input, 'hello{Enter}');
+      await waitFor(() =>
+        expect(screen.getByText(/Mock result for hello/)).toBeInTheDocument(),
+      );
+      // Clear the query with the X button — history should now reappear.
+      await user.click(screen.getByRole('button', { name: 'search.clearAriaLabel' }));
+      // Both mobile inline list and desktop dropdown render in JSDOM
+      // (media queries aren't applied), so we expect multiple matches.
+      await waitFor(() =>
+        expect(screen.getAllByText('Duyên phận').length).toBeGreaterThan(0),
+      );
+    });
+
+    it('returns to history mode when re-focusing the input after a search then blurring', async () => {
+      localStorage.setItem(
+        'searchHistory',
+        JSON.stringify([{ q: 'Duyên phận' }]),
+      );
+      const user = userEvent.setup();
+      render(<SearchPanel onAdd={() => {}} />);
+      const input = screen.getByPlaceholderText('search.placeholder');
+      await user.type(input, 'hello{Enter}');
+      await waitFor(() =>
+        expect(screen.getByText(/Mock result for hello/)).toBeInTheDocument(),
+      );
+      // Blur, clear, then re-focus — history should reappear.
+      await user.tab();
+      await user.clear(input);
+      await user.click(input);
+      await waitFor(() =>
+        expect(screen.getAllByText('Duyên phận').length).toBeGreaterThan(0),
+      );
+    });
+  });
 });
