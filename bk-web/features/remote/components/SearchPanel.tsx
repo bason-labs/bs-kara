@@ -563,7 +563,7 @@ export function SearchPanel({
                   inputRef.current?.focus();
                 }}
                 aria-label={t('search.clearAriaLabel')}
-                className="w-11 h-11 flex items-center justify-center text-muted hover:text-fg flex-shrink-0"
+                className="p-2 flex items-center justify-center text-muted hover:text-fg flex-shrink-0"
               >
                 <X size={18} />
               </button>
