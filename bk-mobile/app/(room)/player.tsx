@@ -36,15 +36,17 @@ export default function PlayerScreen() {
 
       <TopBar roomCode={roomCode} />
 
-      <NowPlayingCard
-        song={currentPlaying}
-        isPlaying={isPlaying}
-        onToggle={() => void togglePlayPause(isPlaying)}
-        variant="hero"
-        onExpand={() => setFullscreenOpen(true)}
-        isTvActive={isTvActive}
-        onSkip={playNext}
-      />
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <NowPlayingCard
+          song={currentPlaying}
+          isPlaying={isPlaying}
+          onToggle={() => void togglePlayPause(isPlaying)}
+          variant="hero"
+          onExpand={() => setFullscreenOpen(true)}
+          isTvActive={isTvActive}
+          onSkip={playNext}
+        />
+      </View>
 
       <EmojiPad onSend={sendEmoji} />
 
