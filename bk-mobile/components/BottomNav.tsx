@@ -2,7 +2,6 @@ import { View, Text, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { ListMusic, Play, Search, Settings } from 'lucide-react-native';
-import { EQBars } from './EQBars';
 import { useSettingsContext } from '@/context/SettingsContext';
 
 export type NavTab = 'search' | 'queue' | 'player' | 'settings';
@@ -29,7 +28,7 @@ export function BottomNav({ activeTab, isPlaying, queueLength, onTabChange }: Bo
 
   function renderIcon(tab: NavTab, active: boolean) {
     const color = active ? GLOW : MUTED;
-    if (tab === 'player') return isPlaying && activeTab !== 'player' ? <EQBars color={GLOW} /> : <Play size={20} color={color} />;
+    if (tab === 'player') return <Play size={20} color={isPlaying ? GLOW : color} />;
     if (tab === 'search') return <Search size={20} color={color} />;
     return <ListMusic size={20} color={color} />;
   }
