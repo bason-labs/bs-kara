@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   AlertCircle, ArrowLeft, ArrowUpLeft, History,
-  Mic, Search, SearchX, Sliders, WifiOff, X,
+  Mic, Search, SearchX, SlidersHorizontal, WifiOff, X,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoomContext } from '@/context/RoomContext';
@@ -253,6 +253,7 @@ export default function SearchScreen() {
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center',
           backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a',
           borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, gap: 8 }}>
+          <Search size={15} color="#7aa8a8" />
           <TextInput
             ref={inputRef}
             value={query}
@@ -272,7 +273,7 @@ export default function SearchScreen() {
           ) : (
             <View style={{ position: 'relative' }}>
               <TouchableOpacity onPress={() => setShowFiltersSheet(true)} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Sliders size={18} color={activeChips.size > 0 ? '#7df9ff' : '#7aa8a8'} />
+                <SlidersHorizontal size={18} color={activeChips.size > 0 ? '#7df9ff' : '#7aa8a8'} />
               </TouchableOpacity>
               {activeChips.size > 0 && (
                 <View style={{ position: 'absolute', top: -4, right: -4, width: 14, height: 14, borderRadius: 7, backgroundColor: '#40e0d0', alignItems: 'center', justifyContent: 'center' }}>
