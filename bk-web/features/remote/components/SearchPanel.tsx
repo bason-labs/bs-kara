@@ -552,27 +552,24 @@ export function SearchPanel({
               placeholder={t('search.placeholder')}
               className="flex-1 min-w-0 bg-transparent text-[15px] text-fg placeholder:text-muted outline-none"
             />
-            {/* X and filter always occupy the same space so the pill width
-                never shifts. Only visibility swaps between the two. */}
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                setQuery('');
-                setSearched(false);
-                clearSuggestions();
-                inputRef.current?.focus();
-              }}
-              aria-label={t('search.clearAriaLabel')}
-              tabIndex={query.length > 0 ? undefined : -1}
-              className={`p-2 flex items-center justify-center text-muted hover:text-fg flex-shrink-0 transition-opacity ${
-                query.length > 0 ? '' : 'invisible pointer-events-none'
-              }`}
-            >
-              <X size={18} />
-            </button>
-            {/* Filter trigger */}
-            <div className={`relative flex-shrink-0 transition-opacity ${query.length > 0 ? 'invisible pointer-events-none' : ''}`}>
+            {query.length > 0 && (
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setQuery('');
+                  setSearched(false);
+                  clearSuggestions();
+                  inputRef.current?.focus();
+                }}
+                aria-label={t('search.clearAriaLabel')}
+                className="p-2 flex items-center justify-center text-muted hover:text-fg flex-shrink-0"
+              >
+                <X size={18} />
+              </button>
+            )}
+            {/* Filter trigger — hidden while the user is typing so only the X shows */}
+            <div className={`relative flex-shrink-0 ${query.length > 0 ? 'hidden' : ''}`}>
               <button
                 type="button"
                 aria-label={t('search.filtersTriggerAriaLabel')}
