@@ -28,7 +28,7 @@ export function BottomNav({ activeTab, isPlaying, queueLength, onTabChange }: Bo
 
   function renderIcon(tab: NavTab, active: boolean) {
     const color = active ? GLOW : MUTED;
-    if (tab === 'player') return <Play size={20} color={isPlaying ? GLOW : color} />;
+    if (tab === 'player') return <Play size={20} color={color} />;
     if (tab === 'search') return <Search size={20} color={color} />;
     return <ListMusic size={20} color={color} />;
   }
