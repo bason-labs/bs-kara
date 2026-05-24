@@ -464,6 +464,7 @@ export default function SearchScreen() {
         visible={isListening}
         interimTranscript={interimTranscript}
         onClose={stopVoice}
+        suggestions={history.slice(0, 3).map((h) => h.q)}
       />
 
       {/* Added toast */}
