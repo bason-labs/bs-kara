@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform, PermissionsAndroid } from 'react-native';
 import { Audio } from 'expo-av';
 
 // @react-native-voice/voice requires a native dev build — not available in Expo Go.
@@ -70,6 +71,15 @@ export function useVoiceSearch({ onFinal, onUnsupported }: UseVoiceSearchOptions
       onUnsupportedRef.current();
       return;
     }
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      );
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+        onUnsupportedRef.current();
+        return;
+      }
+    }
     try {
       const { sound } = await Audio.Sound.createAsync(
         require('../assets/audio/pop.mp3')
@@ -77,9 +87,13 @@ export function useVoiceSearch({ onFinal, onUnsupported }: UseVoiceSearchOptions
       await sound.playAsync();
       sound.unloadAsync().catch(() => {});
     } catch {}
-    await Voice.start('vi-VN');
-    setIsListening(true);
-    setInterimTranscript('');
+    try {
+      await Voice.start('vi-VN');
+      setIsListening(true);
+      setInterimTranscript('');
+    } catch {
+      onUnsupportedRef.current();
+    }
   }, []);
 
   const stop = useCallback(() => {

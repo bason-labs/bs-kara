@@ -17,7 +17,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.bskara.app"
+      "package": "com.bskara.app",
+      "permissions": ["android.permission.RECORD_AUDIO"]
     },
     "plugins": [
       "expo-router",
