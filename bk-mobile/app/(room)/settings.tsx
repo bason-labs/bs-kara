@@ -1,7 +1,6 @@
 import { View, Text, Switch, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, Check } from 'lucide-react-native';
+import { Check } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoomContext } from '@/context/RoomContext';
 import type { Genre, SingerType, Tone } from '@bs-kara/shared';
@@ -95,7 +94,6 @@ function FilterChipRow({ label, value, options, onChange, disabled }: {
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
   const {
     roomData, roomCode,
     setAutoRandomMode, setRandomFilters, setDragDropEnabled,
@@ -106,11 +104,8 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#06100f' }}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1f3a3a' }}>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: 12 }}>
-          <ChevronLeft size={24} color="#7aa8a8" />
-        </TouchableOpacity>
-        <Text style={{ color: '#e0ffff', fontSize: 18, fontWeight: '700', flex: 1 }}>
+      <View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1f3a3a' }}>
+        <Text style={{ color: '#e0ffff', fontSize: 18, fontWeight: '700' }}>
           {t('settings.title')}
         </Text>
       </View>
