@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 
@@ -68,11 +68,41 @@ export function FiltersSheet({ visible, selected, onApply, onClose }: FiltersShe
     });
   }
 
+  function handleViewAll() {
+    // Only trigger a new search if filters actually changed
+    if (draft.size > 0 || selected.size > 0) onApply(draft);
+    onClose();
+  }
+
   const count = draft.size;
 
   return (
-    <BottomSheet snapPoints={['60%']} enablePanDownToClose onClose={onClose}
-      backgroundStyle={{ backgroundColor: '#0e1c1c' }} handleIndicatorStyle={{ backgroundColor: '#4a7a7a' }}>
+    <BottomSheet
+      snapPoints={['60%']}
+      enablePanDownToClose
+      onClose={onClose}
+      backdropComponent={(props) => (
+        <BottomSheetBackdrop
+          {...props}
+          disappearsOnIndex={-1}
+          appearsOnIndex={0}
+          pressBehavior="close"
+        />
+      )}
+      backgroundStyle={{
+        backgroundColor: '#0e1c1c',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+      }}
+      handleIndicatorStyle={{ backgroundColor: '#4a7a7a' }}
+      style={{
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
+        elevation: 24,
+      }}
+    >
       <BottomSheetView style={{ flex: 1, paddingHorizontal: 20, paddingBottom: 24 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <Text style={{ color: '#e0ffff', fontSize: 17, fontWeight: '700' }}>
@@ -119,7 +149,7 @@ export function FiltersSheet({ visible, selected, onApply, onClose }: FiltersShe
             </TouchableOpacity>
           </LinearGradient>
         ) : (
-          <TouchableOpacity onPress={() => { onApply(draft); onClose(); }} activeOpacity={0.8} style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: '#152a2a', marginTop: 8 }}>
+          <TouchableOpacity onPress={handleViewAll} activeOpacity={0.8} style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: '#152a2a', marginTop: 8 }}>
             <Text style={{ color: '#7aa8a8', fontSize: 15, fontWeight: '600' }}>
               {t('search.filtersViewAll', 'Xem tất cả bài hát')}
             </Text>
