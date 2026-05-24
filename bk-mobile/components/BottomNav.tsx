@@ -5,7 +5,7 @@ import { ListMusic, Play, Search, Settings } from 'lucide-react-native';
 import { EQBars } from './EQBars';
 import { useSettingsContext } from '@/context/SettingsContext';
 
-export type NavTab = 'search' | 'queue' | 'player';
+export type NavTab = 'search' | 'queue' | 'player' | 'settings';
 
 interface BottomNavProps {
   activeTab: NavTab;
@@ -53,12 +53,12 @@ export function BottomNav({ activeTab, isPlaying, queueLength, onTabChange }: Bo
           </Pressable>
         );
       })}
-      <Pressable testID="tab-settings" onPress={openSettings} accessibilityRole="button" accessibilityLabel={t('tabs.settings', 'Cài đặt')}
+      <Pressable testID="tab-settings" onPress={openSettings} accessibilityRole="tab" accessibilityState={{ selected: activeTab === 'settings' }} accessibilityLabel={t('tabs.settings', 'Cài đặt')}
         style={{ flex: 1, alignItems: 'center', paddingTop: 8, paddingBottom: 4, minHeight: 44 }}>
-        <View style={{ width: 56, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}>
-          <Settings size={20} color={MUTED} />
+        <View pointerEvents="none" style={{ width: 56, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: activeTab === 'settings' ? 'rgba(125,249,255,0.2)' : 'transparent' }}>
+          <Settings size={20} color={activeTab === 'settings' ? GLOW : MUTED} />
         </View>
-        <Text style={{ fontSize: 10.5, fontWeight: '600', marginTop: 2, color: MUTED }}>{t('tabs.settings', 'Cài đặt')}</Text>
+        <Text style={{ fontSize: 10.5, fontWeight: '600', marginTop: 2, color: activeTab === 'settings' ? '#e0ffff' : MUTED }}>{t('tabs.settings', 'Cài đặt')}</Text>
       </Pressable>
     </View>
   );

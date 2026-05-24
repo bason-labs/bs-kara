@@ -15,7 +15,11 @@ function TabBarLayout() {
         screenOptions={{ headerShown: false }}
         tabBar={(props) => {
           const rawName = props.state.routes[props.state.index]?.name ?? 'search';
-          const routeName: NavTab = NAV_TABS.has(rawName as NavTab) ? (rawName as NavTab) : 'search';
+          const routeName: NavTab = NAV_TABS.has(rawName as NavTab)
+            ? (rawName as NavTab)
+            : rawName === 'settings'
+              ? 'settings'
+              : 'search';
           return (
             <BottomNav
               activeTab={routeName}
