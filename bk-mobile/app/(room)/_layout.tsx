@@ -15,7 +15,6 @@ function TabBarLayout() {
         screenOptions={{ headerShown: false }}
         tabBar={(props) => {
           const rawName = props.state.routes[props.state.index]?.name ?? 'search';
-          if (rawName === 'settings') return null;
           const routeName: NavTab = NAV_TABS.has(rawName as NavTab) ? (rawName as NavTab) : 'search';
           return (
             <BottomNav
