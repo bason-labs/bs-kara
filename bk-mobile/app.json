@@ -21,7 +21,8 @@
     },
     "plugins": [
       "expo-router",
-      "@react-native-voice/voice"
+      "@react-native-voice/voice",
+      "expo-screen-orientation"
     ],
     "experiments": {
       "typedRoutes": true

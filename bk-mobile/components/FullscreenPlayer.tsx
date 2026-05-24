@@ -35,7 +35,7 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
     AccessibilityInfo.isReduceMotionEnabled().then((val) => {
       if (mounted) setReduceMotion(val);
     });
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT);
+    void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT).catch(() => {});
     AsyncStorage.getItem(ROTATE_HINT_KEY).then((seen) => {
       if (!seen && mounted) {
         setShowHint(true);
@@ -44,7 +44,7 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
     });
     return () => {
       mounted = false;
-      void ScreenOrientation.unlockAsync();
+      void ScreenOrientation.unlockAsync().catch(() => {});
     };
   }, []);
 
