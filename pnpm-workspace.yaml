@@ -1,0 +1,5 @@
+packages:
+  - 'bk-web'
+  - 'bk-mobile'
+  - 'bk-mobile-ui'
+  - 'bk-shared'

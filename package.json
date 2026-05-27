@@ -1,61 +1,34 @@
 {
   "name": "bs-kara",
-  "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.11.0",
   "scripts": {
-    "dev": "NODE_OPTIONS='--max-old-space-size=8192' next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:rules": "vitest run --config vitest.rules.config.ts",
-    "test:rules:emulator": "firebase --project demo-bs-kara emulators:exec --only database 'npm run test:rules'"
-  },
-  "dependencies": {
-    "@hello-pangea/dnd": "^18.0.1",
-    "@types/react-youtube": "^7.6.2",
-    "canvas-confetti": "^1.9.4",
-    "firebase": "^12.12.1",
-    "firebase-admin": "^13.9.0",
-    "i18next": "^26.0.8",
-    "lucide-react": "^1.11.0",
-    "next": "16.2.4",
-    "qrcode.react": "^4.2.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "react-i18next": "^17.0.4",
-    "react-youtube": "^10.1.0",
-    "use-debounce": "^10.1.1",
-    "yt-search": "^2.13.1"
-  },
-  "overrides": {
-    "tar": "^7.0.0"
+    "dev": "turbo dev --filter=@bs-kara/web",
+    "dev:mobile": "turbo dev --filter=@bs-kara/mobile",
+    "dev:all": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "typecheck": "turbo typecheck",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^5.0.0",
-    "@playwright/test": "^1.59.1",
-    "@tailwindcss/postcss": "^4",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/canvas-confetti": "^1.9.0",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@types/yt-search": "^2.10.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/coverage-v8": "^4.1.5",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.4",
-    "firebase-tools": "^14.27.0",
-    "jsdom": "^29.1.1",
-    "msw": "^2.14.2",
-    "tailwindcss": "^4",
-    "typescript": "^5",
-    "vitest": "^4.1.5"
+    "turbo": "^2"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.0.0",
+      "react-dom": "19.0.0"
+    },
+    "patchedDependencies": {
+      "expo-firebase-core@6.0.0": "patches/expo-firebase-core@6.0.0.patch"
+    }
+  },
+  "version": "1.0.0",
+  "dependencies": {
+    "expo": "~53.0.27",
+    "react": "19.0.0",
+    "react-native": "0.79.6"
   }
 }

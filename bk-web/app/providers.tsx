@@ -1,0 +1,15 @@
+'use client';
+
+import { ReactNode } from 'react';
+import { I18nextProvider } from 'react-i18next';
+import type { i18n as I18nType } from 'i18next';
+import { i18n } from '@bs-kara/shared/hooks';
+import { ThemeProvider } from '@/components/ThemeProvider';
+
+export function Providers({ children }: { children: ReactNode }) {
+  return (
+    <I18nextProvider i18n={i18n as unknown as I18nType}>
+      <ThemeProvider>{children}</ThemeProvider>
+    </I18nextProvider>
+  );
+}

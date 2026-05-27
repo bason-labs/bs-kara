@@ -1,0 +1,306 @@
+{
+  "home": {
+    "title": "BS Kara Remote",
+    "subtitle": "Nhập mã phòng hiển thị trên TV",
+    "roomCodePlaceholder": "0000",
+    "joinButton": "Vào phòng",
+    "appHeading": "BS Kara",
+    "wordmark": "BS Kara",
+    "tagline": "Hát cùng nhau. Từ mọi chiếc điện thoại.",
+    "roomCodeLabel": "Mã phòng",
+    "qrTip": "Hoặc quét mã QR hiển thị trên TV",
+    "joinActiveRoom": "Tham gia phòng đang mở · {{code}}",
+    "startingRoom": "Đang mở phòng karaoke…",
+    "noActiveRoom": "Chưa có phòng nào đang mở. Hãy bật TV để tạo phòng trước.",
+    "invalidCode": "Mã phòng không đúng"
+  },
+  "header": {
+    "leaveButton": "Thoát phòng",
+    "roomLabel": "Phòng"
+  },
+  "tv": {
+    "heading": "BS Kara",
+    "lookup": {
+      "hint": "Nhập số điện thoại hoặc mã phòng",
+      "placeholder": "VD: 0912345678 hoặc 5678",
+      "activate": "Kích hoạt phòng",
+      "checking": "Đang kiểm tra...",
+      "notFound": "Không tìm thấy phòng hoặc phòng đang bị tạm ngưng.",
+      "error": "Đã xảy ra lỗi, vui lòng thử lại."
+    },
+    "roomLabel": "Phòng",
+    "qrHint": "Quét\nđể tham gia",
+    "startPrompt": "Nhấn vào bất kỳ đâu hoặc bấm phím để bắt đầu…",
+    "waitingMessage": "Đang chờ bài hát…",
+    "addSongsHint": "Thêm bài hát từ điện thoại bằng mã phòng bên dưới",
+    "roomCodeLabel": "Mã phòng",
+    "roomCodeHint": "Nhập trên điện thoại để tham gia",
+    "qrLabel": "Mã QR",
+    "scanToJoin": "Quét mã để chọn bài",
+    "queueLabel": "Tiếp theo",
+    "emptyQueueMessage": "Hàng chờ trống",
+    "endPartyButton": "Kết thúc",
+    "endPartyConfirm": {
+      "title": "Kết thúc tiệc?",
+      "message": "Hàng chờ, bài đang phát và lịch sử sẽ được xoá sạch. Các điện thoại vẫn ở trong phòng và có thể bắt đầu lượt mới.",
+      "confirm": "Kết thúc",
+      "cancel": "Huỷ"
+    },
+    "endPartyNotice": "Đã kết thúc tiệc. Thêm bài hát mới để bắt đầu lại."
+  },
+  "search": {
+    "placeholder": "Tìm kiếm bài hát...",
+    "submitAriaLabel": "Tìm kiếm",
+    "clearAriaLabel": "Xoá tìm kiếm",
+    "voiceAriaLabel": "Tìm bằng giọng nói",
+    "backAriaLabel": "Quay lại",
+    "fillQueryAriaLabel": "Dùng tìm kiếm này",
+    "removeHistoryAriaLabel": "Xoá khỏi lịch sử",
+    "closeVoiceAriaLabel": "Đóng tìm kiếm giọng nói",
+    "voiceNotSupported": "Trình duyệt này không hỗ trợ tìm kiếm bằng giọng nói.",
+    "listeningMessage": "Đang nghe...",
+    "hotHitsLabel": "Bài hát karaoke hot",
+    "noResults": "Không tìm thấy bài hát nào. Vui lòng thử từ khóa khác!",
+    "errorQuota": "Dịch vụ tìm kiếm đang bận. Vui lòng thử lại sau giây lát.",
+    "errorGeneric": "Tìm kiếm thất bại. Vui lòng thử lại.",
+    "addToQueueButton": "+ Thêm vào hàng chờ",
+    "addedToQueueButton": "Đã thêm",
+    "filtersGroupAriaLabel": "Bộ lọc nhanh",
+    "clearFilters": "Xoá lọc ({{count}})",
+    "clearFiltersAriaLabel": "Xoá tất cả bộ lọc",
+    "errorQuotaTitle": "Hết lượt tìm kiếm",
+    "errorQuotaSubtitle": "Vui lòng thử lại sau ít phút",
+    "errorNoResultsTitle": "Không tìm thấy bài hát",
+    "errorNoResultsSubtitle": "Thử từ khoá khác",
+    "errorGenericTitle": "Lỗi kết nối",
+    "errorGenericSubtitle": "Kiểm tra mạng và thử lại",
+    "inQueue": "Trong DS",
+    "nowPlayingLabel": "Đang phát",
+    "filtersTriggerAriaLabel": "Mở bộ lọc",
+    "filtersSheetTitle": "Bộ lọc bài hát",
+    "filtersReset": "Đặt lại",
+    "filtersApply": "Áp dụng {{count}} bộ lọc",
+    "filtersViewAll": "Xem tất cả bài hát",
+    "filterGroupHinhThuc": "HÌNH THỨC HÁT",
+    "filterGroupTongGiong": "TÔNG GIỌNG",
+    "filterGroupTheLoai": "THỂ LOẠI",
+    "statusNowPlaying": "Đang phát",
+    "statusQueued": "Trong hàng chờ · #{{pos}}",
+    "statusJustAdded": "Vừa thêm",
+    "voiceListenHint": "Hát to lên hoặc đọc tên bài hát",
+    "addAriaLabel": "Thêm vào hàng chờ"
+  },
+  "queue": {
+    "title": "Hàng chờ",
+    "emptyMessage": "Hàng đợi đang trống. Hãy thêm bài hát nhé!",
+    "removeAriaLabel": "Xoá khỏi hàng chờ",
+    "eta": "Vị trí #{{n}} · ~{{eta}} phút",
+    "removeConfirm": {
+      "title": "Xoá bài này?",
+      "message": "Bài hát sẽ bị xoá khỏi hàng chờ.",
+      "confirm": "Xoá",
+      "cancel": "Huỷ"
+    }
+  },
+  "controls": {
+    "playLabel": "Phát",
+    "pauseLabel": "Tạm dừng",
+    "previousLabel": "Trước",
+    "nextLabel": "Tiếp",
+    "volumeLabel": "Âm lượng"
+  },
+  "emoji": {
+    "sendAriaLabel": "Gửi {{emoji}}"
+  },
+  "theme": {
+    "label": "Giao diện",
+    "system": "Hệ thống",
+    "light": "Sáng",
+    "dark": "Tối"
+  },
+  "tabs": {
+    "search": "Tìm bài",
+    "queue": "Hàng chờ",
+    "player": "Đang phát",
+    "settings": "Cài đặt"
+  },
+  "playNow": {
+    "title": "Phát bài này ngay?",
+    "message": "“{{title}}” sẽ được phát ngay. Bài đang phát sẽ bị bỏ qua.",
+    "confirm": "Phát ngay",
+    "cancel": "Huỷ",
+    "aria": "Phát bài này ngay"
+  },
+  "nowPlaying": {
+    "label": "Đang phát",
+    "removeAriaLabel": "Bỏ qua bài đang phát",
+    "removeConfirm": {
+      "title": "Bỏ qua bài này?",
+      "message": "Bài đang phát sẽ bị bỏ qua và chuyển sang bài tiếp theo.",
+      "confirm": "Bỏ qua",
+      "cancel": "Huỷ"
+    }
+  },
+  "player": {
+    "openFullscreen": "Mở toàn màn hình",
+    "closeFullscreen": "Đóng toàn màn hình",
+    "play": "Phát",
+    "pause": "Tạm dừng",
+    "mute": "Tắt tiếng",
+    "unmute": "Bật tiếng",
+    "idleHint": "Chưa có bài nào đang phát — vào Tìm bài để chọn.",
+    "idleFullscreenHint": "Đang chờ bài tiếp theo — chọn bài để phát",
+    "rotateHint": "↻ Xoay điện thoại"
+  },
+  "toast": {
+    "addedToQueue": "Đã thêm vào hàng chờ",
+    "viewQueue": "Xem",
+    "undo": "Hoàn tác",
+    "queuePosition": "Vị trí thứ {{pos}}",
+    "queuePositionEta": "Vị trí thứ {{pos}} · ~{{eta}} phút nữa"
+  },
+  "row": {
+    "stateAdded": "Vừa thêm"
+  },
+  "autoRandom": {
+    "toggleLabel": "Tự động phát ngẫu nhiên",
+    "toggleAriaOn": "Tắt tự động phát ngẫu nhiên",
+    "toggleAriaOff": "Bật tự động phát ngẫu nhiên",
+    "onBadge": "Đang bật",
+    "offBadge": "Đang tắt",
+    "description": "Khi hàng chờ trống, hệ thống sẽ tự chọn bài mới theo bộ lọc bên dưới.",
+    "filtersHint": "Khi hàng chờ trống, tự động chọn bài mới theo bộ lọc.",
+    "typeLabel": "Kiểu hát",
+    "toneLabel": "Tông giọng",
+    "genreLabel": "Thể loại",
+    "type": {
+      "all": "Tất cả",
+      "solo": "Đơn ca",
+      "duet": "Song ca"
+    },
+    "tone": {
+      "all": "Tất cả",
+      "male": "Tone Nam",
+      "female": "Tone Nữ"
+    },
+    "genre": {
+      "all": "Tất cả",
+      "bolero": "Bolero",
+      "caco": "Ca cổ",
+      "tre": "Nhạc trẻ"
+    }
+  },
+  "settings": {
+    "title": "Cài đặt",
+    "openLabel": "Mở cài đặt",
+    "closeLabel": "Đóng cài đặt",
+    "sections": {
+      "autoRandom": "Tự động phát",
+      "queue": "Hàng chờ",
+      "aiMc": "MC",
+      "appearance": "Giao diện",
+      "room": "Phòng"
+    },
+    "themeHint": "Chọn giao diện sáng, tối hoặc theo hệ thống.",
+    "roomCodeLabel": "Mã phòng hiện tại",
+    "openTv": "Mở TV",
+    "dragDropLabel": "Kéo thả sắp xếp",
+    "dragDropHint": "Cho phép kéo thả để thay đổi thứ tự bài hát trong hàng chờ.",
+    "requesterPromptLabel": "Hỏi tên ca sĩ",
+    "requesterPromptHint": "Khi tắt, bài hát sẽ được thêm ngay vào hàng chờ mà không hỏi tên người hát.",
+    "guestCanRemoveLabel": "Cho phép khách xóa bài",
+    "guestCanRemoveHint": "Khách tham gia có thể xóa bài trong hàng chờ.",
+    "aiMcLabel": "Bật/Tắt MC",
+    "aiMcHint": "Trước mỗi bài, MC sẽ đọc lời giới thiệu ngắn bằng tiếng Việt qua loa TV.",
+    "mcVoiceLabel": "Giọng MC",
+    "mcVoiceOptions": {
+      "neural2A": "Nữ trung (Dễ thương)",
+      "wavenetC": "Nữ trầm (Trưởng thành)",
+      "neural2D": "Nam trầm (Ấm áp)",
+      "wavenetB": "Nam trung (Năng động)"
+    }
+  },
+  "aiMc": {
+    "announcing": "MC đang giới thiệu",
+    "preparing": "MC đang chuẩn bị lời giới thiệu…"
+  },
+  "requester": {
+    "title": "Ai sẽ hát bài này?",
+    "hint": "Nhập tên ca sĩ để hiển thị khi bài này được phát.",
+    "placeholder": "Tên ca sĩ",
+    "skipButton": "Bỏ qua",
+    "clearButton": "Xoá tên",
+    "confirmButton": "Xác nhận",
+    "cancelAriaLabel": "Đóng",
+    "editAriaLabel": "Sửa tên ca sĩ",
+    "addAriaLabel": "Thêm tên ca sĩ",
+    "addLabel": "Tên ca sĩ",
+    "noneLabel": "Chưa có tên ca sĩ",
+    "tvLabel": "Trình bày:",
+    "saveNameLabel": "Lưu tên cho lần sau"
+  },
+  "errors": {
+    "notFound": {
+      "title": "Không tìm thấy trang",
+      "message": "Trang bạn tìm không tồn tại hoặc đã bị xoá.",
+      "cta": "Về trang chủ"
+    },
+    "loadFailed": {
+      "title": "Không thể tải trang",
+      "message": "Có lỗi xảy ra. Vui lòng kiểm tra kết nối và thử lại.",
+      "retry": "Thử lại",
+      "home": "Về trang chủ"
+    },
+    "roomNotFound": {
+      "title": "Phòng không tồn tại",
+      "message": "Mã phòng không đúng hoặc phòng đã đóng. Vui lòng kiểm tra lại trên TV.",
+      "cta": "Về trang chủ"
+    }
+  },
+  "scoring": {
+    "zeroState": "Thả icon để chấm điểm 🎤",
+    "partialState": "Cần thêm reactions để chấm điểm…",
+    "tierLabel": "Hạng",
+    "toggleLabel": "AI chấm điểm",
+    "toggleHelp": "Hiển thị điểm cho mỗi bài hát ở 8 giây cuối, dựa trên reactions từ phòng"
+  },
+  "addedToast": {
+    "added": "Đã thêm vào danh sách",
+    "viewQueue": "Xem DS"
+  },
+  "voice": {
+    "listening": "Đang nghe...",
+    "hint": "Nói tên bài hát bạn muốn tìm",
+    "recognizing": "Chữ hiển thị trong khi nhận dạng giọng nói",
+    "unsupported": "Thiết bị không hỗ trợ"
+  },
+  "auth": {
+    "title": "Tạo phòng karaoke",
+    "subtitle": "Đăng ký để có phòng riêng của bạn",
+    "phoneLabel": "Số điện thoại",
+    "phonePlaceholder": "0XX XXX XXXX",
+    "sendOtp": "Gửi mã OTP",
+    "sendingOtp": "Đang gửi…",
+    "otpLabel": "Mã xác nhận",
+    "otpHint": "Nhập mã 6 số đã gửi đến {{phone}}",
+    "verify": "Xác nhận",
+    "verifying": "Đang xác nhận…",
+    "resendIn": "Gửi lại sau {{seconds}}s",
+    "resend": "Gửi lại mã",
+    "displayNameLabel": "Tên hiển thị",
+    "displayNamePlaceholder": "Tên của bạn",
+    "displayNameHint": "Tên này sẽ hiển thị khi bạn thêm bài.",
+    "continue": "Tiếp tục",
+    "skip": "Bỏ qua",
+    "back": "Quay lại",
+    "loginOrRegister": "Đăng nhập / Tạo phòng",
+    "goToMyRoom": "Vào phòng của tôi",
+    "orDivider": "hoặc",
+    "errors": {
+      "invalidPhone": "Vui lòng nhập số điện thoại Việt Nam hợp lệ (0XXXXXXXXX)",
+      "sendFailed": "Không thể gửi mã. Vui lòng thử lại.",
+      "otpFailed": "Mã không đúng hoặc đã hết hạn. Vui lòng thử lại.",
+      "noSubscription": "Phòng chưa kích hoạt — liên hệ admin để được cấp quyền."
+    }
+  }
+}

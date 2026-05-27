@@ -42,4 +42,15 @@ next-env.d.ts
 
 test-results
 .superpowers
-.tmp
+.tmp.superpowers/
+
+# editor swap/backup files
+*.swp
+*.swo
+*~
+
+# monorepo root — generated files that belong inside workspace packages
+/.turbo
+/android
+/.tmp
+/app.json
