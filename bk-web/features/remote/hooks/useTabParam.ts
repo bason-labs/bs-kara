@@ -28,9 +28,11 @@ export function useTabParam(): [NavTab, (next: NavTab) => void] {
 
   const setTab = useCallback(
     (next: NavTab) => {
-      router.replace(`${pathname}?tab=${next}`, { scroll: false });
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('tab', next);
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [router, pathname],
+    [router, pathname, searchParams],
   );
 
   return [tab, setTab];
