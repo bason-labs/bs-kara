@@ -70,7 +70,7 @@ const SettingsPanel = dynamic(
     import('@/features/remote/components/SettingsSheet').then((m) => ({
       default: m.SettingsPanel,
     })),
-  { ssr: false },
+  { ssr: false, loading: () => <SettingsSkeleton /> },
 );
 
 function RemoteInner() {
@@ -673,29 +673,33 @@ function RemoteInner() {
             tab === 'settings' ? 'h-full' : 'hidden'
           }`}
         >
-          {hasOpenedSettings && (
-            <SettingsPanel
-              roomCode={roomCode}
-              autoRandomEnabled={roomData.isAutoRandomMode}
-              filters={roomData.randomFilters}
-              onAutoRandomToggle={setAutoRandomMode}
-              onFiltersChange={setRandomFilters}
-              dragDropEnabled={roomData.dragDropEnabled}
-              onDragDropToggle={setDragDropEnabled}
-              requesterPromptEnabled={roomData.requesterPromptEnabled}
-              onRequesterPromptToggle={setRequesterPromptEnabled}
-              mcEnabled={roomData.isMCEnabled}
-              onMCToggle={setMCEnabled}
-              mcVoice={roomData.mcVoice}
-              onMcVoiceChange={setMcVoice}
-              aiScoringEnabled={roomData.aiScoringEnabled}
-              onAiScoringToggle={setAiScoringEnabled}
-              isHost={isHost}
-              guestCanRemove={roomData.guestCanRemove}
-              onGuestCanRemoveToggle={setGuestCanRemove}
-              panelOpen={tab === 'settings'}
-              onLeave={handleLeave}
-            />
+          {isLoading ? (
+            <SettingsSkeleton />
+          ) : (
+            hasOpenedSettings && (
+              <SettingsPanel
+                roomCode={roomCode}
+                autoRandomEnabled={roomData.isAutoRandomMode}
+                filters={roomData.randomFilters}
+                onAutoRandomToggle={setAutoRandomMode}
+                onFiltersChange={setRandomFilters}
+                dragDropEnabled={roomData.dragDropEnabled}
+                onDragDropToggle={setDragDropEnabled}
+                requesterPromptEnabled={roomData.requesterPromptEnabled}
+                onRequesterPromptToggle={setRequesterPromptEnabled}
+                mcEnabled={roomData.isMCEnabled}
+                onMCToggle={setMCEnabled}
+                mcVoice={roomData.mcVoice}
+                onMcVoiceChange={setMcVoice}
+                aiScoringEnabled={roomData.aiScoringEnabled}
+                onAiScoringToggle={setAiScoringEnabled}
+                isHost={isHost}
+                guestCanRemove={roomData.guestCanRemove}
+                onGuestCanRemoveToggle={setGuestCanRemove}
+                panelOpen={tab === 'settings'}
+                onLeave={handleLeave}
+              />
+            )
           )}
         </section>
       </div>
