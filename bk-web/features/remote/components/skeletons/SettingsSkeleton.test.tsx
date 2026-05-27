@@ -15,9 +15,9 @@ describe('SettingsSkeleton', () => {
     expect(sections.length).toBe(3);
   });
 
-  it('applies animate-pulse to all placeholder elements', () => {
+  it('applies animate-shimmer to all placeholder elements', () => {
     const { container } = render(<SettingsSkeleton />);
     // 3 section headers (1 each) + 7 rows total × 3 per row (title + hint + toggle) = 3 + 21 = 24
-    expect(container.querySelectorAll('.animate-pulse').length).toBe(24);
+    expect(container.querySelectorAll('.animate-shimmer').length).toBe(24);
   });
 });

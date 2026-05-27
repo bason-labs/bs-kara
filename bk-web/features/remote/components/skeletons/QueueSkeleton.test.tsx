@@ -9,8 +9,8 @@ describe('QueueSkeleton', () => {
     expect(rows.length).toBe(5);
   });
 
-  it('applies animate-pulse to all placeholder elements (4 per row × 5 rows = 20)', () => {
+  it('applies animate-shimmer to all placeholder elements (4 per row × 5 rows = 20)', () => {
     const { container } = render(<QueueSkeleton />);
-    expect(container.querySelectorAll('.animate-pulse').length).toBe(20);
+    expect(container.querySelectorAll('.animate-shimmer').length).toBe(20);
   });
 });

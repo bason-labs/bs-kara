@@ -8,8 +8,8 @@ describe('PlayerSkeleton', () => {
     expect(container.firstChild).not.toBeNull();
   });
 
-  it('applies animate-pulse to all placeholder elements (thumb + 2 text + 3 controls = 6)', () => {
+  it('applies animate-shimmer to all placeholder elements (thumb + 2 text + 3 controls = 6)', () => {
     const { container } = render(<PlayerSkeleton />);
-    expect(container.querySelectorAll('.animate-pulse').length).toBe(6);
+    expect(container.querySelectorAll('.animate-shimmer').length).toBe(6);
   });
 });
