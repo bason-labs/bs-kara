@@ -216,6 +216,10 @@ vi.mock('next/dynamic', () => ({
   default: () => () => null,
 }));
 
+vi.mock('@/features/remote/hooks/useTabParam', () => ({
+  useTabParam: () => ['search' as const, vi.fn()],
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));

@@ -10,6 +10,7 @@ import {
   useCallback,
   type CSSProperties,
 } from 'react';
+import { useTabParam } from '@/features/remote/hooks/useTabParam';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +20,7 @@ import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { useTransientNotice } from '@bs-kara/shared/hooks';
 import { primeAudio } from '@/hooks/useAIVoice';
 import { TopBar } from '@/features/remote/components/TopBar';
-import { BottomNav, type NavTab } from '@/features/remote/components/BottomNav';
+import { BottomNav } from '@/features/remote/components/BottomNav';
 import { SearchPanel } from '@/features/remote/components/SearchPanel';
 import { ClientQueue } from '@/features/remote/components/ClientQueue';
 import { RemoteControls } from '@/features/remote/components/RemoteControls';
@@ -72,7 +73,7 @@ function RemoteInner() {
   const { timedOut, rejoinReason, resetActivity, rejoin } = useInactivityTimeout(roomCode);
   const { profile: hostProfile, loading: hostLoading } = useCurrentHost();
 
-  const [tab, setTab] = useState<NavTab>('search');
+  const [tab, setTab] = useTabParam();
   const [playerOpen, setPlayerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
