@@ -6,7 +6,7 @@ export function SearchSkeleton() {
     <div
       data-testid="search-skeleton"
       aria-hidden="true"
-      className="h-full flex flex-col pt-[var(--header-h)] lg:pt-0"
+      className="h-full flex flex-col"
     >
       {/* Search bar — mirrors the chrome at the top of SearchPanel so the
           input + mic snap into place when the real panel mounts. */}

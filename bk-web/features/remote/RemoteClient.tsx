@@ -100,7 +100,12 @@ function RemoteInner() {
   // Gated on the search tab so we don't apply the inline transform when
   // the user is on the queue tab and SearchPanel is hidden.
   const headerRef = useRef<HTMLElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(0);
+  // Seeded with a reasonable mobile header height so the first paint —
+  // before useLayoutEffect measures the real value — lands close to the
+  // correct offset. Without this, any content using `--header-h` for top
+  // padding (e.g. the SearchSkeleton chrome) briefly renders at 0px and
+  // overlaps the absolute-positioned mobile header.
+  const [headerHeight, setHeaderHeight] = useState(56);
   useLayoutEffect(() => {
     if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
   }, []);
@@ -513,10 +518,18 @@ function RemoteInner() {
         style={{ '--header-h': `${effectiveHeaderHeight}px` } as CSSProperties}
         className="flex-1 min-h-0 overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_460px] xl:grid-cols-[minmax(0,1fr)_500px]"
       >
-        {/* Search column */}
+        {/* Search column.
+            While loading we apply pt-[var(--header-h)] like the queue
+            section does, because the SearchSkeleton has no internal
+            absolute-positioning logic to land below the mobile header.
+            Once the real SearchPanel mounts it manages its own offset
+            (absolute bar + spacer), so the padding is dropped to avoid
+            double-counting the header. */}
         <section
           aria-label="Search"
           className={`min-h-0 overflow-hidden lg:block lg:border-r lg:border-border ${
+            isLoading ? 'pt-[var(--header-h)] lg:pt-0' : ''
+          } ${
             tab === 'search' ? 'h-full' : 'hidden'
           }`}
         >
