@@ -663,10 +663,12 @@ function RemoteInner() {
         </section>
 
         {/* Settings — mobile-only tab panel. Desktop opens the gear-icon
-            modal in the header instead, so this is `lg:hidden`. Gated on
-            hasOpenedSettings so the dynamic-imported chunk doesn't load
-            until the user taps the tab (matches the desktop sheet's
-            lazy-mount latch). */}
+            modal in the header instead, so this is `lg:hidden`. Mounting
+            is gated on `tab === 'settings'` (not the desktop-modal latch)
+            so the panel works whether the user reached this tab by
+            tapping BottomNav or by refreshing on `?tab=settings` — the
+            URL is the source of truth for the active tab. The dynamic
+            import handles chunk-load lazily on first visit. */}
         <section
           aria-label="Settings"
           className={`min-h-0 overflow-hidden pt-[var(--header-h)] lg:hidden ${
@@ -676,7 +678,7 @@ function RemoteInner() {
           {isLoading ? (
             <SettingsSkeleton />
           ) : (
-            hasOpenedSettings && (
+            tab === 'settings' && (
               <SettingsPanel
                 roomCode={roomCode}
                 autoRandomEnabled={roomData.isAutoRandomMode}
@@ -764,12 +766,7 @@ function RemoteInner() {
           activeTab={tab}
           queueLength={roomData.queue.length}
           isPlaying={displayedIsPlaying}
-          onTabChange={(t) => {
-            // Flip the lazy-mount latch the first time the user steps onto
-            // the settings tab so the SettingsPanel chunk loads on demand.
-            if (t === 'settings') setHasOpenedSettings(true);
-            setTab(t);
-          }}
+          onTabChange={setTab}
         />
       </div>
 
