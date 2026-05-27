@@ -360,6 +360,8 @@ describe('RemoteClient — per-tab skeleton loading', () => {
     state.tab = 'queue';
     render(<RemoteClient />);
     expect(screen.getByTestId('queue-skeleton')).toBeInTheDocument();
+    // The real NowPlayingCard must not appear while the skeleton is shown.
+    expect(screen.queryByTestId('now-playing')).not.toBeInTheDocument();
   });
 
   it('shows the search skeleton when isLoading=true and tab=search', () => {
@@ -367,5 +369,16 @@ describe('RemoteClient — per-tab skeleton loading', () => {
     state.tab = 'search';
     render(<RemoteClient />);
     expect(screen.getByTestId('search-skeleton')).toBeInTheDocument();
+    // The real SearchPanel must not appear while the skeleton is shown.
+    expect(screen.queryByTestId('search-panel')).not.toBeInTheDocument();
+  });
+
+  it('shows the player skeleton when isLoading=true and tab=player', () => {
+    state.isLoading = true;
+    state.tab = 'player';
+    render(<RemoteClient />);
+    expect(screen.getByTestId('player-skeleton')).toBeInTheDocument();
+    // The real NowPlayingCard must not appear while the skeleton is shown.
+    expect(screen.queryByTestId('now-playing')).not.toBeInTheDocument();
   });
 });
