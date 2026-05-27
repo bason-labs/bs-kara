@@ -10,6 +10,7 @@ import {
   useCallback,
   type CSSProperties,
 } from 'react';
+import { useTabParam } from '@/features/remote/hooks/useTabParam';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +20,7 @@ import { useAutoRandom } from '@/hooks/useAutoRandom';
 import { useTransientNotice } from '@bs-kara/shared/hooks';
 import { primeAudio } from '@/hooks/useAIVoice';
 import { TopBar } from '@/features/remote/components/TopBar';
-import { BottomNav, type NavTab } from '@/features/remote/components/BottomNav';
+import { BottomNav } from '@/features/remote/components/BottomNav';
 import { SearchPanel } from '@/features/remote/components/SearchPanel';
 import { ClientQueue } from '@/features/remote/components/ClientQueue';
 import { RemoteControls } from '@/features/remote/components/RemoteControls';
@@ -43,18 +44,33 @@ import { useCurrentHost } from '@/features/remote/hooks/useCurrentHost';
 import { useHostAuth } from '@/features/remote/hooks/useHostAuth';
 import { SessionExpiredOverlay } from '@/features/remote/components/SessionExpiredOverlay';
 
+import {
+  QueueSkeleton,
+  PlayerSkeleton,
+  SearchSkeleton,
+  SettingsSkeleton,
+} from '@/features/remote/components/skeletons';
+
 // SettingsSheet pulls in VoicePicker + AutoRandomSection + the rest of the
-// settings tree (~28 KB minified). Lazy-load it on first gear-icon click so
-// the queue/search-tab cold path doesn't pay for it. After first mount the
-// component stays in the tree (gated by hasOpenedSettings below) so
-// subsequent opens are byte-identical to before — same inert={!open} +
-// slide-up transition path.
+// settings tree (~28 KB minified). Lazy-load both the desktop sheet wrapper
+// and the mobile-tab panel from the same chunk so the queue/search-tab cold
+// path doesn't pay for it. After first mount each stays in the tree (gated
+// by hasOpenedSettings below) so subsequent opens are byte-identical to
+// before — same inert={!open} + slide-up transition path on desktop, same
+// hidden/h-full toggle as the other tab panels on mobile.
 const SettingsSheet = dynamic(
   () =>
     import('@/features/remote/components/SettingsSheet').then((m) => ({
       default: m.SettingsSheet,
     })),
-  { ssr: false },
+  { ssr: false, loading: () => <SettingsSkeleton /> },
+);
+const SettingsPanel = dynamic(
+  () =>
+    import('@/features/remote/components/SettingsSheet').then((m) => ({
+      default: m.SettingsPanel,
+    })),
+  { ssr: false, loading: () => <SettingsSkeleton /> },
 );
 
 function RemoteInner() {
@@ -72,7 +88,7 @@ function RemoteInner() {
   const { timedOut, rejoinReason, resetActivity, rejoin } = useInactivityTimeout(roomCode);
   const { profile: hostProfile, loading: hostLoading } = useCurrentHost();
 
-  const [tab, setTab] = useState<NavTab>('search');
+  const [tab, setTab] = useTabParam();
   const [playerOpen, setPlayerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -84,7 +100,12 @@ function RemoteInner() {
   // Gated on the search tab so we don't apply the inline transform when
   // the user is on the queue tab and SearchPanel is hidden.
   const headerRef = useRef<HTMLElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(0);
+  // Seeded with a reasonable mobile header height so the first paint —
+  // before useLayoutEffect measures the real value — lands close to the
+  // correct offset. Without this, any content using `--header-h` for top
+  // padding (e.g. the SearchSkeleton chrome) briefly renders at 0px and
+  // overlaps the absolute-positioned mobile header.
+  const [headerHeight, setHeaderHeight] = useState(56);
   useLayoutEffect(() => {
     if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
   }, []);
@@ -497,22 +518,34 @@ function RemoteInner() {
         style={{ '--header-h': `${effectiveHeaderHeight}px` } as CSSProperties}
         className="flex-1 min-h-0 overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_460px] xl:grid-cols-[minmax(0,1fr)_500px]"
       >
-        {/* Search column */}
+        {/* Search column.
+            While loading we apply pt-[var(--header-h)] like the queue
+            section does, because the SearchSkeleton has no internal
+            absolute-positioning logic to land below the mobile header.
+            Once the real SearchPanel mounts it manages its own offset
+            (absolute bar + spacer), so the padding is dropped to avoid
+            double-counting the header. */}
         <section
           aria-label="Search"
           className={`min-h-0 overflow-hidden lg:block lg:border-r lg:border-border ${
+            isLoading ? 'pt-[var(--header-h)] lg:pt-0' : ''
+          } ${
             tab === 'search' ? 'h-full' : 'hidden'
           }`}
         >
-          <SearchPanel
-            onAdd={handleAddToQueue}
-            queuedMap={queuedMap}
-            queuePositionMap={queuePositionMap}
-            currentPlayingId={currentPlayingId}
-            headerHeight={effectiveHeaderHeight}
-            onChromeChange={handleChromeChange}
-            onFocusChange={setIsSearchFocused}
-          />
+          {isLoading ? (
+            <SearchSkeleton />
+          ) : (
+            <SearchPanel
+              onAdd={handleAddToQueue}
+              queuedMap={queuedMap}
+              queuePositionMap={queuePositionMap}
+              currentPlayingId={currentPlayingId}
+              headerHeight={effectiveHeaderHeight}
+              onChromeChange={handleChromeChange}
+              onFocusChange={setIsSearchFocused}
+            />
+          )}
         </section>
 
         {/* Queue / player column — on desktop everything stacks together;
@@ -525,115 +558,164 @@ function RemoteInner() {
             tab === 'queue' || tab === 'player' ? 'flex h-full' : 'hidden'
           }`}
         >
-          {/* The card always renders when a song is playing — even when the
-              TV is showing it — so the phone still feels like the remote.
-              When the TV is active we drop `onExpand`, which both disables
-              the tap-to-expand gesture and hides the Maximize button so
-              the user isn't offered a fullscreen mode that would compete
-              with the TV. */}
-          {roomData.currentPlaying && (
+          {isLoading ? (
+            tab === 'player' ? <PlayerSkeleton /> : <QueueSkeleton />
+          ) : (
             <>
-              <div className="px-3 pt-3 pb-1 hidden lg:block">
-                <NowPlayingCard
-                  track={roomData.currentPlaying}
-                  isPlaying={displayedIsPlaying}
-                  onExpand={
-                    roomData.isTvActive || isExpandBlocked
-                      ? undefined
-                      : handleExpand
-                  }
-                  onRemove={removeCurrentPlaying}
-                />
-              </div>
+              {/* The card always renders when a song is playing — even when the
+                  TV is showing it — so the phone still feels like the remote.
+                  When the TV is active we drop `onExpand`, which both disables
+                  the tap-to-expand gesture and hides the Maximize button so
+                  the user isn't offered a fullscreen mode that would compete
+                  with the TV. */}
+              {roomData.currentPlaying && (
+                <>
+                  <div className="px-3 pt-3 pb-1 hidden lg:block">
+                    <NowPlayingCard
+                      track={roomData.currentPlaying}
+                      isPlaying={displayedIsPlaying}
+                      onExpand={
+                        roomData.isTvActive || isExpandBlocked
+                          ? undefined
+                          : handleExpand
+                      }
+                      onRemove={removeCurrentPlaying}
+                    />
+                  </div>
+                  <div
+                    className={`flex-1 min-h-0 overflow-y-auto ${
+                      tab === 'player' ? 'lg:hidden' : 'hidden'
+                    }`}
+                  >
+                    {/* min-h-full + flex centers the card vertically on tall
+                        screens; when the card is taller than the viewport
+                        (small phones, in-app browsers, landscape), the inner
+                        block grows past the parent and the parent's
+                        `overflow-y-auto` lets the user scroll to see all of
+                        it. */}
+                    <div className="min-h-full w-full flex items-center justify-center py-6">
+                      <NowPlayingCard
+                        variant="hero"
+                        track={roomData.currentPlaying}
+                        isPlaying={displayedIsPlaying}
+                        onExpand={
+                          roomData.isTvActive || isExpandBlocked
+                            ? undefined
+                            : handleExpand
+                        }
+                        onRemove={removeCurrentPlaying}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+              {/* Empty-state for the player tab when nothing is playing — gives
+                  the controls something to sit under so the area doesn't
+                  collapse into a thin strip. */}
+              {!roomData.currentPlaying && (
+                <div
+                  className={`flex-1 min-h-0 flex items-center justify-center px-6 text-center ${
+                    tab === 'player' ? 'lg:hidden' : 'hidden'
+                  }`}
+                >
+                  <p className="text-sm text-muted max-w-[260px]">
+                    {t('player.idleHint')}
+                  </p>
+                </div>
+              )}
               <div
-                className={`flex-1 min-h-0 overflow-y-auto ${
-                  tab === 'player' ? 'lg:hidden' : 'hidden'
+                className={`flex-1 min-h-0 overflow-hidden ${
+                  tab === 'queue' ? '' : 'hidden lg:block'
                 }`}
               >
-                {/* min-h-full + flex centers the card vertically on tall
-                    screens; when the card is taller than the viewport
-                    (small phones, in-app browsers, landscape), the inner
-                    block grows past the parent and the parent's
-                    `overflow-y-auto` lets the user scroll to see all of
-                    it. */}
-                <div className="min-h-full w-full flex items-center justify-center py-6">
-                  <NowPlayingCard
-                    variant="hero"
-                    track={roomData.currentPlaying}
-                    isPlaying={displayedIsPlaying}
-                    onExpand={
-                      roomData.isTvActive || isExpandBlocked
-                        ? undefined
-                        : handleExpand
-                    }
-                    onRemove={removeCurrentPlaying}
-                  />
-                </div>
+                <ClientQueue
+                  items={roomData.queue}
+                  isLoading={isLoading}
+                  onReorder={reorderQueue}
+                  onRemove={removeSong}
+                  onEditRequester={
+                    roomData.requesterPromptEnabled ? handleEditRequester : undefined
+                  }
+                  onPlayNow={handleRequestPlayNowFromQueue}
+                  currentPlayingId={currentPlayingId}
+                  dragDropEnabled={roomData.dragDropEnabled}
+                  isHost={isHost}
+                  guestCanRemove={roomData.guestCanRemove}
+                />
+              </div>
+              {/* Optimistic emoji overlay. Sits above the player content, below
+                  the controls bar (bottom offset clears EmojiPad + RemoteControls
+                  + safe-area on mobile, ~28 lg). Hidden on mobile when not on
+                  the player tab so the queue tab doesn't render unrelated rises. */}
+              <div
+                aria-hidden
+                className={`pointer-events-none absolute inset-x-0 top-[var(--header-h)] bottom-28 lg:top-0 lg:bottom-32 z-40 overflow-hidden ${
+                  tab === 'player' ? '' : 'hidden lg:block'
+                }`}
+              >
+                <EmojiLayer ref={emojiLayerRef} roomId={roomCode} />
+              </div>
+              <div
+                className={`shrink-0 bg-surface/85 backdrop-blur-md border-t border-border ${
+                  tab === 'player' ? '' : 'hidden lg:block'
+                }`}
+              >
+                <EmojiPad onSendEmoji={handleSendEmoji} />
+                <RemoteControls
+                  isPlaying={displayedIsPlaying}
+                  hasHistory={roomData.history.length > 0}
+                  hasQueue={roomData.queue.length > 0}
+                  currentPlaying={roomData.currentPlaying}
+                  onTogglePlayPause={handleTogglePlayPause}
+                  onPrev={playPrevious}
+                  onNext={playNext}
+                />
               </div>
             </>
           )}
-          {/* Empty-state for the player tab when nothing is playing — gives
-              the controls something to sit under so the area doesn't
-              collapse into a thin strip. */}
-          {!roomData.currentPlaying && (
-            <div
-              className={`flex-1 min-h-0 flex items-center justify-center px-6 text-center ${
-                tab === 'player' ? 'lg:hidden' : 'hidden'
-              }`}
-            >
-              <p className="text-sm text-muted max-w-[260px]">
-                {t('player.idleHint')}
-              </p>
-            </div>
+        </section>
+
+        {/* Settings — mobile-only tab panel. Desktop opens the gear-icon
+            modal in the header instead, so this is `lg:hidden`. Mounting
+            is gated on `tab === 'settings'` (not the desktop-modal latch)
+            so the panel works whether the user reached this tab by
+            tapping BottomNav or by refreshing on `?tab=settings` — the
+            URL is the source of truth for the active tab. The dynamic
+            import handles chunk-load lazily on first visit. */}
+        <section
+          aria-label="Settings"
+          className={`min-h-0 overflow-hidden pt-[var(--header-h)] lg:hidden ${
+            tab === 'settings' ? 'h-full' : 'hidden'
+          }`}
+        >
+          {isLoading ? (
+            <SettingsSkeleton />
+          ) : (
+            tab === 'settings' && (
+              <SettingsPanel
+                roomCode={roomCode}
+                autoRandomEnabled={roomData.isAutoRandomMode}
+                filters={roomData.randomFilters}
+                onAutoRandomToggle={setAutoRandomMode}
+                onFiltersChange={setRandomFilters}
+                dragDropEnabled={roomData.dragDropEnabled}
+                onDragDropToggle={setDragDropEnabled}
+                requesterPromptEnabled={roomData.requesterPromptEnabled}
+                onRequesterPromptToggle={setRequesterPromptEnabled}
+                mcEnabled={roomData.isMCEnabled}
+                onMCToggle={setMCEnabled}
+                mcVoice={roomData.mcVoice}
+                onMcVoiceChange={setMcVoice}
+                aiScoringEnabled={roomData.aiScoringEnabled}
+                onAiScoringToggle={setAiScoringEnabled}
+                isHost={isHost}
+                guestCanRemove={roomData.guestCanRemove}
+                onGuestCanRemoveToggle={setGuestCanRemove}
+                panelOpen={tab === 'settings'}
+                onLeave={handleLeave}
+              />
+            )
           )}
-          <div
-            className={`flex-1 min-h-0 overflow-hidden ${
-              tab === 'queue' ? '' : 'hidden lg:block'
-            }`}
-          >
-            <ClientQueue
-              items={roomData.queue}
-              isLoading={isLoading}
-              onReorder={reorderQueue}
-              onRemove={removeSong}
-              onEditRequester={
-                roomData.requesterPromptEnabled ? handleEditRequester : undefined
-              }
-              onPlayNow={handleRequestPlayNowFromQueue}
-              currentPlayingId={currentPlayingId}
-              dragDropEnabled={roomData.dragDropEnabled}
-              isHost={isHost}
-              guestCanRemove={roomData.guestCanRemove}
-            />
-          </div>
-          {/* Optimistic emoji overlay. Sits above the player content, below
-              the controls bar (bottom offset clears EmojiPad + RemoteControls
-              + safe-area on mobile, ~28 lg). Hidden on mobile when not on
-              the player tab so the queue tab doesn't render unrelated rises. */}
-          <div
-            aria-hidden
-            className={`pointer-events-none absolute inset-x-0 top-[var(--header-h)] bottom-28 lg:top-0 lg:bottom-32 z-40 overflow-hidden ${
-              tab === 'player' ? '' : 'hidden lg:block'
-            }`}
-          >
-            <EmojiLayer ref={emojiLayerRef} roomId={roomCode} />
-          </div>
-          <div
-            className={`shrink-0 bg-surface/85 backdrop-blur-md border-t border-border ${
-              tab === 'player' ? '' : 'hidden lg:block'
-            }`}
-          >
-            <EmojiPad onSendEmoji={handleSendEmoji} />
-            <RemoteControls
-              isPlaying={displayedIsPlaying}
-              hasHistory={roomData.history.length > 0}
-              hasQueue={roomData.queue.length > 0}
-              currentPlaying={roomData.currentPlaying}
-              onTogglePlayPause={handleTogglePlayPause}
-              onPrev={playPrevious}
-              onNext={playNext}
-            />
-          </div>
         </section>
       </div>
 
@@ -697,14 +779,7 @@ function RemoteInner() {
           activeTab={tab}
           queueLength={roomData.queue.length}
           isPlaying={displayedIsPlaying}
-          onTabChange={(t) => {
-            if (t === 'settings') {
-              setHasOpenedSettings(true);
-              setSettingsOpen(true);
-            } else {
-              setTab(t);
-            }
-          }}
+          onTabChange={setTab}
         />
       </div>
 

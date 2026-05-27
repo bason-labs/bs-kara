@@ -7,6 +7,8 @@ import userEvent from '@testing-library/user-event';
 const state = vi.hoisted(() => ({
   isTvActive: false as boolean,
   isPlaying: true as boolean,
+  isLoading: false as boolean,
+  tab: 'search' as 'search' | 'queue' | 'player' | 'settings',
   togglePlayPauseMock: vi.fn(),
   setIsPlayingMock: vi.fn(),
   fullscreenPlayerProps: null as Record<string, unknown> | null,
@@ -27,51 +29,53 @@ const baseTrack = {
   duration: '3:00',
 };
 
-vi.mock('@/hooks/useRoom', () => ({
+vi.mock('@bs-kara/shared/hooks', () => ({
+  // useTransientNotice: minimal stub — tests here don't exercise notices.
+  useTransientNotice: () => ({ notice: null, show: vi.fn() }),
   useRoom: () => ({
-    roomData: {
-      queue: [],
-      currentPlaying: baseTrack,
-      isPlaying: state.isPlaying,
-      volume: 80,
-      history: [],
-      isAutoRandomMode: false,
-      randomFilters: {},
-      playedHistory: [],
-      dragDropEnabled: true,
-      requesterPromptEnabled: true,
-      isMCEnabled: true,
-      mcVoice: 'vi-VN-Neural2-A',
-      lastAnnouncedSongId: null,
-      isTvActive: state.isTvActive,
-      // Explicitly null (not undefined) so isExpandBlocked stays false in the
-      // tests' default world — `roomData.fullscreenOwner !== null` would
-      // otherwise be true for `undefined`, which hides the expand button.
-      fullscreenOwner: null,
-      lastEndedAt: null,
-    },
-    isLoading: false,
-    roomExists: true,
-    addSongToQueue: vi.fn(),
-    updateRequesterName: vi.fn(),
-    removeSong: vi.fn(),
-    reorderQueue: vi.fn(),
-    togglePlayPause: state.togglePlayPauseMock,
-    setIsPlaying: state.setIsPlayingMock,
-    playNext: vi.fn(),
-    playPrevious: vi.fn(),
-    sendEmoji: vi.fn(),
-    setAutoRandomMode: vi.fn(),
-    setRandomFilters: vi.fn(),
-    setDragDropEnabled: vi.fn(),
-    setRequesterPromptEnabled: vi.fn(),
-    setMCEnabled: vi.fn(),
-    setMcVoice: vi.fn(),
-    tryClaimAnnouncementLock: vi.fn(),
-    removeCurrentPlaying: vi.fn(),
-    addToPlayedHistory: vi.fn(),
-    setCurrentPlayingDirectly: vi.fn(),
-  }),
+      roomData: {
+        queue: [],
+        currentPlaying: baseTrack,
+        isPlaying: state.isPlaying,
+        volume: 80,
+        history: [],
+        isAutoRandomMode: false,
+        randomFilters: {},
+        playedHistory: [],
+        dragDropEnabled: true,
+        requesterPromptEnabled: true,
+        isMCEnabled: true,
+        mcVoice: 'vi-VN-Neural2-A',
+        lastAnnouncedSongId: null,
+        isTvActive: state.isTvActive,
+        // Explicitly null (not undefined) so isExpandBlocked stays false in the
+        // tests' default world — `roomData.fullscreenOwner !== null` would
+        // otherwise be true for `undefined`, which hides the expand button.
+        fullscreenOwner: null,
+        lastEndedAt: null,
+      },
+      isLoading: state.isLoading,
+      roomExists: true,
+      addSongToQueue: vi.fn(),
+      updateRequesterName: vi.fn(),
+      removeSong: vi.fn(),
+      reorderQueue: vi.fn(),
+      togglePlayPause: state.togglePlayPauseMock,
+      setIsPlaying: state.setIsPlayingMock,
+      playNext: vi.fn(),
+      playPrevious: vi.fn(),
+      sendEmoji: vi.fn(),
+      setAutoRandomMode: vi.fn(),
+      setRandomFilters: vi.fn(),
+      setDragDropEnabled: vi.fn(),
+      setRequesterPromptEnabled: vi.fn(),
+      setMCEnabled: vi.fn(),
+      setMcVoice: vi.fn(),
+      tryClaimAnnouncementLock: vi.fn(),
+      removeCurrentPlaying: vi.fn(),
+      addToPlayedHistory: vi.fn(),
+      setCurrentPlayingDirectly: vi.fn(),
+    }),
 }));
 
 vi.mock('@/hooks/useAutoRandom', () => ({ useAutoRandom: () => {} }));
@@ -216,6 +220,10 @@ vi.mock('next/dynamic', () => ({
   default: () => () => null,
 }));
 
+vi.mock('@/features/remote/hooks/useTabParam', () => ({
+  useTabParam: () => [state.tab, vi.fn()],
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
@@ -224,6 +232,8 @@ vi.mock('react-i18next', () => ({
 beforeEach(() => {
   state.isTvActive = false;
   state.isPlaying = true;
+  state.isLoading = false;
+  state.tab = 'search';
   state.togglePlayPauseMock = vi.fn();
   state.setIsPlayingMock = vi.fn();
   state.fullscreenPlayerProps = null;
@@ -341,5 +351,34 @@ describe('RemoteClient — play/pause UI when no playback surface is mounted', (
     await user.click(pauseBtn);
     expect(state.togglePlayPauseMock).toHaveBeenCalledTimes(1);
     expect(state.togglePlayPauseMock).toHaveBeenCalledWith(true);
+  });
+});
+
+describe('RemoteClient — per-tab skeleton loading', () => {
+  it('shows the queue skeleton when isLoading=true and tab=queue', () => {
+    state.isLoading = true;
+    state.tab = 'queue';
+    render(<RemoteClient />);
+    expect(screen.getByTestId('queue-skeleton')).toBeInTheDocument();
+    // The real NowPlayingCard must not appear while the skeleton is shown.
+    expect(screen.queryByTestId('now-playing')).not.toBeInTheDocument();
+  });
+
+  it('shows the search skeleton when isLoading=true and tab=search', () => {
+    state.isLoading = true;
+    state.tab = 'search';
+    render(<RemoteClient />);
+    expect(screen.getByTestId('search-skeleton')).toBeInTheDocument();
+    // The real SearchPanel must not appear while the skeleton is shown.
+    expect(screen.queryByTestId('search-panel')).not.toBeInTheDocument();
+  });
+
+  it('shows the player skeleton when isLoading=true and tab=player', () => {
+    state.isLoading = true;
+    state.tab = 'player';
+    render(<RemoteClient />);
+    expect(screen.getByTestId('player-skeleton')).toBeInTheDocument();
+    // The real NowPlayingCard must not appear while the skeleton is shown.
+    expect(screen.queryByTestId('now-playing')).not.toBeInTheDocument();
   });
 });
