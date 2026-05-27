@@ -1,9 +1,21 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": ["NEXT_PUBLIC_*"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "YOUTUBE_API_KEYS",
+        "AI_MC_PROVIDER",
+        "OPENAI_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_TTS_API_KEY",
+        "FIREBASE_ADMIN_PROJECT_ID",
+        "FIREBASE_ADMIN_CLIENT_EMAIL",
+        "FIREBASE_ADMIN_PRIVATE_KEY",
+        "ADMIN_EMAILS"
+      ]
     },
     "dev": {
       "cache": false,
