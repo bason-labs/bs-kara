@@ -3,13 +3,17 @@ import { SkeletonBox } from './SkeletonBox';
 export function PlayerSkeleton() {
   return (
     <div data-testid="player-skeleton" aria-hidden="true" className="flex flex-col h-full">
-      {/* Hero card — vertically centered in the remaining space */}
-      <div className="flex-1 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4 px-6">
-          {/* Thumbnail — mirrors the aspect-video rounded-3xl container in the hero variant */}
-          <SkeletonBox className="w-full max-w-[320px] aspect-video rounded-3xl" />
-          {/* Text block — label pill + title + channel */}
-          <div className="w-full max-w-[320px] flex flex-col items-center gap-2">
+      {/* Hero card — vertically centered in the remaining space.
+          The inner column declares `w-full max-w-[320px]` so the
+          aspect-video thumbnail has a concrete width to size against.
+          The real NowPlayingCard hero uses the same template but
+          dodges the chicken-and-egg via its `<Image fill>` providing
+          intrinsic dimensions; the skeleton has no image so the inner
+          width must be explicit. */}
+      <div className="flex-1 flex items-center justify-center px-6">
+        <div className="w-full max-w-[320px] flex flex-col items-center gap-4">
+          <SkeletonBox className="w-full aspect-video rounded-3xl" />
+          <div className="w-full flex flex-col items-center gap-2">
             <SkeletonBox className="h-[10px] w-[30%] rounded-sm" />
             <SkeletonBox className="h-[14px] w-[85%] rounded-sm" />
             <SkeletonBox className="h-[11px] w-[55%] rounded-sm" />
