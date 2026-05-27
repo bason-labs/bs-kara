@@ -349,4 +349,86 @@ describe('SearchPanel', () => {
       );
     });
   });
+
+  describe('desktop background while typing', () => {
+    // Bug: typing from the idle hot-hits view on desktop made hot hits
+    // disappear, leaving the suggestion dropdown floating over a blank
+    // content area. The fix keeps hot hits mounted underneath the overlay
+    // on desktop only (the lg: breakpoint = min-width: 1024px). Mobile
+    // keeps the existing inline typing list since there is no room for
+    // an overlay.
+    const originalMatchMedia = window.matchMedia;
+
+    function mockViewport(isDesktop: boolean) {
+      window.matchMedia = ((query: string) => ({
+        matches: query.includes('min-width: 1024px') ? isDesktop : false,
+        media: query,
+        onchange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+      })) as typeof window.matchMedia;
+    }
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    it('keeps hot hits visible while typing on desktop', async () => {
+      mockViewport(true);
+      const user = userEvent.setup();
+      render(<SearchPanel onAdd={() => {}} />);
+      // Wait for hot hits to load on mount.
+      await waitFor(() =>
+        expect(screen.getByText(/Mock result for bolero/)).toBeInTheDocument(),
+      );
+      const input = screen.getByPlaceholderText('search.placeholder');
+      await user.click(input);
+      await user.type(input, 'h');
+      // Hot hits must remain in the DOM even while typing on desktop —
+      // the suggestion dropdown is an absolute overlay above them.
+      expect(screen.getByText(/Mock result for bolero/)).toBeInTheDocument();
+    });
+
+    it('hides hot hits while typing on mobile (no room for overlay)', async () => {
+      mockViewport(false);
+      const user = userEvent.setup();
+      render(<SearchPanel onAdd={() => {}} />);
+      await waitFor(() =>
+        expect(screen.getByText(/Mock result for bolero/)).toBeInTheDocument(),
+      );
+      const input = screen.getByPlaceholderText('search.placeholder');
+      await user.click(input);
+      await user.type(input, 'h');
+      // On mobile the inline typing list replaces the content area; hot
+      // hits must unmount.
+      await waitFor(() =>
+        expect(
+          screen.queryByText(/Mock result for bolero/),
+        ).not.toBeInTheDocument(),
+      );
+    });
+
+    it('does not show stale results when re-focusing the input after a desktop search', async () => {
+      mockViewport(true);
+      const user = userEvent.setup();
+      render(<SearchPanel onAdd={() => {}} />);
+      const input = screen.getByPlaceholderText('search.placeholder');
+      await user.type(input, 'hello{Enter}');
+      await waitFor(() =>
+        expect(screen.getByText(/Mock result for hello/)).toBeInTheDocument(),
+      );
+      // Blur, then re-focus — the input still holds 'hello' but the
+      // results must clear (current behavior is preserved by the fix).
+      await user.tab();
+      await user.click(input);
+      await waitFor(() =>
+        expect(
+          screen.queryByText(/Mock result for hello/),
+        ).not.toBeInTheDocument(),
+      );
+    });
+  });
 });

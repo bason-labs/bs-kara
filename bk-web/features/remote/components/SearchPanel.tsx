@@ -269,6 +269,20 @@ export function SearchPanel({
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [searchBarHeight, setSearchBarHeight] = useState(0);
 
+  // Desktop = lg: breakpoint. The suggestion dropdown is an absolute overlay
+  // on desktop, so the underlying hot-hits / history list stays visible
+  // behind it. On mobile there is no room for that overlay so the inline
+  // typing list replaces the content area instead.
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsDesktop(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
   // Measure the search-bar wrapper once it mounts so the offset can clamp
   // exactly to its height. useLayoutEffect (not useEffect) avoids a
   // first-frame flash where the bar is laid out at full height before the
@@ -777,8 +791,8 @@ export function SearchPanel({
             On desktop the history dropdown is absolute-positioned above this
             content so both can show simultaneously. On mobile the inline
             history list replaces this area, so hide it when showHistory. */}
-        {(showIdle || showHistory) && !isInitialLoading && idleResults.length > 0 && (
-          <div className={showHistory ? 'hidden lg:block' : undefined}>
+        {(showIdle || showHistory || (isDesktop && showTyping)) && !isInitialLoading && idleResults.length > 0 && (
+          <div className={(showHistory || (isDesktop && showTyping)) ? 'hidden lg:block' : undefined}>
             <div className="flex items-center gap-2 px-1 pb-1">
               <span className="text-base">🔥</span>
               <h2 className="text-sm font-semibold text-fg">{t('search.hotHitsLabel')}</h2>
@@ -794,8 +808,8 @@ export function SearchPanel({
           </div>
         )}
 
-        {(showIdle || showHistory) && isInitialLoading && (
-          <div className={showHistory ? 'hidden lg:block' : undefined}>
+        {(showIdle || showHistory || (isDesktop && showTyping)) && isInitialLoading && (
+          <div className={(showHistory || (isDesktop && showTyping)) ? 'hidden lg:block' : undefined}>
             {SEARCH_SKELETONS.map((_, i) => <SkeletonRow key={i} />)}
           </div>
         )}
