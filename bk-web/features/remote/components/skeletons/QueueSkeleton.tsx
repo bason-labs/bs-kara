@@ -2,7 +2,7 @@ import { SkeletonBox } from './SkeletonBox';
 
 export function QueueSkeleton() {
   return (
-    <div aria-hidden="true" className="space-y-3 p-3">
+    <div data-testid="queue-skeleton" aria-hidden="true" className="space-y-3 p-3">
       {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}

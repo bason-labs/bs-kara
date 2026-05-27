@@ -44,6 +44,13 @@ import { useCurrentHost } from '@/features/remote/hooks/useCurrentHost';
 import { useHostAuth } from '@/features/remote/hooks/useHostAuth';
 import { SessionExpiredOverlay } from '@/features/remote/components/SessionExpiredOverlay';
 
+import {
+  QueueSkeleton,
+  PlayerSkeleton,
+  SearchSkeleton,
+  SettingsSkeleton,
+} from '@/features/remote/components/skeletons';
+
 // SettingsSheet pulls in VoicePicker + AutoRandomSection + the rest of the
 // settings tree (~28 KB minified). Lazy-load it on first gear-icon click so
 // the queue/search-tab cold path doesn't pay for it. After first mount the
@@ -55,7 +62,7 @@ const SettingsSheet = dynamic(
     import('@/features/remote/components/SettingsSheet').then((m) => ({
       default: m.SettingsSheet,
     })),
-  { ssr: false },
+  { ssr: false, loading: () => <SettingsSkeleton /> },
 );
 
 function RemoteInner() {
@@ -505,15 +512,19 @@ function RemoteInner() {
             tab === 'search' ? 'h-full' : 'hidden'
           }`}
         >
-          <SearchPanel
-            onAdd={handleAddToQueue}
-            queuedMap={queuedMap}
-            queuePositionMap={queuePositionMap}
-            currentPlayingId={currentPlayingId}
-            headerHeight={effectiveHeaderHeight}
-            onChromeChange={handleChromeChange}
-            onFocusChange={setIsSearchFocused}
-          />
+          {isLoading ? (
+            <SearchSkeleton />
+          ) : (
+            <SearchPanel
+              onAdd={handleAddToQueue}
+              queuedMap={queuedMap}
+              queuePositionMap={queuePositionMap}
+              currentPlayingId={currentPlayingId}
+              headerHeight={effectiveHeaderHeight}
+              onChromeChange={handleChromeChange}
+              onFocusChange={setIsSearchFocused}
+            />
+          )}
         </section>
 
         {/* Queue / player column — on desktop everything stacks together;
@@ -526,115 +537,121 @@ function RemoteInner() {
             tab === 'queue' || tab === 'player' ? 'flex h-full' : 'hidden'
           }`}
         >
-          {/* The card always renders when a song is playing — even when the
-              TV is showing it — so the phone still feels like the remote.
-              When the TV is active we drop `onExpand`, which both disables
-              the tap-to-expand gesture and hides the Maximize button so
-              the user isn't offered a fullscreen mode that would compete
-              with the TV. */}
-          {roomData.currentPlaying && (
+          {isLoading ? (
+            tab === 'player' ? <PlayerSkeleton /> : <QueueSkeleton />
+          ) : (
             <>
-              <div className="px-3 pt-3 pb-1 hidden lg:block">
-                <NowPlayingCard
-                  track={roomData.currentPlaying}
-                  isPlaying={displayedIsPlaying}
-                  onExpand={
-                    roomData.isTvActive || isExpandBlocked
-                      ? undefined
-                      : handleExpand
-                  }
-                  onRemove={removeCurrentPlaying}
-                />
-              </div>
+              {/* The card always renders when a song is playing — even when the
+                  TV is showing it — so the phone still feels like the remote.
+                  When the TV is active we drop `onExpand`, which both disables
+                  the tap-to-expand gesture and hides the Maximize button so
+                  the user isn't offered a fullscreen mode that would compete
+                  with the TV. */}
+              {roomData.currentPlaying && (
+                <>
+                  <div className="px-3 pt-3 pb-1 hidden lg:block">
+                    <NowPlayingCard
+                      track={roomData.currentPlaying}
+                      isPlaying={displayedIsPlaying}
+                      onExpand={
+                        roomData.isTvActive || isExpandBlocked
+                          ? undefined
+                          : handleExpand
+                      }
+                      onRemove={removeCurrentPlaying}
+                    />
+                  </div>
+                  <div
+                    className={`flex-1 min-h-0 overflow-y-auto ${
+                      tab === 'player' ? 'lg:hidden' : 'hidden'
+                    }`}
+                  >
+                    {/* min-h-full + flex centers the card vertically on tall
+                        screens; when the card is taller than the viewport
+                        (small phones, in-app browsers, landscape), the inner
+                        block grows past the parent and the parent's
+                        `overflow-y-auto` lets the user scroll to see all of
+                        it. */}
+                    <div className="min-h-full w-full flex items-center justify-center py-6">
+                      <NowPlayingCard
+                        variant="hero"
+                        track={roomData.currentPlaying}
+                        isPlaying={displayedIsPlaying}
+                        onExpand={
+                          roomData.isTvActive || isExpandBlocked
+                            ? undefined
+                            : handleExpand
+                        }
+                        onRemove={removeCurrentPlaying}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+              {/* Empty-state for the player tab when nothing is playing — gives
+                  the controls something to sit under so the area doesn't
+                  collapse into a thin strip. */}
+              {!roomData.currentPlaying && (
+                <div
+                  className={`flex-1 min-h-0 flex items-center justify-center px-6 text-center ${
+                    tab === 'player' ? 'lg:hidden' : 'hidden'
+                  }`}
+                >
+                  <p className="text-sm text-muted max-w-[260px]">
+                    {t('player.idleHint')}
+                  </p>
+                </div>
+              )}
               <div
-                className={`flex-1 min-h-0 overflow-y-auto ${
-                  tab === 'player' ? 'lg:hidden' : 'hidden'
+                className={`flex-1 min-h-0 overflow-hidden ${
+                  tab === 'queue' ? '' : 'hidden lg:block'
                 }`}
               >
-                {/* min-h-full + flex centers the card vertically on tall
-                    screens; when the card is taller than the viewport
-                    (small phones, in-app browsers, landscape), the inner
-                    block grows past the parent and the parent's
-                    `overflow-y-auto` lets the user scroll to see all of
-                    it. */}
-                <div className="min-h-full w-full flex items-center justify-center py-6">
-                  <NowPlayingCard
-                    variant="hero"
-                    track={roomData.currentPlaying}
-                    isPlaying={displayedIsPlaying}
-                    onExpand={
-                      roomData.isTvActive || isExpandBlocked
-                        ? undefined
-                        : handleExpand
-                    }
-                    onRemove={removeCurrentPlaying}
-                  />
-                </div>
+                <ClientQueue
+                  items={roomData.queue}
+                  isLoading={isLoading}
+                  onReorder={reorderQueue}
+                  onRemove={removeSong}
+                  onEditRequester={
+                    roomData.requesterPromptEnabled ? handleEditRequester : undefined
+                  }
+                  onPlayNow={handleRequestPlayNowFromQueue}
+                  currentPlayingId={currentPlayingId}
+                  dragDropEnabled={roomData.dragDropEnabled}
+                  isHost={isHost}
+                  guestCanRemove={roomData.guestCanRemove}
+                />
+              </div>
+              {/* Optimistic emoji overlay. Sits above the player content, below
+                  the controls bar (bottom offset clears EmojiPad + RemoteControls
+                  + safe-area on mobile, ~28 lg). Hidden on mobile when not on
+                  the player tab so the queue tab doesn't render unrelated rises. */}
+              <div
+                aria-hidden
+                className={`pointer-events-none absolute inset-x-0 top-[var(--header-h)] bottom-28 lg:top-0 lg:bottom-32 z-40 overflow-hidden ${
+                  tab === 'player' ? '' : 'hidden lg:block'
+                }`}
+              >
+                <EmojiLayer ref={emojiLayerRef} roomId={roomCode} />
+              </div>
+              <div
+                className={`shrink-0 bg-surface/85 backdrop-blur-md border-t border-border ${
+                  tab === 'player' ? '' : 'hidden lg:block'
+                }`}
+              >
+                <EmojiPad onSendEmoji={handleSendEmoji} />
+                <RemoteControls
+                  isPlaying={displayedIsPlaying}
+                  hasHistory={roomData.history.length > 0}
+                  hasQueue={roomData.queue.length > 0}
+                  currentPlaying={roomData.currentPlaying}
+                  onTogglePlayPause={handleTogglePlayPause}
+                  onPrev={playPrevious}
+                  onNext={playNext}
+                />
               </div>
             </>
           )}
-          {/* Empty-state for the player tab when nothing is playing — gives
-              the controls something to sit under so the area doesn't
-              collapse into a thin strip. */}
-          {!roomData.currentPlaying && (
-            <div
-              className={`flex-1 min-h-0 flex items-center justify-center px-6 text-center ${
-                tab === 'player' ? 'lg:hidden' : 'hidden'
-              }`}
-            >
-              <p className="text-sm text-muted max-w-[260px]">
-                {t('player.idleHint')}
-              </p>
-            </div>
-          )}
-          <div
-            className={`flex-1 min-h-0 overflow-hidden ${
-              tab === 'queue' ? '' : 'hidden lg:block'
-            }`}
-          >
-            <ClientQueue
-              items={roomData.queue}
-              isLoading={isLoading}
-              onReorder={reorderQueue}
-              onRemove={removeSong}
-              onEditRequester={
-                roomData.requesterPromptEnabled ? handleEditRequester : undefined
-              }
-              onPlayNow={handleRequestPlayNowFromQueue}
-              currentPlayingId={currentPlayingId}
-              dragDropEnabled={roomData.dragDropEnabled}
-              isHost={isHost}
-              guestCanRemove={roomData.guestCanRemove}
-            />
-          </div>
-          {/* Optimistic emoji overlay. Sits above the player content, below
-              the controls bar (bottom offset clears EmojiPad + RemoteControls
-              + safe-area on mobile, ~28 lg). Hidden on mobile when not on
-              the player tab so the queue tab doesn't render unrelated rises. */}
-          <div
-            aria-hidden
-            className={`pointer-events-none absolute inset-x-0 top-[var(--header-h)] bottom-28 lg:top-0 lg:bottom-32 z-40 overflow-hidden ${
-              tab === 'player' ? '' : 'hidden lg:block'
-            }`}
-          >
-            <EmojiLayer ref={emojiLayerRef} roomId={roomCode} />
-          </div>
-          <div
-            className={`shrink-0 bg-surface/85 backdrop-blur-md border-t border-border ${
-              tab === 'player' ? '' : 'hidden lg:block'
-            }`}
-          >
-            <EmojiPad onSendEmoji={handleSendEmoji} />
-            <RemoteControls
-              isPlaying={displayedIsPlaying}
-              hasHistory={roomData.history.length > 0}
-              hasQueue={roomData.queue.length > 0}
-              currentPlaying={roomData.currentPlaying}
-              onTogglePlayPause={handleTogglePlayPause}
-              onPrev={playPrevious}
-              onNext={playNext}
-            />
-          </div>
         </section>
       </div>
 

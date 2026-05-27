@@ -22,7 +22,7 @@ function SkeletonSection({ rows }: { rows: number }) {
 
 export function SettingsSkeleton() {
   return (
-    <div aria-hidden="true" className="px-5 py-5 space-y-6">
+    <div data-testid="settings-skeleton" aria-hidden="true" className="px-5 py-5 space-y-6">
       <SkeletonSection rows={2} />
       <SkeletonSection rows={3} />
       <SkeletonSection rows={2} />

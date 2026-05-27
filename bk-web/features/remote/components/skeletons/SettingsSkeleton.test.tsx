@@ -1,8 +1,13 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { SettingsSkeleton } from './SettingsSkeleton';
 
 describe('SettingsSkeleton', () => {
+  it('has data-testid="settings-skeleton" on the root element', () => {
+    render(<SettingsSkeleton />);
+    expect(screen.getByTestId('settings-skeleton')).toBeInTheDocument();
+  });
+
   it('renders 3 section blocks', () => {
     const { container } = render(<SettingsSkeleton />);
     // Each section has a header bar + toggle rows inside a space-y-2 wrapper

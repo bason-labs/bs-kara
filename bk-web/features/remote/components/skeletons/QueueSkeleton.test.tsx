@@ -1,8 +1,13 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { QueueSkeleton } from './QueueSkeleton';
 
 describe('QueueSkeleton', () => {
+  it('has data-testid="queue-skeleton" on the root element', () => {
+    render(<QueueSkeleton />);
+    expect(screen.getByTestId('queue-skeleton')).toBeInTheDocument();
+  });
+
   it('renders 5 rows', () => {
     const { container } = render(<QueueSkeleton />);
     const rows = container.querySelectorAll('.grid.grid-cols-\\[110px_1fr_44px\\]');

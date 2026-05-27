@@ -1,8 +1,13 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { SearchSkeleton } from './SearchSkeleton';
 
 describe('SearchSkeleton', () => {
+  it('has data-testid="search-skeleton" on the root element', () => {
+    render(<SearchSkeleton />);
+    expect(screen.getByTestId('search-skeleton')).toBeInTheDocument();
+  });
+
   it('renders 6 SkeletonRow placeholders', () => {
     const { container } = render(<SearchSkeleton />);
     // SkeletonRow uses the grid grid-cols-[110px_1fr_44px] template
