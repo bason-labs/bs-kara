@@ -1,61 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LogOut, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { RandomFilters } from '@bs-kara/shared';
-import { AutoRandomSection } from './sections/AutoRandomSection';
-import { QueueSection } from './sections/QueueSection';
-import { AIMcSection } from './sections/AIMcSection';
-import { ThemeSection } from './sections/ThemeSection';
-import { RoomSection } from './sections/RoomSection';
+import { SettingsPanel, type SettingsPanelProps } from './SettingsPanel';
 
-interface SettingsSheetProps {
+interface SettingsSheetProps extends Omit<SettingsPanelProps, 'panelOpen'> {
   open: boolean;
   onClose: () => void;
-  roomCode: string;
-  autoRandomEnabled: boolean;
-  filters: RandomFilters;
-  onAutoRandomToggle: (enabled: boolean) => void;
-  onFiltersChange: (filters: Partial<RandomFilters>) => void;
-  dragDropEnabled: boolean;
-  onDragDropToggle: (enabled: boolean) => void;
-  requesterPromptEnabled: boolean;
-  onRequesterPromptToggle: (enabled: boolean) => void;
-  mcEnabled: boolean;
-  onMCToggle: (enabled: boolean) => void;
-  mcVoice: string;
-  onMcVoiceChange: (voice: string) => void;
-  aiScoringEnabled: boolean;
-  onAiScoringToggle: (enabled: boolean) => void;
-  isHost: boolean;
-  guestCanRemove: boolean;
-  onGuestCanRemoveToggle: (enabled: boolean) => void;
-  onLeave?: () => void;
 }
 
 export function SettingsSheet({
   open,
   onClose,
-  roomCode,
-  autoRandomEnabled,
-  filters,
-  onAutoRandomToggle,
-  onFiltersChange,
-  dragDropEnabled,
-  onDragDropToggle,
-  requesterPromptEnabled,
-  onRequesterPromptToggle,
-  mcEnabled,
-  onMCToggle,
-  mcVoice,
-  onMcVoiceChange,
-  aiScoringEnabled,
-  onAiScoringToggle,
-  isHost,
-  guestCanRemove,
-  onGuestCanRemoveToggle,
-  onLeave,
+  ...panelProps
 }: SettingsSheetProps) {
   const { t } = useTranslation();
   // Mirrors RequesterDialog / ConfirmDialog: when the parent lazy-mounts
@@ -146,58 +104,8 @@ export function SettingsSheet({
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto overscroll-contain">
-            <div className="px-5 py-5 space-y-6">
-              {isHost && (
-                <AutoRandomSection
-                  enabled={autoRandomEnabled}
-                  filters={filters}
-                  onToggle={onAutoRandomToggle}
-                  onFiltersChange={onFiltersChange}
-                />
-              )}
-
-              {isHost && (
-                <QueueSection
-                  dragDropEnabled={dragDropEnabled}
-                  onDragDropToggle={onDragDropToggle}
-                  requesterPromptEnabled={requesterPromptEnabled}
-                  onRequesterPromptToggle={onRequesterPromptToggle}
-                  guestCanRemove={guestCanRemove}
-                  onGuestCanRemoveToggle={onGuestCanRemoveToggle}
-                />
-              )}
-
-              {isHost && (
-                <AIMcSection
-                  enabled={mcEnabled}
-                  onToggle={onMCToggle}
-                  mcVoice={mcVoice}
-                  onMcVoiceChange={onMcVoiceChange}
-                  aiScoringEnabled={aiScoringEnabled}
-                  onAiScoringToggle={onAiScoringToggle}
-                  panelOpen={open}
-                />
-              )}
-
-              <ThemeSection />
-
-              <RoomSection code={roomCode} isHost={isHost} />
-
-              {/* Leave room — danger zone, always at the bottom */}
-              {onLeave && (
-                <div className="pt-2 border-t border-border">
-                  <button
-                    type="button"
-                    onClick={onLeave}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-danger hover:bg-danger/8 transition-colors"
-                  >
-                    <LogOut size={16} />
-                    {t('header.leaveButton')}
-                  </button>
-                </div>
-              )}
-            </div>
+          <div className="flex-1 min-h-0">
+            <SettingsPanel {...panelProps} panelOpen={open} />
           </div>
         </div>
       </div>

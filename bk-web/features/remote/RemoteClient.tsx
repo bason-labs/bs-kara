@@ -44,15 +44,23 @@ import { useHostAuth } from '@/features/remote/hooks/useHostAuth';
 import { SessionExpiredOverlay } from '@/features/remote/components/SessionExpiredOverlay';
 
 // SettingsSheet pulls in VoicePicker + AutoRandomSection + the rest of the
-// settings tree (~28 KB minified). Lazy-load it on first gear-icon click so
-// the queue/search-tab cold path doesn't pay for it. After first mount the
-// component stays in the tree (gated by hasOpenedSettings below) so
-// subsequent opens are byte-identical to before — same inert={!open} +
-// slide-up transition path.
+// settings tree (~28 KB minified). Lazy-load both the desktop sheet wrapper
+// and the mobile-tab panel from the same chunk so the queue/search-tab cold
+// path doesn't pay for it. After first mount each stays in the tree (gated
+// by hasOpenedSettings below) so subsequent opens are byte-identical to
+// before — same inert={!open} + slide-up transition path on desktop, same
+// hidden/h-full toggle as the other tab panels on mobile.
 const SettingsSheet = dynamic(
   () =>
     import('@/features/remote/components/SettingsSheet').then((m) => ({
       default: m.SettingsSheet,
+    })),
+  { ssr: false },
+);
+const SettingsPanel = dynamic(
+  () =>
+    import('@/features/remote/components/SettingsSheet').then((m) => ({
+      default: m.SettingsPanel,
     })),
   { ssr: false },
 );
@@ -635,6 +643,43 @@ function RemoteInner() {
             />
           </div>
         </section>
+
+        {/* Settings — mobile-only tab panel. Desktop opens the gear-icon
+            modal in the header instead, so this is `lg:hidden`. Gated on
+            hasOpenedSettings so the dynamic-imported chunk doesn't load
+            until the user taps the tab (matches the desktop sheet's
+            lazy-mount latch). */}
+        <section
+          aria-label="Settings"
+          className={`min-h-0 overflow-hidden pt-[var(--header-h)] lg:hidden ${
+            tab === 'settings' ? 'h-full' : 'hidden'
+          }`}
+        >
+          {hasOpenedSettings && (
+            <SettingsPanel
+              roomCode={roomCode}
+              autoRandomEnabled={roomData.isAutoRandomMode}
+              filters={roomData.randomFilters}
+              onAutoRandomToggle={setAutoRandomMode}
+              onFiltersChange={setRandomFilters}
+              dragDropEnabled={roomData.dragDropEnabled}
+              onDragDropToggle={setDragDropEnabled}
+              requesterPromptEnabled={roomData.requesterPromptEnabled}
+              onRequesterPromptToggle={setRequesterPromptEnabled}
+              mcEnabled={roomData.isMCEnabled}
+              onMCToggle={setMCEnabled}
+              mcVoice={roomData.mcVoice}
+              onMcVoiceChange={setMcVoice}
+              aiScoringEnabled={roomData.aiScoringEnabled}
+              onAiScoringToggle={setAiScoringEnabled}
+              isHost={isHost}
+              guestCanRemove={roomData.guestCanRemove}
+              onGuestCanRemoveToggle={setGuestCanRemove}
+              panelOpen={tab === 'settings'}
+              onLeave={handleLeave}
+            />
+          )}
+        </section>
       </div>
 
       {/* FullscreenPlayer stays mounted as long as the user has opened it.
@@ -698,12 +743,10 @@ function RemoteInner() {
           queueLength={roomData.queue.length}
           isPlaying={displayedIsPlaying}
           onTabChange={(t) => {
-            if (t === 'settings') {
-              setHasOpenedSettings(true);
-              setSettingsOpen(true);
-            } else {
-              setTab(t);
-            }
+            // Flip the lazy-mount latch the first time the user steps onto
+            // the settings tab so the SettingsPanel chunk loads on demand.
+            if (t === 'settings') setHasOpenedSettings(true);
+            setTab(t);
           }}
         />
       </div>
