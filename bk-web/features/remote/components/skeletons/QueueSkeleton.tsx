@@ -2,20 +2,32 @@ import { SkeletonBox } from './SkeletonBox';
 
 export function QueueSkeleton() {
   return (
-    <div data-testid="queue-skeleton" aria-hidden="true" className="space-y-3 p-3">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div
-          key={i}
-          className="grid grid-cols-[110px_1fr_44px] gap-3 p-3 rounded-[14px] border border-border"
-        >
-          <SkeletonBox className="w-[110px] h-[62px] rounded-lg" />
-          <div className="flex flex-col gap-2 pt-1">
-            <SkeletonBox className="h-[10px] w-[92%] rounded-sm" />
-            <SkeletonBox className="h-[8px] w-[60%] rounded-sm" />
+    <div data-testid="queue-skeleton" aria-hidden="true" className="h-full flex flex-col">
+      {/* Sticky header placeholder mirroring ClientQueue */}
+      <div className="sticky top-0 z-10 flex items-center gap-2 px-4 py-3 border-b border-border bg-bg/85 backdrop-blur-sm">
+        <SkeletonBox className="h-[14px] w-[28%] rounded-sm" />
+        <SkeletonBox className="h-[12px] w-8 rounded-full" />
+      </div>
+
+      {/* Scroll area with 5 row skeletons */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-3 p-3 rounded-xl border border-border bg-surface"
+          >
+            <SkeletonBox className="w-4 h-4 rounded" />
+            <SkeletonBox className="w-5 h-3 rounded-sm" />
+            <SkeletonBox className="w-24 h-14 rounded-lg shrink-0" />
+            <div className="flex-1 min-w-0 flex flex-col gap-2">
+              <SkeletonBox className="h-[14px] w-[80%] rounded-sm" />
+              <SkeletonBox className="h-[14px] w-[55%] rounded-sm" />
+              <SkeletonBox className="h-[16px] w-[40%] rounded-full" />
+            </div>
+            <SkeletonBox className="w-[18px] h-[18px] rounded-sm shrink-0" />
           </div>
-          <SkeletonBox className="w-11 h-11 rounded-full" />
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
