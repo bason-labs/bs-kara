@@ -3,11 +3,6 @@ import { describe, it, expect } from 'vitest';
 import { SearchSkeleton } from './SearchSkeleton';
 
 describe('SearchSkeleton', () => {
-  it('renders without crashing', () => {
-    const { container } = render(<SearchSkeleton />);
-    expect(container.firstChild).not.toBeNull();
-  });
-
   it('renders 6 SkeletonRow placeholders', () => {
     const { container } = render(<SearchSkeleton />);
     // SkeletonRow uses the grid grid-cols-[110px_1fr_44px] template

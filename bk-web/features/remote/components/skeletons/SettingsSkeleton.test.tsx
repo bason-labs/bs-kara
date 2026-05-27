@@ -3,11 +3,6 @@ import { describe, it, expect } from 'vitest';
 import { SettingsSkeleton } from './SettingsSkeleton';
 
 describe('SettingsSkeleton', () => {
-  it('renders without crashing', () => {
-    const { container } = render(<SettingsSkeleton />);
-    expect(container.firstChild).not.toBeNull();
-  });
-
   it('renders 3 section blocks', () => {
     const { container } = render(<SettingsSkeleton />);
     // Each section has a header bar + toggle rows inside a space-y-2 wrapper

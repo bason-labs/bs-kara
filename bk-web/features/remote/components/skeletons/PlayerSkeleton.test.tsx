@@ -3,13 +3,13 @@ import { describe, it, expect } from 'vitest';
 import { PlayerSkeleton } from './PlayerSkeleton';
 
 describe('PlayerSkeleton', () => {
-  it('renders without crashing', () => {
+  it('applies animate-shimmer to all placeholder elements (thumb + label + title + channel = 4)', () => {
     const { container } = render(<PlayerSkeleton />);
-    expect(container.firstChild).not.toBeNull();
+    expect(container.querySelectorAll('.animate-shimmer').length).toBe(4);
   });
 
-  it('applies animate-shimmer to all placeholder elements (thumb + 2 text + 3 controls = 6)', () => {
+  it('contains an aspect-video thumbnail placeholder matching the hero NowPlayingCard', () => {
     const { container } = render(<PlayerSkeleton />);
-    expect(container.querySelectorAll('.animate-shimmer').length).toBe(6);
+    expect(container.querySelector('.aspect-video')).not.toBeNull();
   });
 });

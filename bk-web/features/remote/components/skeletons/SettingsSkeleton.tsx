@@ -1,17 +1,19 @@
+import { SkeletonBox } from './SkeletonBox';
+
 function SkeletonSection({ rows }: { rows: number }) {
   return (
     <div className="space-y-2">
-      <div className="h-[13px] w-[40%] rounded-sm bg-surface-2 animate-shimmer" />
+      <SkeletonBox className="h-[13px] w-[40%] rounded-sm" />
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
           className="flex items-center justify-between p-3 rounded-2xl border border-border"
         >
           <div className="flex flex-col gap-1.5 flex-1">
-            <div className="h-[11px] w-[55%] rounded-sm bg-surface-2 animate-shimmer" />
-            <div className="h-[9px] w-[75%] rounded-sm bg-surface-2 animate-shimmer" />
+            <SkeletonBox className="h-[11px] w-[55%] rounded-sm" />
+            <SkeletonBox className="h-[9px] w-[75%] rounded-sm" />
           </div>
-          <div className="w-11 h-6 rounded-full bg-surface-2 animate-shimmer ml-3 shrink-0" />
+          <SkeletonBox className="w-11 h-6 rounded-full ml-3 shrink-0" />
         </div>
       ))}
     </div>
