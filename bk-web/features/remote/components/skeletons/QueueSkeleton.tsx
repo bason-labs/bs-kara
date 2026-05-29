@@ -49,29 +49,32 @@ export function QueueSkeleton() {
         ))}
       </div>
 
-      {/* Desktop-only EmojiPad placeholder. Mirrors the bottom strip in
-          RemoteClient.tsx: bg-surface/85, backdrop-blur-md, border-t; inner
-          flex row with 5 × w-11 h-11 rounded-full reactions. */}
+      {/* Desktop-only bottom strip. RemoteClient.tsx:658-672 wraps EmojiPad
+          + RemoteControls in a single container that carries bg-surface/85,
+          backdrop-blur-md and border-t border-border. Mirror that one parent
+          here so the skeleton→loaded swap doesn't shift the tint over the
+          controls area on desktop. */}
       <div
-        data-testid="queue-skeleton-emoji-pad"
+        data-testid="queue-skeleton-bottom-bar"
         className="hidden lg:block shrink-0 bg-surface/85 backdrop-blur-md border-t border-border"
       >
-        <div className="flex justify-around items-center gap-1 px-3 py-2">
+        <div
+          data-testid="queue-skeleton-emoji-pad"
+          className="flex justify-around items-center gap-1 px-3 py-2"
+        >
           {Array.from({ length: 5 }).map((_, i) => (
             <SkeletonBox key={i} className="w-11 h-11 rounded-full" />
           ))}
         </div>
-      </div>
-
-      {/* Desktop-only RemoteControls placeholder (44 / 64 / 44 transport circles). */}
-      <div
-        data-testid="queue-skeleton-controls"
-        className="hidden lg:block shrink-0 border-t border-border/60 px-4 py-4"
-      >
-        <div className="flex items-center justify-center gap-5">
-          <SkeletonBox className="w-11 h-11 rounded-full" />
-          <SkeletonBox className="w-16 h-16 rounded-full" />
-          <SkeletonBox className="w-11 h-11 rounded-full" />
+        <div
+          data-testid="queue-skeleton-controls"
+          className="shrink-0 border-t border-border/60 px-4 py-4"
+        >
+          <div className="flex items-center justify-center gap-5">
+            <SkeletonBox className="w-11 h-11 rounded-full" />
+            <SkeletonBox className="w-16 h-16 rounded-full" />
+            <SkeletonBox className="w-11 h-11 rounded-full" />
+          </div>
         </div>
       </div>
     </div>

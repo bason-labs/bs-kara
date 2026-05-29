@@ -22,8 +22,6 @@ describe('QueueSkeleton', () => {
     expect(header).not.toBeNull();
   });
 
-  // Desktop-only top NowPlayingCard placeholder. The wrapper is `hidden lg:block`
-  // so mobile (queue tab) doesn't reserve a slot for a card it never renders.
   it('renders a desktop-only NowPlayingCard placeholder above the queue header', () => {
     const { container } = render(<QueueSkeleton />);
     const cardSlot = container.querySelector(
@@ -32,32 +30,46 @@ describe('QueueSkeleton', () => {
     expect(cardSlot).not.toBeNull();
     expect(cardSlot!.className).toMatch(/hidden/);
     expect(cardSlot!.className).toMatch(/lg:block/);
-    // Compact NowPlayingCard placeholder: thumb + label + title + channel + action = 5 shimmers
     expect(cardSlot!.querySelectorAll('.animate-shimmer').length).toBe(5);
   });
 
-  // Desktop-only EmojiPad placeholder mirroring the bottom strip rendered in
-  // RemoteClient.tsx (5 reaction circles, w-11 h-11 rounded-full).
-  it('renders a desktop-only EmojiPad placeholder with 5 reaction circles', () => {
+  // Bottom strip wraps EmojiPad + RemoteControls in a single container so
+  // bg-surface/85 + backdrop-blur-md cover both (mirrors RemoteClient.tsx
+  // lines 658-672). The lg:block gate lives on this wrapper, not the inner
+  // emoji/controls divs.
+  it('renders a desktop-only bottom bar wrapper around the emoji + controls slots', () => {
+    const { container } = render(<QueueSkeleton />);
+    const wrapper = container.querySelector(
+      '[data-testid="queue-skeleton-bottom-bar"]',
+    );
+    expect(wrapper).not.toBeNull();
+    expect(wrapper!.className).toMatch(/hidden/);
+    expect(wrapper!.className).toMatch(/lg:block/);
+    expect(wrapper!.className).toMatch(/bg-surface\/85/);
+    expect(wrapper!.className).toMatch(/backdrop-blur-md/);
+    expect(wrapper!.className).toMatch(/border-t/);
+    // Both inner slots are inside this wrapper
+    expect(wrapper!.querySelector('[data-testid="queue-skeleton-emoji-pad"]'))
+      .not.toBeNull();
+    expect(wrapper!.querySelector('[data-testid="queue-skeleton-controls"]'))
+      .not.toBeNull();
+  });
+
+  it('renders an EmojiPad placeholder with 5 reaction circles inside the bottom bar', () => {
     const { container } = render(<QueueSkeleton />);
     const emojiSlot = container.querySelector(
       '[data-testid="queue-skeleton-emoji-pad"]',
     );
     expect(emojiSlot).not.toBeNull();
-    expect(emojiSlot!.className).toMatch(/hidden/);
-    expect(emojiSlot!.className).toMatch(/lg:block/);
     expect(emojiSlot!.querySelectorAll('.w-11.h-11.rounded-full').length).toBe(5);
   });
 
-  // Desktop-only RemoteControls placeholder: 44 / 64 / 44 transport circles.
-  it('renders a desktop-only RemoteControls placeholder with 3 transport circles', () => {
+  it('renders a RemoteControls placeholder with 3 transport circles inside the bottom bar', () => {
     const { container } = render(<QueueSkeleton />);
     const controlsSlot = container.querySelector(
       '[data-testid="queue-skeleton-controls"]',
     );
     expect(controlsSlot).not.toBeNull();
-    expect(controlsSlot!.className).toMatch(/hidden/);
-    expect(controlsSlot!.className).toMatch(/lg:block/);
     expect(controlsSlot!.querySelectorAll('.w-11.h-11.rounded-full').length).toBe(2);
     expect(controlsSlot!.querySelectorAll('.w-16.h-16.rounded-full').length).toBe(1);
   });
