@@ -214,10 +214,10 @@
     "aiMcHint": "Before each song, an AI MC reads a short Vietnamese intro through the TV speakers.",
     "mcVoiceLabel": "MC voice",
     "mcVoiceOptions": {
-      "neural2A": "Female mid (sweet)",
-      "wavenetC": "Female low (mature)",
-      "neural2D": "Male low (warm)",
-      "wavenetB": "Male mid (energetic)"
+      "neural2A": "Female mid",
+      "wavenetC": "Female low",
+      "neural2D": "Male low",
+      "wavenetB": "Male mid"
     }
   },
   "aiMc": {
@@ -272,7 +272,9 @@
     "listening": "Listening...",
     "hint": "Say the song name you want to find",
     "recognizing": "Text shown while recognizing speech",
-    "unsupported": "Device not supported"
+    "unsupported": "Device not supported",
+    "title": "Voice search",
+    "cancel": "Cancel"
   },
   "auth": {
     "title": "Create your karaoke room",

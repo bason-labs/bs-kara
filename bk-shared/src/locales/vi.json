@@ -214,10 +214,10 @@
     "aiMcHint": "Trước mỗi bài, MC sẽ đọc lời giới thiệu ngắn bằng tiếng Việt qua loa TV.",
     "mcVoiceLabel": "Giọng MC",
     "mcVoiceOptions": {
-      "neural2A": "Nữ trung (Dễ thương)",
-      "wavenetC": "Nữ trầm (Trưởng thành)",
-      "neural2D": "Nam trầm (Ấm áp)",
-      "wavenetB": "Nam trung (Năng động)"
+      "neural2A": "Nữ trung",
+      "wavenetC": "Nữ trầm",
+      "neural2D": "Nam trầm",
+      "wavenetB": "Nam trung"
     }
   },
   "aiMc": {
@@ -272,7 +272,9 @@
     "listening": "Đang nghe...",
     "hint": "Nói tên bài hát bạn muốn tìm",
     "recognizing": "Chữ hiển thị trong khi nhận dạng giọng nói",
-    "unsupported": "Thiết bị không hỗ trợ"
+    "unsupported": "Thiết bị không hỗ trợ",
+    "title": "Tìm bài bằng giọng nói",
+    "cancel": "Huỷ"
   },
   "auth": {
     "title": "Tạo phòng karaoke",

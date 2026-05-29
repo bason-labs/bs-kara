@@ -21,8 +21,6 @@ const base = {
   item,
   onRemove: jest.fn(),
   drag: jest.fn(),
-  isHost: false,
-  guestCanRemove: false,
 };
 
 describe('QueueItemRow', () => {
@@ -31,25 +29,11 @@ describe('QueueItemRow', () => {
     expect(getByText('Ch')).toBeTruthy();
   });
 
-  it('shows PlayNow button only for host', () => {
-    const { queryByTestId, rerender } = render(<QueueItemRow {...base} isHost={false} />);
-    expect(queryByTestId('play-now-button')).toBeNull();
-    rerender(<QueueItemRow {...base} isHost={true} onPlayNow={jest.fn()} />);
-    expect(queryByTestId('play-now-button')).toBeTruthy();
-  });
-
-  it('shows remove button for host', () => {
-    const { getByTestId } = render(<QueueItemRow {...base} isHost={true} />);
+  // The trash icon was previously gated on `isHost || guestCanRemove`; that
+  // gate is removed — every user can delete their own queue, with the
+  // confirm dialog providing the misclick safety net.
+  it('always renders the remove button', () => {
+    const { getByTestId } = render(<QueueItemRow {...base} />);
     expect(getByTestId('remove-button')).toBeTruthy();
-  });
-
-  it('shows remove button for guest when guestCanRemove is true', () => {
-    const { getByTestId } = render(<QueueItemRow {...base} isHost={false} guestCanRemove={true} />);
-    expect(getByTestId('remove-button')).toBeTruthy();
-  });
-
-  it('hides remove button for guest when guestCanRemove is false', () => {
-    const { queryByTestId } = render(<QueueItemRow {...base} isHost={false} guestCanRemove={false} />);
-    expect(queryByTestId('remove-button')).toBeNull();
   });
 });

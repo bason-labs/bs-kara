@@ -11,7 +11,7 @@ import { EmojiPad } from '@/components/EmojiPad';
 
 export default function PlayerScreen() {
   const { t } = useTranslation();
-  const { roomData, roomCode, togglePlayPause, playNext, playPrevious, sendEmoji } = useRoomContext();
+  const { roomData, roomCode, togglePlayPause, setIsPlaying, playNext, playPrevious, sendEmoji } = useRoomContext();
   const { currentPlaying, isPlaying, isTvActive, history, queue } = roomData;
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
 
@@ -42,7 +42,10 @@ export default function PlayerScreen() {
           isPlaying={isPlaying}
           onToggle={() => void togglePlayPause(isPlaying)}
           variant="hero"
-          onExpand={() => setFullscreenOpen(true)}
+          onExpand={() => {
+            setFullscreenOpen(true);
+            setIsPlaying(true);
+          }}
           isTvActive={isTvActive}
           onSkip={playNext}
         />

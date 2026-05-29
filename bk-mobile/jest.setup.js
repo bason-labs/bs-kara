@@ -8,7 +8,9 @@ jest.mock('@gorhom/bottom-sheet', () => {
   BottomSheet.displayName = 'BottomSheet';
   const BottomSheetView = ({ children, style }) => <View style={style}>{children}</View>;
   BottomSheetView.displayName = 'BottomSheetView';
-  return { __esModule: true, default: BottomSheet, BottomSheetView };
+  const BottomSheetBackdrop = () => null;
+  BottomSheetBackdrop.displayName = 'BottomSheetBackdrop';
+  return { __esModule: true, default: BottomSheet, BottomSheetView, BottomSheetBackdrop };
 });
 
 jest.mock('expo-linear-gradient', () => {

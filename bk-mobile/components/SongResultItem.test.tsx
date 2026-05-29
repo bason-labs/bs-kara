@@ -6,7 +6,6 @@ jest.mock('react-i18next', () => ({
       if (key === 'search.statusQueued') return `Hàng chờ #${params?.pos ?? ''}`;
       const map: Record<string, string> = {
         'search.statusNowPlaying': 'Đang phát',
-        'search.statusJustAdded': 'Vừa thêm',
       };
       return map[key] ?? key;
     },
@@ -101,36 +100,21 @@ describe('SongResultItem', () => {
     expect(getByText('Đang phát')).toBeTruthy();
   });
 
-  it('shows just-added status pill when isJustAdded=true', () => {
-    const { getByText } = render(
-      <SongResultItem video={mockVideo} onAdd={jest.fn()} added={true} isJustAdded={true} />
+  // The queued and just-added status pills were removed: the action button's
+  // green checkmark already indicates queued state, and the bottom snackbar
+  // confirms each add — no per-row text affordance is needed.
+  it('does not render the queued status pill when queued=true', () => {
+    const { queryByText } = render(
+      <SongResultItem video={mockVideo} onAdd={jest.fn()} added={false} queued={true} />
     );
-    expect(getByText('Vừa thêm')).toBeTruthy();
+    expect(queryByText(/Hàng chờ/)).toBeNull();
   });
 
-  it('shows queued status pill with position when queued=true', () => {
-    const { getByText } = render(
-      <SongResultItem video={mockVideo} onAdd={jest.fn()} added={false} queued={true} queuePosition={3} />
+  it('does not render the just-added status pill (snackbar handles it)', () => {
+    const { queryByText } = render(
+      <SongResultItem video={mockVideo} onAdd={jest.fn()} added={true} queued={true} />
     );
-    expect(getByText('Hàng chờ #3')).toBeTruthy();
-  });
-
-  it('prioritizes now-playing pill over just-added when both true', () => {
-    const { getByText, queryByText } = render(
-      <SongResultItem video={mockVideo} onAdd={jest.fn()} added={true}
-        isCurrentlyPlaying={true} isJustAdded={true} />
-    );
-    expect(getByText('Đang phát')).toBeTruthy();
     expect(queryByText('Vừa thêm')).toBeNull();
-  });
-
-  it('prioritizes just-added pill over queued when both true', () => {
-    const { getByText, queryByText } = render(
-      <SongResultItem video={mockVideo} onAdd={jest.fn()} added={true}
-        queued={true} isJustAdded={true} />
-    );
-    expect(getByText('Vừa thêm')).toBeTruthy();
-    expect(queryByText('Hàng chờ #')).toBeNull();
   });
 
   it('shows no status pill in default state', () => {

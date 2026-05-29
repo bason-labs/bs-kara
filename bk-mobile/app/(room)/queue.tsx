@@ -15,11 +15,9 @@ export default function QueueScreen() {
     roomCode,
     removeSong,
     reorderQueue,
-    playSongNow,
-    isHost,
   } = useRoomContext();
 
-  const [pendingPlayNow, setPendingPlayNow] = useState<QueueItem | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<QueueItem | null>(null);
 
   function handleDragEnd({ from, to }: { from: number; to: number }) {
     void reorderQueue(from, to);
@@ -48,30 +46,27 @@ export default function QueueScreen() {
           renderItem={({ item, drag }: RenderItemParams<QueueItem>) => (
             <QueueItemRow
               item={item}
-              onRemove={() => removeSong(item.queueId)}
+              onRemove={() => setPendingRemove(item)}
               drag={drag}
               dragEnabled={roomData.dragDropEnabled}
-              isHost={isHost}
-              guestCanRemove={roomData.guestCanRemove ?? false}
-              onPlayNow={isHost ? () => setPendingPlayNow(item) : undefined}
             />
           )}
         />
       )}
 
       <ConfirmDialog
-        open={pendingPlayNow !== null}
-        title={t('playNow.title')}
-        message={t('playNow.message', { title: pendingPlayNow?.title ?? '' })}
-        confirmLabel={t('playNow.confirm')}
-        cancelLabel={t('playNow.cancel')}
+        open={pendingRemove !== null}
+        title={t('queue.removeConfirm.title')}
+        message={t('queue.removeConfirm.message')}
+        confirmLabel={t('queue.removeConfirm.confirm')}
+        cancelLabel={t('queue.removeConfirm.cancel')}
         onConfirm={() => {
-          if (pendingPlayNow) {
-            void playSongNow(pendingPlayNow, pendingPlayNow.queueId);
-            setPendingPlayNow(null);
+          if (pendingRemove) {
+            void removeSong(pendingRemove.queueId);
+            setPendingRemove(null);
           }
         }}
-        onCancel={() => setPendingPlayNow(null)}
+        onCancel={() => setPendingRemove(null)}
       />
     </SafeAreaView>
   );

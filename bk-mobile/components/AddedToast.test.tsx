@@ -4,68 +4,37 @@ import { render, fireEvent, act } from '@testing-library/react-native';
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ bottom: 0 }) }));
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, defaultOrOpts?: unknown, opts?: Record<string, unknown>) => {
-      // resolve actual options: t(key, opts) or t(key, defaultValue, opts)
-      const resolvedOpts: Record<string, unknown> =
-        (opts != null ? opts : typeof defaultOrOpts === 'object' && defaultOrOpts !== null ? (defaultOrOpts as Record<string, unknown>) : {});
-      if (key === 'toast.queuePositionEta')
-        return `Vị trí thứ ${resolvedOpts.pos} · ~${resolvedOpts.eta} phút nữa`;
+    t: (key: string) => {
       const map: Record<string, string> = {
-        'toast.undo':           'Hoàn tác',
-        'addedToast.added':     'Đã thêm',
-        'addedToast.viewQueue': 'Xem DS',
+        'toast.addedToQueue': 'Đã thêm vào hàng chờ',
       };
       return map[key] ?? key;
     },
   }),
 }));
 
-jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children }: { children: React.ReactNode }) => children,
-}));
-
 import { AddedToast } from './AddedToast';
-
-const video = { id: 'v1', title: 'Test Song', channel: 'Ch', thumbnail: 'https://img', duration: '3:00' };
 
 describe('AddedToast', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => { jest.useRealTimers(); jest.restoreAllMocks(); });
 
-  it('calls onDismiss after 3800ms', () => {
+  it('renders the success text', () => {
+    const { getByText } = render(<AddedToast onDismiss={jest.fn()} />);
+    expect(getByText('Đã thêm vào hàng chờ')).toBeTruthy();
+  });
+
+  it('calls onDismiss after the auto-dismiss timer', () => {
     const onDismiss = jest.fn();
-    render(<AddedToast video={video} onViewQueue={jest.fn()} onDismiss={onDismiss} />);
-    act(() => { jest.advanceTimersByTime(3800); });
+    render(<AddedToast onDismiss={onDismiss} />);
+    act(() => { jest.advanceTimersByTime(1800); });
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
-  it('does not dismiss before 3800ms (regression: was 2500ms)', () => {
+  it('calls onDismiss when tapped', () => {
     const onDismiss = jest.fn();
-    render(<AddedToast video={video} onViewQueue={jest.fn()} onDismiss={onDismiss} />);
-    act(() => { jest.advanceTimersByTime(2500); });
-    expect(onDismiss).not.toHaveBeenCalled();
-  });
-
-  it('shows queue position with ETA when queuePos provided', () => {
-    const { getByText } = render(
-      <AddedToast video={video} onViewQueue={jest.fn()} onDismiss={jest.fn()} queuePos={3} />
-    );
-    expect(getByText('Vị trí thứ 3 · ~12 phút nữa')).toBeTruthy();
-  });
-
-  it('calls onUndo when undo button pressed', () => {
-    const onUndo = jest.fn();
-    const { getByText } = render(
-      <AddedToast video={video} onViewQueue={jest.fn()} onDismiss={jest.fn()} onUndo={onUndo} />
-    );
-    fireEvent.press(getByText('Hoàn tác'));
-    expect(onUndo).toHaveBeenCalledTimes(1);
-  });
-
-  it('hides undo button when onUndo not provided', () => {
-    const { queryByText } = render(
-      <AddedToast video={video} onViewQueue={jest.fn()} onDismiss={jest.fn()} />
-    );
-    expect(queryByText('Hoàn tác')).toBeNull();
+    const { getByTestId } = render(<AddedToast onDismiss={onDismiss} />);
+    fireEvent.press(getByTestId('toast-card'));
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 });

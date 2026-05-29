@@ -33,10 +33,10 @@ jest.mock('react-i18next', () => ({
         'autoRandom.tone.all': 'Tất cả',
         'scoring.toggleLabel': 'AI chấm điểm',
         'scoring.toggleHelp': 'Hiển thị điểm cho mỗi bài hát ở 8 giây cuối.',
-        'settings.mcVoiceOptions.neural2A': 'Nữ trung (Dễ thương)',
-        'settings.mcVoiceOptions.wavenetC': 'Nữ trầm (Trưởng thành)',
-        'settings.mcVoiceOptions.neural2D': 'Nam trầm (Ấm áp)',
-        'settings.mcVoiceOptions.wavenetB': 'Nam trung (Năng động)',
+        'settings.mcVoiceOptions.neural2A': 'Nữ trung',
+        'settings.mcVoiceOptions.wavenetC': 'Nữ trầm',
+        'settings.mcVoiceOptions.neural2D': 'Nam trầm',
+        'settings.mcVoiceOptions.wavenetB': 'Nam trung',
       };
       return translations[key] ?? key;
     },

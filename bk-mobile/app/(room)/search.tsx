@@ -1,9 +1,8 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, FlatList, Image, Modal,
   TouchableOpacity, TouchableWithoutFeedback, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   AlertCircle, ArrowLeft, ArrowUpLeft, History,
@@ -28,8 +27,7 @@ const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 
 export default function SearchScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
-  const { addSongToQueue, removeSong, roomData, roomCode } = useRoomContext();
+  const { addSongToQueue, roomData, roomCode } = useRoomContext();
   const { history, push: pushHistory, remove: removeHistory } = useSearchHistory();
 
   const [query, setQuery] = useState('');
@@ -41,14 +39,11 @@ export default function SearchScreen() {
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [isFocused, setIsFocused] = useState(false);
   const { openSettings } = useSettingsContext();
-  const [toastVideo, setToastVideo] = useState<YouTubeVideo | null>(null);
+  const [showAddedToast, setShowAddedToast] = useState(false);
   const [requesterModalVisible, setRequesterModalVisible] = useState(false);
   const [requesterName, setRequesterName] = useState('');
 
   const [showFiltersSheet, setShowFiltersSheet] = useState(false);
-  const [justAddedId, setJustAddedId] = useState<string | null>(null);
-  const [toastQueuePos, setToastQueuePos] = useState<number | null>(null);
-  const justAddedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pendingVideoRef = useRef<YouTubeVideo | null>(null);
   const inputRef = useRef<TextInput>(null);
@@ -56,10 +51,6 @@ export default function SearchScreen() {
 
   const { suggestions, clear: clearSuggestions } = useSearchSuggestions(isFocused ? query : '');
   const queuedMap = useQueuedMap(roomData?.queue ?? []);
-  const queuePositionMap = useMemo(
-    () => new Map((roomData?.queue ?? []).map((item, i) => [item.id, i + 1])),
-    [roomData?.queue],
-  );
 
   const buildTerm = useCallback((q: string, chips: Set<string>) => {
     const keywords = buildKeywordsFromFilters(chips);
@@ -93,13 +84,16 @@ export default function SearchScreen() {
     }
   }, []);
 
-  const { isListening, interimTranscript, start: startVoice, stop: stopVoice } = useVoiceSearch({
+  const { isListening, interimTranscript, start: startVoice, stop: stopVoice, isSupported: voiceSupported } = useVoiceSearch({
     onFinal: (text) => {
       setQuery(text);
       setIsFocused(false);
       void search(buildTerm(text, activeChips));
     },
-    onUnsupported: () => setSearchError('generic'),
+    // Voice button is hidden when isSupported is false, so this only fires on
+    // runtime failures (mic permission denied, Voice.isAvailable false). Do
+    // not surface the network-error UI — that's misleading.
+    onUnsupported: () => {},
   });
 
   useEffect(() => {
@@ -109,12 +103,6 @@ export default function SearchScreen() {
   useEffect(() => {
     if (isFocused) panelInputRef.current?.focus();
   }, [isFocused]);
-
-  useEffect(() => {
-    return () => {
-      if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current);
-    };
-  }, []);
 
   function handleSearchSubmit() {
     const term = buildTerm(query, activeChips);
@@ -177,12 +165,7 @@ export default function SearchScreen() {
   function confirmAdd(video: YouTubeVideo, name: string | null) {
     void addSongToQueue(video, name ?? null);
     setAdded((prev) => new Set(prev).add(video.id));
-    setJustAddedId(video.id);
-    if (justAddedTimerRef.current) clearTimeout(justAddedTimerRef.current);
-    justAddedTimerRef.current = setTimeout(() => setJustAddedId(null), 1700);
-    const queuePos = (roomData?.queue.length ?? 0) + 1;
-    setToastQueuePos(queuePos);
-    setToastVideo(video);
+    setShowAddedToast(true);
     setRequesterModalVisible(false);
     pendingVideoRef.current = null;
   }
@@ -190,19 +173,6 @@ export default function SearchScreen() {
   function dismissRequesterModal() {
     setRequesterModalVisible(false);
     pendingVideoRef.current = null;
-  }
-
-  function handleUndo() {
-    if (!toastVideo) return;
-    const match = roomData?.queue.find((item) => item.id === toastVideo.id);
-    if (match) removeSong(match.queueId);
-    setAdded((prev) => {
-      const next = new Set(prev);
-      next.delete(toastVideo.id);
-      return next;
-    });
-    setToastVideo(null);
-    setToastQueuePos(null);
   }
 
   function renderErrorState() {
@@ -288,12 +258,14 @@ export default function SearchScreen() {
             </View>
           )}
         </View>
-        <TouchableOpacity activeOpacity={0.7} onPress={() => void startVoice()}
-          style={{ width: 40, height: 40, borderRadius: 999, borderWidth: 1,
-            borderColor: '#1f3a3a', backgroundColor: '#0e1c1c',
-            alignItems: 'center', justifyContent: 'center' }}>
-          <Mic size={18} color="#7aa8a8" />
-        </TouchableOpacity>
+        {voiceSupported && (
+          <TouchableOpacity testID="voice-button" activeOpacity={0.7} onPress={() => void startVoice()}
+            style={{ width: 40, height: 40, borderRadius: 999, borderWidth: 1,
+              borderColor: '#1f3a3a', backgroundColor: '#0e1c1c',
+              alignItems: 'center', justifyContent: 'center' }}>
+            <Mic size={18} color="#7aa8a8" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Active filter pills */}
@@ -349,9 +321,7 @@ export default function SearchScreen() {
               onAdd={() => handleAddPress(item)}
               added={added.has(item.id)}
               queued={queuedMap.has(item.id)}
-              queuePosition={queuePositionMap.get(item.id)}
               isCurrentlyPlaying={roomData?.currentPlaying?.id === item.id}
-              isJustAdded={justAddedId === item.id}
             />
           )}
         />
@@ -389,13 +359,13 @@ export default function SearchScreen() {
                     backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a' }}>
                   <X size={20} color="#7aa8a8" />
                 </TouchableOpacity>
-              ) : (
+              ) : voiceSupported ? (
                 <TouchableOpacity onPress={() => void startVoice()} activeOpacity={0.7}
                   style={{ padding: 8, borderRadius: 999,
                     backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a' }}>
                   <Mic size={20} color="#7aa8a8" />
                 </TouchableOpacity>
-              )}
+              ) : null}
             </View>
 
 
@@ -474,14 +444,8 @@ export default function SearchScreen() {
       />
 
       {/* Added toast */}
-      {toastVideo && (
-        <AddedToast
-          video={toastVideo}
-          queuePos={toastQueuePos ?? undefined}
-          onViewQueue={() => { router.navigate('/(room)/queue'); setToastVideo(null); }}
-          onDismiss={() => { setToastVideo(null); setToastQueuePos(null); }}
-          onUndo={handleUndo}
-        />
+      {showAddedToast && (
+        <AddedToast onDismiss={() => setShowAddedToast(false)} />
       )}
 
       {/* Requester modal */}

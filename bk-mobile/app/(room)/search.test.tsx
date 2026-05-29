@@ -55,8 +55,20 @@ jest.mock('@/hooks/useQueuedMap', () => ({
   useQueuedMap: () => new Map(),
 }));
 
+// jest.mock factories may only reference variables with the `mock` prefix.
+let mockVoiceIsSupported = true;
+let mockCapturedOnUnsupported: (() => void) | null = null;
 jest.mock('@/hooks/useVoiceSearch', () => ({
-  useVoiceSearch: () => ({ isListening: false, interimTranscript: '', start: jest.fn(), stop: jest.fn() }),
+  useVoiceSearch: ({ onUnsupported }: { onUnsupported: () => void }) => {
+    mockCapturedOnUnsupported = onUnsupported;
+    return {
+      isListening: false,
+      interimTranscript: '',
+      start: jest.fn(),
+      stop: jest.fn(),
+      isSupported: mockVoiceIsSupported,
+    };
+  },
 }));
 
 jest.mock('@/components/TopBar', () => ({
@@ -82,7 +94,7 @@ jest.mock('@/components/FiltersSheet', () => ({
 }));
 
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { act, render, fireEvent, waitFor } from '@testing-library/react-native';
 import SearchScreen from './search';
 
 const mockVideo = {
@@ -129,5 +141,42 @@ describe('SearchScreen — requester modal', () => {
     // open again — should work cleanly
     fireEvent.press(getByTestId('add-button'));
     expect(getByText('Ai sẽ hát bài này?')).toBeTruthy();
+  });
+});
+
+describe('SearchScreen — voice button', () => {
+  beforeEach(() => {
+    mockVoiceIsSupported = true;
+    mockCapturedOnUnsupported = null;
+  });
+
+  it('renders the voice button when voice is supported', async () => {
+    const { getByTestId } = render(<SearchScreen />);
+    await waitFor(() => expect(getByTestId('voice-button')).toBeTruthy());
+  });
+
+  // Regression: on devices without the native Voice module (e.g. Android with
+  // @react-native-voice/voice's name mismatch, or Expo Go), the mic button
+  // must not render — it used to be tappable and would surface the network
+  // error UI ("Lỗi kết nối"), confusing the user.
+  it('hides the voice button when voice is unsupported', async () => {
+    mockVoiceIsSupported = false;
+    const { queryByTestId } = render(<SearchScreen />);
+    await waitFor(() => expect(queryByTestId('add-button')).toBeTruthy());
+    expect(queryByTestId('voice-button')).toBeNull();
+  });
+
+  // Regression: onUnsupported used to call setSearchError('generic'), which
+  // showed the WifiOff "Lỗi kết nối" card even though no network call failed.
+  // The voice-unsupported state must not poison the search-results error UI.
+  it('does not show the search-error UI when onUnsupported fires', async () => {
+    const { queryByText } = render(<SearchScreen />);
+    await waitFor(() => expect(mockCapturedOnUnsupported).not.toBeNull());
+    act(() => {
+      mockCapturedOnUnsupported?.();
+    });
+    // The mock i18n falls back to keys, so the error subtitle would appear as
+    // its key if the error UI rendered.
+    expect(queryByText('search.errorGenericSubtitle')).toBeNull();
   });
 });

@@ -1,4 +1,6 @@
-import { Modal, View, Text, TouchableOpacity } from 'react-native';
+import { useMemo } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface ConfirmDialogProps {
@@ -20,45 +22,56 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const snapPoints = useMemo(() => ['30%'], []);
+
+  if (!open) return null;
+
   return (
-    <Modal
-      visible={open}
-      transparent
-      animationType="fade"
-      onRequestClose={onCancel}
+    <BottomSheet
+      snapPoints={snapPoints}
+      enablePanDownToClose
+      onClose={onCancel}
+      backdropComponent={(props) => (
+        <BottomSheetBackdrop
+          {...props}
+          disappearsOnIndex={-1}
+          appearsOnIndex={0}
+          pressBehavior="close"
+        />
+      )}
+      backgroundStyle={{
+        backgroundColor: '#0e1c1c',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+      }}
+      handleIndicatorStyle={{ backgroundColor: '#4a7a7a' }}
     >
-      <View
-        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}
-      >
-        <View
-          style={{ width: '100%', backgroundColor: '#0e1c1c', borderRadius: 20, padding: 24, gap: 16 }}
-        >
-          <Text style={{ color: '#e0ffff', fontSize: 16, fontWeight: '700' }}>{title}</Text>
-          <Text style={{ color: '#7aa8a8', fontSize: 14, lineHeight: 20 }}>{message}</Text>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
+      <BottomSheetView style={{ flex: 1, paddingHorizontal: 24, paddingTop: 8, paddingBottom: 24, gap: 16 }}>
+        <Text style={{ color: '#e0ffff', fontSize: 16, fontWeight: '700' }}>{title}</Text>
+        <Text style={{ color: '#7aa8a8', fontSize: 14, lineHeight: 20 }}>{message}</Text>
+        <View style={{ flexDirection: 'row', gap: 12, marginTop: 'auto' }}>
+          <TouchableOpacity
+            onPress={onCancel}
+            activeOpacity={0.7}
+            style={{ flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: '#1f3a3a', alignItems: 'center' }}
+          >
+            <Text style={{ color: '#7aa8a8', fontWeight: '600' }}>{cancelLabel}</Text>
+          </TouchableOpacity>
+          <LinearGradient
+            colors={['#008b8b', '#006d6f', '#0d98ba']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={{ flex: 1, borderRadius: 12 }}
+          >
             <TouchableOpacity
-              onPress={onCancel}
-              activeOpacity={0.7}
-              style={{ flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: '#1f3a3a', alignItems: 'center' }}
+              onPress={onConfirm}
+              activeOpacity={0.8}
+              style={{ paddingVertical: 14, alignItems: 'center' }}
             >
-              <Text style={{ color: '#7aa8a8', fontWeight: '600' }}>{cancelLabel}</Text>
+              <Text style={{ color: '#fff', fontWeight: '700' }}>{confirmLabel}</Text>
             </TouchableOpacity>
-            <LinearGradient
-              colors={['#008b8b', '#006d6f', '#0d98ba']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={{ flex: 1, borderRadius: 12 }}
-            >
-              <TouchableOpacity
-                onPress={onConfirm}
-                activeOpacity={0.8}
-                style={{ paddingVertical: 12, alignItems: 'center' }}
-              >
-                <Text style={{ color: '#fff', fontWeight: '700' }}>{confirmLabel}</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          </View>
+          </LinearGradient>
         </View>
-      </View>
-    </Modal>
+      </BottomSheetView>
+    </BottomSheet>
   );
 }

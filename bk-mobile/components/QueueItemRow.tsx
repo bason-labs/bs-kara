@@ -1,5 +1,5 @@
 import { View, Text, Image, TouchableOpacity } from 'react-native';
-import { GripVertical, Mic, Play, Trash2 } from 'lucide-react-native';
+import { GripVertical, Mic, Trash2 } from 'lucide-react-native';
 import type { QueueItem } from '@bs-kara/shared';
 
 interface QueueItemRowProps {
@@ -7,9 +7,6 @@ interface QueueItemRowProps {
   onRemove: () => void;
   drag: () => void;
   dragEnabled?: boolean;
-  isHost: boolean;
-  guestCanRemove: boolean;
-  onPlayNow?: () => void;
   onEditRequester?: () => void;
   currentUserName?: string;
 }
@@ -19,13 +16,9 @@ export function QueueItemRow({
   onRemove,
   drag,
   dragEnabled = true,
-  isHost,
-  guestCanRemove,
-  onPlayNow,
   onEditRequester,
   currentUserName,
 }: QueueItemRowProps) {
-  const canRemove = isHost || guestCanRemove;
   const isMyRow = currentUserName && item.requesterName === currentUserName;
 
   const cardBg = isMyRow ? 'rgba(64,224,208,0.06)' : '#0e1c1c';
@@ -87,33 +80,15 @@ export function QueueItemRow({
         ) : null}
       </View>
 
-      {isHost && onPlayNow && (
-        <TouchableOpacity
-          testID="play-now-button"
-          onPress={onPlayNow}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={{
-            width: 36, height: 36, borderRadius: 18, borderWidth: 1,
-            borderColor: '#1f3a3a', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <Play size={16} color="#40e0d0" fill="#40e0d0" />
-        </TouchableOpacity>
-      )}
-
-      {canRemove && (
-        <TouchableOpacity
-          testID="remove-button"
-          onPress={onRemove}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={{ padding: 8, flexShrink: 0 }}
-        >
-          <Trash2 size={18} color="#7aa8a8" />
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity
+        testID="remove-button"
+        onPress={onRemove}
+        activeOpacity={0.7}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        style={{ padding: 8, flexShrink: 0 }}
+      >
+        <Trash2 size={18} color="#7aa8a8" />
+      </TouchableOpacity>
     </View>
   );
 }
