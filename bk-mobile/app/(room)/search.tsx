@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, FlatList, Image, Modal,
-  TouchableOpacity, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform,
+  TouchableOpacity, TouchableWithoutFeedback, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -187,6 +187,11 @@ export default function SearchScreen() {
     pendingVideoRef.current = null;
   }
 
+  function dismissRequesterModal() {
+    setRequesterModalVisible(false);
+    pendingVideoRef.current = null;
+  }
+
   function handleUndo() {
     if (!toastVideo) return;
     const match = roomData?.queue.find((item) => item.id === toastVideo.id);
@@ -252,7 +257,7 @@ export default function SearchScreen() {
         marginHorizontal: 16, marginTop: 0, marginBottom: 4, gap: 10 }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center',
           backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a',
-          borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, gap: 8 }}>
+          borderRadius: 999, paddingHorizontal: 14, height: 52, gap: 8 }}>
           <Search size={15} color="#7aa8a8" />
           <TextInput
             ref={inputRef}
@@ -375,7 +380,7 @@ export default function SearchScreen() {
                 placeholderTextColor="#7aa8a8"
                 style={{ flex: 1, backgroundColor: '#0e1c1c', color: '#e0ffff',
                   fontSize: 14, borderRadius: 999,
-                  paddingHorizontal: 16, paddingVertical: 8,
+                  paddingHorizontal: 16, height: 52,
                   borderWidth: 1, borderColor: '#1f3a3a' }}
               />
               {query.length > 0 ? (
@@ -481,8 +486,14 @@ export default function SearchScreen() {
 
       {/* Requester modal */}
       <Modal visible={requesterModalVisible} transparent animationType="slide"
-        onRequestClose={() => setRequesterModalVisible(false)}>
-        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        onRequestClose={dismissRequesterModal}>
+        <TouchableOpacity
+          testID="requester-backdrop"
+          style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}
+          activeOpacity={1}
+          onPress={dismissRequesterModal}
+        >
+          <TouchableWithoutFeedback>
           <View style={{ backgroundColor: '#0e1c1c', borderTopLeftRadius: 24,
             borderTopRightRadius: 24, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 40, gap: 16 }}>
             <Text style={{ color: '#e0ffff', fontSize: 18, fontWeight: '700' }}>
@@ -515,7 +526,8 @@ export default function SearchScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
       </Modal>
 
       <FiltersSheet
