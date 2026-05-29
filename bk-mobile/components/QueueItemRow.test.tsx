@@ -36,9 +36,9 @@ const base = {
 };
 
 describe('QueueItemRow', () => {
-  it('shows ETA text', () => {
-    const { getByText } = render(<QueueItemRow {...base} queuePosition={2} />);
-    expect(getByText('#2 · ~8 phút')).toBeTruthy();
+  it('shows channel name', () => {
+    const { getByText } = render(<QueueItemRow {...base} />);
+    expect(getByText('Ch')).toBeTruthy();
   });
 
   it('shows PlayNow button only for host', () => {
