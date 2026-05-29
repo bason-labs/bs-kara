@@ -1,12 +1,9 @@
 import { View, Text, Image, TouchableOpacity } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { GripVertical, Mic, Play, Trash2 } from 'lucide-react-native';
 import type { QueueItem } from '@bs-kara/shared';
 
 interface QueueItemRowProps {
   item: QueueItem;
-  index: number;
-  queuePosition: number;
   onRemove: () => void;
   drag: () => void;
   dragEnabled?: boolean;
@@ -28,7 +25,6 @@ export function QueueItemRow({
   onEditRequester,
   currentUserName,
 }: QueueItemRowProps) {
-  const { t: _t } = useTranslation();
   const canRemove = isHost || guestCanRemove;
   const isMyRow = currentUserName && item.requesterName === currentUserName;
 

@@ -2,15 +2,7 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 
 jest.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, _defaultOrOpts?: unknown, opts?: Record<string, unknown>) => {
-      // Handle both t(key, opts) and t(key, defaultString, opts) forms
-      const resolvedOpts: Record<string, unknown> =
-        opts ?? (typeof _defaultOrOpts === 'object' && _defaultOrOpts !== null ? (_defaultOrOpts as Record<string, unknown>) : {});
-      if (key === 'queue.eta') return `#${resolvedOpts.n} · ~${resolvedOpts.eta} phút`;
-      return key;
-    },
-  }),
+  useTranslation: () => ({ t: (key: string) => key }),
 }));
 
 import { QueueItemRow } from './QueueItemRow';
@@ -27,8 +19,6 @@ const item = {
 
 const base = {
   item,
-  index: 0,
-  queuePosition: 1,
   onRemove: jest.fn(),
   drag: jest.fn(),
   isHost: false,

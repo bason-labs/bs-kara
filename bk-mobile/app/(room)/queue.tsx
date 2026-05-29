@@ -45,11 +45,9 @@ export default function QueueScreen() {
           data={roomData.queue}
           keyExtractor={(item) => item.queueId}
           onDragEnd={handleDragEnd}
-          renderItem={({ item, drag, getIndex }: RenderItemParams<QueueItem>) => (
+          renderItem={({ item, drag }: RenderItemParams<QueueItem>) => (
             <QueueItemRow
               item={item}
-              index={getIndex() ?? 0}
-              queuePosition={(getIndex() ?? 0) + 1}
               onRemove={() => removeSong(item.queueId)}
               drag={drag}
               dragEnabled={roomData.dragDropEnabled}
