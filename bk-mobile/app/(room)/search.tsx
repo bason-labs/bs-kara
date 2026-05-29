@@ -257,7 +257,7 @@ export default function SearchScreen() {
         marginHorizontal: 16, marginTop: 0, marginBottom: 4, gap: 10 }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center',
           backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a',
-          borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, gap: 8 }}>
+          borderRadius: 999, paddingHorizontal: 14, height: 52, gap: 8 }}>
           <Search size={15} color="#7aa8a8" />
           <TextInput
             ref={inputRef}
@@ -380,7 +380,7 @@ export default function SearchScreen() {
                 placeholderTextColor="#7aa8a8"
                 style={{ flex: 1, backgroundColor: '#0e1c1c', color: '#e0ffff',
                   fontSize: 14, borderRadius: 999,
-                  paddingHorizontal: 16, paddingVertical: 8,
+                  paddingHorizontal: 16, height: 52,
                   borderWidth: 1, borderColor: '#1f3a3a' }}
               />
               {query.length > 0 ? (
