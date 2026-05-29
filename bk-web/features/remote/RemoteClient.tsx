@@ -58,12 +58,16 @@ import {
 // by hasOpenedSettings below) so subsequent opens are byte-identical to
 // before — same inert={!open} + slide-up transition path on desktop, same
 // hidden/h-full toggle as the other tab panels on mobile.
+// Desktop modal: the gear-icon click latches `hasOpenedSettings` and mounts
+// this dynamic component. Returning `null` for the loading fallback skips
+// the chrome-less skeleton flash — the modal simply pops in once the chunk
+// arrives (typically <100 ms on warm cache, single round-trip on cold).
 const SettingsSheet = dynamic(
   () =>
     import('@/features/remote/components/SettingsSheet').then((m) => ({
       default: m.SettingsSheet,
     })),
-  { ssr: false, loading: () => <SettingsSkeleton /> },
+  { ssr: false, loading: () => null },
 );
 const SettingsPanel = dynamic(
   () =>
