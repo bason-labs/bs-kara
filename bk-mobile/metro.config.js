@@ -16,4 +16,7 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
+// Exclude test files from the bundle
+config.resolver.blockList = [/.*\.(test|spec)\.[tj]sx?$/];
+
 module.exports = withNativeWind(config, { input: './global.css' });

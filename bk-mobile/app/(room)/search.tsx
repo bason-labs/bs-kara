@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, FlatList, Image, Modal,
-  TouchableOpacity, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform,
+  TouchableOpacity, TouchableWithoutFeedback, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -183,6 +183,11 @@ export default function SearchScreen() {
     const queuePos = (roomData?.queue.length ?? 0) + 1;
     setToastQueuePos(queuePos);
     setToastVideo(video);
+    setRequesterModalVisible(false);
+    pendingVideoRef.current = null;
+  }
+
+  function dismissRequesterModal() {
     setRequesterModalVisible(false);
     pendingVideoRef.current = null;
   }
@@ -481,8 +486,14 @@ export default function SearchScreen() {
 
       {/* Requester modal */}
       <Modal visible={requesterModalVisible} transparent animationType="slide"
-        onRequestClose={() => setRequesterModalVisible(false)}>
-        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        onRequestClose={dismissRequesterModal}>
+        <TouchableOpacity
+          testID="requester-backdrop"
+          style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}
+          activeOpacity={1}
+          onPress={dismissRequesterModal}
+        >
+          <TouchableWithoutFeedback>
           <View style={{ backgroundColor: '#0e1c1c', borderTopLeftRadius: 24,
             borderTopRightRadius: 24, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 40, gap: 16 }}>
             <Text style={{ color: '#e0ffff', fontSize: 18, fontWeight: '700' }}>
@@ -515,7 +526,8 @@ export default function SearchScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
       </Modal>
 
       <FiltersSheet
