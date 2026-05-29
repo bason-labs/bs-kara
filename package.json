@@ -22,7 +22,9 @@
       "react-dom": "19.0.0"
     },
     "patchedDependencies": {
-      "expo-firebase-core@6.0.0": "patches/expo-firebase-core@6.0.0.patch"
+      "expo-firebase-core@6.0.0": "patches/expo-firebase-core@6.0.0.patch",
+      "@gorhom/bottom-sheet@5.2.14": "patches/@gorhom__bottom-sheet@5.2.14.patch",
+      "@react-native-voice/voice@3.2.4": "patches/@react-native-voice__voice@3.2.4.patch"
     }
   },
   "version": "1.0.0",

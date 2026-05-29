@@ -1,94 +1,73 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Image, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2 } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import type { YouTubeVideo } from '@bs-kara/shared';
 
-const TAB_BAR_HEIGHT = 64;
+const TAB_BAR_HEIGHT = 52;
+const AUTO_DISMISS_MS = 1800;
 
 interface AddedToastProps {
-  video: YouTubeVideo;
-  onViewQueue: () => void;
   onDismiss: () => void;
-  queuePos?: number;
-  onUndo?: () => void;
 }
 
-export function AddedToast({ video, onViewQueue, onDismiss, queuePos, onUndo }: AddedToastProps) {
+export function AddedToast({ onDismiss }: AddedToastProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const translateY = useRef(new Animated.Value(60)).current;
+  const translateY = useRef(new Animated.Value(40)).current;
 
   useEffect(() => {
     Animated.timing(translateY, {
-      toValue: 0, duration: 250,
+      toValue: 0,
+      duration: 200,
       useNativeDriver: true,
     }).start();
-    const timer = setTimeout(onDismiss, 3800);
+    const timer = setTimeout(onDismiss, AUTO_DISMISS_MS);
     return () => clearTimeout(timer);
   }, [onDismiss, translateY]);
 
-  const bottom = TAB_BAR_HEIGHT + insets.bottom + 8;
+  const bottom = TAB_BAR_HEIGHT + insets.bottom + 4;
 
   return (
-    <Animated.View style={{ position: 'absolute', bottom, left: 12, right: 12,
-      transform: [{ translateY }] }}>
-      <TouchableOpacity testID="toast-card" onPress={onDismiss} activeOpacity={0.9}>
-        <View style={{ backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a',
-          borderRadius: 16, padding: 10,
-          shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.6, shadowRadius: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Image source={{ uri: video.thumbnail }}
-              style={{ width: 52, height: 34, borderRadius: 6, backgroundColor: '#152a2a' }}
-              resizeMode="cover" />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 }}>
-                <CheckCircle2 size={11} color="#008b8b" />
-                <Text style={{ fontSize: 10, color: '#008b8b', fontWeight: '700',
-                  letterSpacing: 0.5, textTransform: 'uppercase', lineHeight: 12 }}>
-                  {t('addedToast.added')}
-                </Text>
-              </View>
-              <Text style={{ fontSize: 12, color: '#e0ffff', fontWeight: '500', lineHeight: 14 }}
-                numberOfLines={1}>
-                {video.title}
-              </Text>
-              {queuePos != null && (
-                <Text style={{ fontSize: 10, color: '#7aa8a8', marginTop: 2 }}>
-                  {t('toast.queuePositionEta', 'Vị trí thứ {{pos}} · ~{{eta}} phút nữa', { pos: queuePos, eta: queuePos * 4 })}
-                </Text>
-              )}
-            </View>
-            <LinearGradient colors={['#008b8b', '#0d98ba']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={{ borderRadius: 999, flexShrink: 0 }}>
-              <TouchableOpacity onPress={onViewQueue} activeOpacity={0.8}
-                accessibilityRole="button"
-                style={{ height: 32, paddingHorizontal: 12,
-                  alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 11, color: '#fff', fontWeight: '600',
-                  lineHeight: 13, includeFontPadding: false }}>
-                  {t('addedToast.viewQueue')}
-                </Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          </View>
-          {onUndo && (
-            <TouchableOpacity
-              onPress={onUndo}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-              style={{ alignSelf: 'flex-start', paddingHorizontal: 4, paddingVertical: 6, marginTop: 6 }}
-            >
-              <Text style={{ fontSize: 12, color: '#7aa8a8', textDecorationLine: 'underline' }}>
-                {t('toast.undo', 'Hoàn tác')}
-              </Text>
-            </TouchableOpacity>
-          )}
+    <Animated.View
+      pointerEvents="box-none"
+      style={{
+        position: 'absolute',
+        bottom,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        transform: [{ translateY }],
+      }}
+    >
+      <TouchableOpacity
+        testID="toast-card"
+        onPress={onDismiss}
+        activeOpacity={0.9}
+        accessibilityRole="alert"
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            backgroundColor: '#0e1c1c',
+            borderWidth: 1,
+            borderColor: '#1f3a3a',
+            borderRadius: 999,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.4,
+            shadowRadius: 12,
+            elevation: 6,
+          }}
+        >
+          <CheckCircle2 size={14} color="#008b8b" />
+          <Text style={{ color: '#e0ffff', fontSize: 13, fontWeight: '500' }}>
+            {t('toast.addedToQueue')}
+          </Text>
         </View>
       </TouchableOpacity>
     </Animated.View>

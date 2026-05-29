@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { Check, List, Plus, Sparkles } from 'lucide-react-native';
+import { Check, Plus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { YouTubeVideo } from '@bs-kara/shared';
 import { EQBars } from './EQBars';
@@ -12,68 +10,28 @@ interface SongResultItemProps {
   onAdd: () => void;
   added: boolean;
   queued?: boolean;
-  queuePosition?: number;
   isCurrentlyPlaying?: boolean;
-  isJustAdded?: boolean;
 }
 
 export function SongResultItem({
-  video, onAdd, added, queued, queuePosition, isCurrentlyPlaying, isJustAdded,
+  video, onAdd, added, queued, isCurrentlyPlaying,
 }: SongResultItemProps) {
   const { t } = useTranslation();
 
-  // Just-added border glow (fades over 1600ms)
-  const glowAnim = useSharedValue(0);
-  useEffect(() => {
-    if (isJustAdded) {
-      glowAnim.value = 1;
-      glowAnim.value = withTiming(0, { duration: 1600 });
-    } else {
-      glowAnim.value = 0;
-    }
-  }, [isJustAdded, glowAnim]);
+  const borderColor = isCurrentlyPlaying
+    ? 'rgba(125,249,255,0.55)'
+    : queued
+      ? 'rgba(64,224,208,0.35)'
+      : '#1f3a3a';
 
-  const animBorderStyle = useAnimatedStyle(() => {
-    if (isCurrentlyPlaying) return { borderColor: 'rgba(125,249,255,0.55)' };
-    if (glowAnim.value > 0) {
-      return { borderColor: `rgba(64,224,208,${0.35 + glowAnim.value * 0.35})` };
-    }
-    if (queued) return { borderColor: 'rgba(64,224,208,0.35)' };
-    return { borderColor: '#1f3a3a' };
-  });
-
-  // Status pill below channel — one at a time
-  let statusPill: React.ReactNode = null;
-  if (isCurrentlyPlaying) {
-    statusPill = (
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4,
-        paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999,
-        backgroundColor: 'rgba(125,249,255,0.18)', alignSelf: 'flex-start', marginTop: 4 }}>
-        <View style={{ width: 5, height: 5, borderRadius: 999, backgroundColor: '#7df9ff' }} />
-        <Text style={{ color: '#7df9ff', fontSize: 11 }}>{t('search.statusNowPlaying')}</Text>
-      </View>
-    );
-  } else if (isJustAdded) {
-    statusPill = (
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4,
-        paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999,
-        backgroundColor: 'rgba(64,224,208,0.18)', alignSelf: 'flex-start', marginTop: 4 }}>
-        <Sparkles size={11} color="#40e0d0" />
-        <Text style={{ color: '#40e0d0', fontSize: 11 }}>{t('search.statusJustAdded')}</Text>
-      </View>
-    );
-  } else if (queued) {
-    statusPill = (
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4,
-        paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999,
-        backgroundColor: 'rgba(64,224,208,0.15)', alignSelf: 'flex-start', marginTop: 4 }}>
-        <List size={11} color="#40e0d0" />
-        <Text style={{ color: '#40e0d0', fontSize: 11 }}>
-          {t('search.statusQueued', { pos: queuePosition ?? '' })}
-        </Text>
-      </View>
-    );
-  }
+  const statusPill: React.ReactNode = isCurrentlyPlaying ? (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4,
+      paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999,
+      backgroundColor: 'rgba(125,249,255,0.18)', alignSelf: 'flex-start', marginTop: 4 }}>
+      <View style={{ width: 5, height: 5, borderRadius: 999, backgroundColor: '#7df9ff' }} />
+      <Text style={{ color: '#7df9ff', fontSize: 11 }}>{t('search.statusNowPlaying')}</Text>
+    </View>
+  ) : null;
 
   // Action button — 44×44 icon-only
   function renderAction() {
@@ -112,12 +70,11 @@ export function SongResultItem({
   const cardBg = isCurrentlyPlaying ? 'rgba(125,249,255,0.04)' : '#0e1c1c';
 
   return (
-    <Animated.View style={[
-      { flexDirection: 'row', alignItems: 'center', gap: 12,
-        marginHorizontal: 12, marginVertical: 4, padding: 12,
-        borderRadius: 14, borderWidth: 1, backgroundColor: cardBg },
-      animBorderStyle,
-    ]}>
+    <View style={{
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      marginHorizontal: 12, marginVertical: 4, padding: 12,
+      borderRadius: 14, borderWidth: 1, backgroundColor: cardBg, borderColor,
+    }}>
       {/* Thumbnail — 110×62 with overlays */}
       <View style={{ width: 110, height: 62, borderRadius: 8, overflow: 'hidden',
         backgroundColor: '#152a2a', flexShrink: 0 }}>
@@ -157,6 +114,6 @@ export function SongResultItem({
 
       {/* Action */}
       {renderAction()}
-    </Animated.View>
+    </View>
   );
 }

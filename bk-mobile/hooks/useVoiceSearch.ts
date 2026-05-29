@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, PermissionsAndroid } from 'react-native';
+import { NativeModules, Platform, PermissionsAndroid } from 'react-native';
 import { Audio } from 'expo-av';
 
 // @react-native-voice/voice requires a native dev build — not available in Expo Go.
 // Load it lazily so the app still runs when the native module is absent.
+// The JS wrapper exists in node_modules even without the native binding, so we
+// also have to check NativeModules — otherwise removeAllListeners/destroy will
+// dereference null and throw "Cannot set property 'onSpeechStart' of null".
+// iOS exposes the module as `Voice`, Android as `RCTVoice` (per VoiceModule.java
+// `getName()`). The library is patched to handle both; mirror that here.
 let Voice: typeof import('@react-native-voice/voice').default | null = null;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  Voice = require('@react-native-voice/voice').default as typeof import('@react-native-voice/voice').default;
+  if (NativeModules.Voice || NativeModules.RCTVoice) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    Voice = require('@react-native-voice/voice').default as typeof import('@react-native-voice/voice').default;
+  }
 } catch {
   Voice = null;
 }
@@ -22,6 +29,7 @@ interface UseVoiceSearchResult {
   interimTranscript: string;
   start: () => Promise<void>;
   stop: () => void;
+  isSupported: boolean;
 }
 
 export function useVoiceSearch({ onFinal, onUnsupported }: UseVoiceSearchOptions): UseVoiceSearchResult {
@@ -56,8 +64,13 @@ export function useVoiceSearch({ onFinal, onUnsupported }: UseVoiceSearchOptions
       setInterimTranscript('');
     };
     return () => {
-      void Voice!.destroy();
-      Voice!.removeAllListeners();
+      try {
+        void Voice!.destroy();
+        Voice!.removeAllListeners();
+      } catch {
+        // Native module can disappear under us (e.g. dev reload, missing binding).
+        // Swallow so unmount never crashes the tree.
+      }
     };
   }, []);
 
@@ -102,5 +115,5 @@ export function useVoiceSearch({ onFinal, onUnsupported }: UseVoiceSearchOptions
     setInterimTranscript('');
   }, []);
 
-  return { isListening, interimTranscript, start, stop };
+  return { isListening, interimTranscript, start, stop, isSupported: Voice !== null };
 }

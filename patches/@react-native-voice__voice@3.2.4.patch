@@ -1,0 +1,30 @@
+diff --git a/dist/index.js b/dist/index.js
+index a10af138184cc1b2a39d68e89e59c5c5f7320d5f..92eb30c500b6651ebba03209acc3fddfdb95fbc3 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
+ Object.defineProperty(exports, "__esModule", { value: true });
+ const react_native_1 = require("react-native");
+ const invariant_1 = __importDefault(require("invariant"));
+-const Voice = react_native_1.NativeModules.Voice;
++const Voice = react_native_1.NativeModules.Voice ?? react_native_1.NativeModules.RCTVoice;
+ // NativeEventEmitter is only availabe on React Native platforms, so this conditional is used to avoid import conflicts in the browser/server
+ const voiceEmitter = react_native_1.Platform.OS !== 'web' ? new react_native_1.NativeEventEmitter(Voice) : null;
+ class RCTVoice {
+diff --git a/src/index.ts b/src/index.ts
+index 8b51121310c23cfd67366d264dd6c728120e4f2a..c7bdadcc1fb5f1ff24d2743a2a806d7910e0f2f7 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -11,7 +11,11 @@ import {
+   SpeechVolumeChangeEvent,
+ } from './VoiceModuleTypes';
+ 
+-const Voice = NativeModules.Voice as VoiceModule;
++// Android registers the native module as `RCTVoice` (see VoiceModule.java's
++// `getName()`); iOS registers it as `Voice` (RCT_EXPORT_MODULE with class name).
++// The library originally only looked at `NativeModules.Voice`, which made it
++// effectively non-functional on Android. Fall back to `RCTVoice` to fix that.
++const Voice = (NativeModules.Voice ?? NativeModules.RCTVoice) as VoiceModule;
+ 
+ // NativeEventEmitter is only availabe on React Native platforms, so this conditional is used to avoid import conflicts in the browser/server
+ const voiceEmitter =

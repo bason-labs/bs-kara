@@ -1,5 +1,12 @@
 import { renderHook, act } from '@testing-library/react-native';
-import { useVoiceSearch } from './useVoiceSearch';
+import { NativeModules } from 'react-native';
+
+// Make NativeModules.Voice truthy so useVoiceSearch's module-level guard
+// loads the JS wrapper. In jest-expo the native module is null by default.
+(NativeModules as Record<string, unknown>).Voice = {};
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { useVoiceSearch } = require('./useVoiceSearch') as typeof import('./useVoiceSearch');
 
 // Mock @react-native-voice/voice
 // Note: jest.mock is hoisted, so we use jest.requireMock to get the mock object
@@ -105,5 +112,26 @@ describe('useVoiceSearch', () => {
     unmount();
     expect(mockVoice.destroy).toHaveBeenCalled();
     expect(mockVoice.removeAllListeners).toHaveBeenCalled();
+  });
+
+  it('reports isSupported=true when the native Voice module is available', () => {
+    const { result } = renderHook(() =>
+      useVoiceSearch({ onFinal: jest.fn(), onUnsupported: jest.fn() })
+    );
+    expect(result.current.isSupported).toBe(true);
+  });
+
+  // Regression: when @react-native-voice/voice's underlying NativeModule is
+  // null (dev build without the native binding), removeAllListeners()
+  // dereferences null and throws "Cannot set property 'onSpeechStart' of null"
+  // on unmount — which surfaced as a Render Error after a tab switch.
+  it('does not throw on unmount when Voice.removeAllListeners throws', async () => {
+    mockVoice.removeAllListeners.mockImplementation(() => {
+      throw new TypeError("Cannot set property 'onSpeechStart' of null");
+    });
+    const { unmount } = renderHook(() =>
+      useVoiceSearch({ onFinal: jest.fn(), onUnsupported: jest.fn() })
+    );
+    expect(() => unmount()).not.toThrow();
   });
 });
