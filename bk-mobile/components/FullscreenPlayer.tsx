@@ -49,18 +49,23 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
   });
 
   // Keep shouldPlay in sync with Firebase isPlaying (for pause from other controls).
-  useEffect(() => { setShouldPlay(isPlaying); }, [isPlaying]);
+  useEffect(() => {
+    console.log('[FS] isPlaying prop changed:', isPlaying, '→ setShouldPlay');
+    setShouldPlay(isPlaying);
+  }, [isPlaying]);
 
   // Kick-play: when MC gate drops (true → false), flip shouldPlay immediately
   // and also write to Firebase so other devices stay in sync.
   const prevMcGatedRef = useRef(false);
   useEffect(() => {
+    console.log('[FS] isMcGated effect: prev=', prevMcGatedRef.current, 'now=', isMcGated, 'shouldPlay=', shouldPlay);
     if (prevMcGatedRef.current && !isMcGated) {
+      console.log('[FS] MC gate dropped → setShouldPlay(true), setIsPlaying(true)');
       setShouldPlay(true);
       void setIsPlaying(true);
     }
     prevMcGatedRef.current = isMcGated;
-  }, [isMcGated, setIsPlaying]);
+  }, [isMcGated, setIsPlaying]); // shouldPlay intentionally omitted — read at fire time via closure
 
   useEffect(() => {
     let mounted = true;
@@ -98,6 +103,9 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
           width={playerWidth}
           play={!isMcGated && shouldPlay}
           webViewStyle={{ backgroundColor: '#000' }}
+          forceAndroidAutoplay
+          onReady={() => console.log('[YT] playerReady fired. isMcGated=', isMcGated, 'shouldPlay=', shouldPlay, 'play=', !isMcGated && shouldPlay)}
+          onChangeState={(state: string) => console.log('[YT] stateChange:', state, '| isMcGated=', isMcGated, 'shouldPlay=', shouldPlay)}
         />
 
         {isMcGated && currentPlaying && (
