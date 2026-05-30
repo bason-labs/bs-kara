@@ -38,10 +38,10 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
   // immediately when MC finishes, without waiting for Firebase round-trip.
   const [shouldPlay, setShouldPlay] = useState(isPlaying);
   const { width, height } = useWindowDimensions();
-  // After orientation locks to landscape, width > height.
-  // useWindowDimensions updates on rotation, so these will be correct landscape values.
-  const playerWidth = Math.max(width, height);
-  const playerHeight = Math.min(width, height);
+  // useWindowDimensions updates after the orientation lock fires.
+  // In landscape: width > height → fills the screen at the correct aspect.
+  const playerWidth = width;
+  const playerHeight = height;
 
   // MC is fully owned here. This component only mounts when fullscreen is open,
   // so ready=true avoids any ready-prop race that caused immediate gate closure.
