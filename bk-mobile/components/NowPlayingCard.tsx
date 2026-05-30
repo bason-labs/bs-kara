@@ -1,5 +1,6 @@
 import { View, Text, Image, TouchableOpacity, useWindowDimensions } from 'react-native';
-import { Mic, Play, Pause, Maximize2 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Mic, Play, Pause, Maximize2, Trash2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import type { YouTubeVideo } from '@bs-kara/shared';
 import { useColors } from '@/hooks/useColors';
@@ -55,10 +56,10 @@ export function NowPlayingCard({
               paddingVertical: 4,
             }}
           >
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c.accent }} />
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' }} />
             <Text
               style={{
-                color: c.accent,
+                color: '#fff',
                 fontSize: 10,
                 fontWeight: '700',
                 letterSpacing: 2,
@@ -89,7 +90,7 @@ export function NowPlayingCard({
                 justifyContent: 'center',
               }}
             >
-              <Maximize2 size={18} color={c.fg} />
+              <Maximize2 size={18} color="#fff" />
             </TouchableOpacity>
           )}
         </View>
@@ -122,8 +123,30 @@ export function NowPlayingCard({
         </View>
         {/* Skip current */}
         {onSkip && (
-          <TouchableOpacity onPress={onSkip} activeOpacity={0.7} accessibilityRole="button">
-            <Text style={{ color: c.muted, fontSize: 12 }}>{t('nowPlaying.removeAriaLabel')}</Text>
+          <TouchableOpacity
+            onPress={onSkip}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            style={{ borderRadius: 12, overflow: 'hidden' }}
+          >
+            <LinearGradient
+              colors={[c.gradientStart, c.gradientMid, c.gradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+              }}
+            >
+              <Trash2 size={14} color="#fff" strokeWidth={2.2} />
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
+                {t('nowPlaying.removeAriaLabel')}
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
         )}
       </View>
