@@ -24,7 +24,7 @@ export function GradientButton({ label, onPress, disabled }: GradientButtonProps
         end={{ x: 1, y: 1 }}
         className="py-4 items-center"
       >
-        <Text className="font-semibold text-base" style={{ color: c.fg }}>{label}</Text>
+        <Text className="font-semibold text-base" style={{ color: '#fff' }}>{label}</Text>
       </LinearGradient>
     </TouchableOpacity>
   );

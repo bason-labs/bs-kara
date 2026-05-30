@@ -24,8 +24,8 @@ export function TransportControls({ isPlaying, onPlayPause, onPrev, onNext }: Tr
         style={{ backgroundColor: c.brand }}
       >
         {isPlaying
-          ? <Pause size={28} color={c.fg} />
-          : <Play size={28} color={c.fg} />}
+          ? <Pause size={28} color="#fff" />
+          : <Play size={28} color="#fff" />}
       </TouchableOpacity>
       <TouchableOpacity testID="next-button" onPress={onNext} activeOpacity={0.7} className="p-3">
         <SkipForward size={28} color={c.muted} />

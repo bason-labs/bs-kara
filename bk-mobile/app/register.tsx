@@ -83,7 +83,7 @@ function PhoneStep({
           end={{ x: 1, y: 1 }}
           className="py-4 items-center"
         >
-          <Text className="font-semibold text-base tracking-wide" style={{ color: c.fg }}>
+          <Text className="font-semibold text-base tracking-wide" style={{ color: '#fff' }}>
             {loading ? t('auth.sendingOtp') : t('auth.sendOtp')}
           </Text>
         </LinearGradient>
@@ -206,7 +206,7 @@ function OtpStep({
           end={{ x: 1, y: 1 }}
           className="py-4 items-center"
         >
-          <Text className="font-semibold text-base tracking-wide" style={{ color: c.fg }}>
+          <Text className="font-semibold text-base tracking-wide" style={{ color: '#fff' }}>
             {loading ? t('auth.verifying') : t('auth.verify')}
           </Text>
         </LinearGradient>
@@ -263,7 +263,7 @@ function NameStep({
             end={{ x: 1, y: 1 }}
             className="py-4 items-center"
           >
-            <Text className="font-semibold text-base tracking-wide" style={{ color: c.fg }}>
+            <Text className="font-semibold text-base tracking-wide" style={{ color: '#fff' }}>
               {loading ? '…' : t('auth.continue')}
             </Text>
           </LinearGradient>
