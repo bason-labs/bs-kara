@@ -33,6 +33,20 @@ const baseProps = {
   isHost: false,
 };
 
+describe('SettingsSheet — scroll container placement', () => {
+  it('does not scroll via a nested h-full element inside the modal card', () => {
+    // Regression: the desktop centering wrapper is a row-flex with align-items:center,
+    // so the card height is auto. A child div with h-full + overflow-y-auto resolves
+    // h-full to auto and the scroll never triggers. The scroll must be on the
+    // flex-1 body wrapper (a column-flex item) which does get a definite height.
+    const { container } = render(<SettingsSheet {...baseProps} />);
+    const nestedScroller = container.querySelector(
+      '.overflow-y-auto.h-full, [class*="overflow-y-auto"][class*="h-full"]',
+    );
+    expect(nestedScroller).toBeNull();
+  });
+});
+
 describe('SettingsSheet — role gating', () => {
   it('shows only theme and room sections when isHost is false', () => {
     render(<SettingsSheet {...baseProps} isHost={false} />);

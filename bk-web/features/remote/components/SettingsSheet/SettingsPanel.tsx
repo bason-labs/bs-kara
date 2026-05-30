@@ -59,8 +59,7 @@ export function SettingsPanel({
 }: SettingsPanelProps) {
   const { t } = useTranslation();
   return (
-    <div className="h-full overflow-y-auto overscroll-contain">
-      <div className="px-5 py-5 space-y-6">
+    <div className="px-5 py-5 space-y-6">
         {isHost && (
           <AutoRandomSection
             enabled={autoRandomEnabled}
@@ -109,7 +108,6 @@ export function SettingsPanel({
             </button>
           </div>
         )}
-      </div>
     </div>
   );
 }

@@ -688,7 +688,7 @@ function RemoteInner() {
             import handles chunk-load lazily on first visit. */}
         <section
           aria-label="Settings"
-          className={`min-h-0 overflow-hidden pt-[var(--header-h)] lg:hidden ${
+          className={`min-h-0 overflow-y-auto overscroll-contain pt-[var(--header-h)] lg:hidden ${
             tab === 'settings' ? 'h-full' : 'hidden'
           }`}
         >

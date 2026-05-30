@@ -103,8 +103,11 @@ export function SettingsSheet({
             </button>
           </div>
 
-          {/* Body */}
-          <div className="flex-1 min-h-0">
+          {/* Body — scroll container lives here (flex item in a column-flex card),
+              NOT inside SettingsPanel. The desktop centering wrapper is a row-flex
+              with align-items:center, so the card height is auto; a nested h-full
+              element would resolve to auto and overflow-y-auto would never trigger. */}
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
             <SettingsPanel {...panelProps} panelOpen={open} />
           </div>
         </div>
