@@ -3,48 +3,60 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useColorScheme as useOSColorScheme } from 'react-native';
 import { useColorScheme } from 'nativewind';
 
-type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'light' | 'system';
 const STORAGE_KEY = 'karaoke_theme';
 
 interface ThemeContextValue {
-  theme: Theme;
-  toggleTheme: () => void;
+  preference: Theme;
+  resolvedTheme: 'light' | 'dark';
+  setPreference: (pref: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: 'dark',
-  toggleTheme: () => {},
+  preference: 'system',
+  resolvedTheme: 'dark',
+  setPreference: () => {},
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [preference, setPreferenceState] = useState<Theme>('system');
+  const osScheme = useOSColorScheme() ?? 'dark';
   const { setColorScheme } = useColorScheme();
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      if (stored === 'light' || stored === 'dark') {
-        setTheme(stored);
-        setColorScheme(stored);
+      if (stored === 'light' || stored === 'dark' || stored === 'system') {
+        setPreferenceState(stored);
       }
     });
-  }, [setColorScheme]);
+  }, []);
 
-  const toggleTheme = useCallback(() => {
-    setTheme((prev) => {
-      const next: Theme = prev === 'dark' ? 'light' : 'dark';
-      setColorScheme(next);
-      AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
-      return next;
-    });
-  }, [setColorScheme]);
+  const resolvedTheme: 'light' | 'dark' =
+    preference === 'system' ? osScheme : preference;
+
+  useEffect(() => {
+    setColorScheme(resolvedTheme);
+  }, [resolvedTheme, setColorScheme]);
+
+  const setPreference = useCallback((pref: Theme) => {
+    setPreferenceState(pref);
+    AsyncStorage.setItem(STORAGE_KEY, pref).catch(() => {});
+  }, []);
+
+  const value = useMemo(
+    () => ({ preference, resolvedTheme, setPreference }),
+    [preference, resolvedTheme, setPreference]
+  );
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );
