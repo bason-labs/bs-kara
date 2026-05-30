@@ -14,6 +14,7 @@ import { QrCode } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useCurrentHost } from '@/hooks/useCurrentHost';
+import { useColors } from '@/hooks/useColors';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 const CODE_LENGTH = 4;
@@ -24,6 +25,7 @@ export default function JoinScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { profile, loading: hostLoading } = useCurrentHost();
+  const c = useColors();
   const inputRef = useRef<TextInput>(null);
   const [code, setCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
@@ -67,7 +69,7 @@ export default function JoinScreen() {
   const canSubmit = code.length >= CODE_LENGTH && !isJoining;
 
   return (
-    <SafeAreaView className="flex-1 bg-[#06100f]">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: c.bg }}>
       {/* Theme toggle */}
       <View className="absolute top-12 right-4 z-10">
         <ThemeToggle />
@@ -76,13 +78,13 @@ export default function JoinScreen() {
       <View className="flex-1 items-center justify-center px-6">
         {/* Header */}
         <View className="items-center mb-8">
-          <Text className="text-xs uppercase tracking-[4px] text-[#7aa8a8] mb-2">
+          <Text className="text-xs uppercase tracking-[4px] mb-2" style={{ color: c.muted }}>
             {t('home.appHeading')}
           </Text>
-          <Text className="text-4xl font-bold text-[#40e0d0] mb-3">
+          <Text className="text-4xl font-bold mb-3" style={{ color: c.accent }}>
             {t('home.wordmark')}
           </Text>
-          <Text className="text-sm text-[#7aa8a8] text-center">
+          <Text className="text-sm text-center" style={{ color: c.muted }}>
             {t('home.tagline')}
           </Text>
         </View>
@@ -90,7 +92,7 @@ export default function JoinScreen() {
         {/* Primary CTA — "Go to my room" if logged in, else "Login / Create room" */}
         {hostLoading ? (
           <View className="w-full py-4 items-center mb-4">
-            <ActivityIndicator color="#40e0d0" size="small" />
+            <ActivityIndicator color={c.accent} size="small" />
           </View>
         ) : (
           <TouchableOpacity
@@ -110,7 +112,7 @@ export default function JoinScreen() {
               end={{ x: 1, y: 1 }}
               className="py-4 items-center"
             >
-              <Text className="text-[#e0ffff] font-semibold text-base tracking-wide">
+              <Text className="font-semibold text-base tracking-wide" style={{ color: c.fg }}>
                 {profile ? t('auth.goToMyRoom') : t('auth.loginOrRegister')}
               </Text>
             </LinearGradient>
@@ -119,19 +121,19 @@ export default function JoinScreen() {
 
         {/* Divider */}
         <View className="flex-row items-center gap-3 w-full mb-4">
-          <View className="flex-1 h-px bg-[#1f3a3a]" />
-          <Text className="text-xs text-[#7aa8a8] uppercase tracking-widest">
+          <View className="flex-1 h-px" style={{ backgroundColor: c.border }} />
+          <Text className="text-xs uppercase tracking-widest" style={{ color: c.muted }}>
             {t('auth.orDivider')}
           </Text>
-          <View className="flex-1 h-px bg-[#1f3a3a]" />
+          <View className="flex-1 h-px" style={{ backgroundColor: c.border }} />
         </View>
 
         {/* Join card */}
-        <View className="w-full bg-[#0e1c1c] border border-[#1f3a3a] rounded-3xl px-6 py-6 gap-5"
-          style={{ shadowColor: '#008b8b', shadowOpacity: 0.15, shadowRadius: 20, elevation: 8 }}
+        <View className="w-full rounded-3xl px-6 py-6 gap-5"
+          style={{ backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, shadowColor: c.brand, shadowOpacity: 0.15, shadowRadius: 20, elevation: 8 }}
         >
           {/* Label */}
-          <Text className="text-xs uppercase tracking-[4px] text-[#7aa8a8]">
+          <Text className="text-xs uppercase tracking-[4px]" style={{ color: c.muted }}>
             {t('home.roomCodeLabel')}
           </Text>
 
@@ -145,13 +147,14 @@ export default function JoinScreen() {
               return (
                 <View
                   key={i}
-                  className="w-14 h-16 rounded-2xl bg-[#152a2a] items-center justify-center"
+                  className="w-14 h-16 rounded-2xl items-center justify-center"
                   style={{
+                    backgroundColor: c.surface2,
                     borderWidth: 2,
-                    borderColor: isActive ? '#40e0d0' : char ? '#2a5050' : '#1f3a3a',
+                    borderColor: isActive ? c.accent : char ? '#2a5050' : c.border,
                   }}
                 >
-                  <Text className="text-[#e0ffff] text-2xl font-bold">
+                  <Text className="text-2xl font-bold" style={{ color: c.fg }}>
                     {char}
                   </Text>
                 </View>
@@ -173,7 +176,7 @@ export default function JoinScreen() {
 
           {/* Error */}
           {errorMsg && (
-            <Text className="text-xs text-[#ff5f6d] text-center">{errorMsg}</Text>
+            <Text className="text-xs text-center" style={{ color: c.danger }}>{errorMsg}</Text>
           )}
 
           {/* Join button */}
@@ -190,7 +193,7 @@ export default function JoinScreen() {
               end={{ x: 1, y: 1 }}
               className="py-3.5 items-center"
             >
-              <Text className="text-[#e0ffff] font-semibold text-sm tracking-wide">
+              <Text className="font-semibold text-sm tracking-wide" style={{ color: c.fg }}>
                 {isJoining ? 'Đang kiểm tra…' : t('home.joinButton')}
               </Text>
             </LinearGradient>
@@ -198,8 +201,8 @@ export default function JoinScreen() {
 
           {/* QR tip */}
           <View className="flex-row items-center justify-center gap-2">
-            <QrCode size={13} color="#7aa8a8" />
-            <Text className="text-xs text-[#7aa8a8]">{t('home.qrTip')}</Text>
+            <QrCode size={13} color={c.muted} />
+            <Text className="text-xs" style={{ color: c.muted }}>{t('home.qrTip')}</Text>
           </View>
         </View>
       </View>
