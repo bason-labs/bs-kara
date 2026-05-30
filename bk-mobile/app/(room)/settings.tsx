@@ -1,7 +1,9 @@
 import { View, Text, Switch, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Check } from 'lucide-react-native';
+import { Check, LogOut } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { getAuth, signOut } from 'firebase/auth';
 import { useRoomContext } from '@/context/RoomContext';
 import type { Genre, SingerType, Tone } from '@bs-kara/shared';
 
@@ -94,12 +96,18 @@ function FilterChipRow({ label, value, options, onChange, disabled }: {
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const {
-    roomData, roomCode,
+    roomData, roomCode, isHost,
     setAutoRandomMode, setRandomFilters, setDragDropEnabled,
     setRequesterPromptEnabled, setMCEnabled, setAiScoringEnabled,
     setMcVoice, setGuestCanRemove,
   } = useRoomContext();
+
+  const handleLogout = async () => {
+    await signOut(getAuth());
+    router.replace('/');
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#06100f' }}>
@@ -220,6 +228,23 @@ export default function SettingsScreen() {
             <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold', letterSpacing: 4 }}>{roomCode}</Text>
           </LinearGradient>
         </View>
+
+        {/* Logout — host only */}
+        {isHost && (
+          <View style={{ marginTop: 32, borderTopWidth: 1, borderTopColor: '#1f3a3a', paddingTop: 16 }}>
+            <TouchableOpacity
+              onPress={() => void handleLogout()}
+              activeOpacity={0.7}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10,
+                paddingHorizontal: 12, paddingVertical: 12, borderRadius: 12 }}
+            >
+              <LogOut size={16} color="#ef4444" />
+              <Text style={{ color: '#ef4444', fontSize: 14 }}>
+                {t('header.leaveButton')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
       </ScrollView>
     </SafeAreaView>
