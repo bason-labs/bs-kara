@@ -83,6 +83,15 @@ describe('ThemeContext', () => {
     expect(['light', 'dark']).toContain(getByTestId('resolved').props.children);
   });
 
+  it('restores preference from AsyncStorage on mount', async () => {
+    await AsyncStorage.setItem('karaoke_theme', 'light');
+    const { getByTestId } = render(
+      <ThemeProvider><PrefDisplay /></ThemeProvider>
+    );
+    await act(async () => {});
+    expect(getByTestId('pref').props.children).toBe('light');
+  });
+
   it('setPreference persists to AsyncStorage', async () => {
     let setter!: (p: Theme) => void;
     function Grabber() {
