@@ -155,12 +155,14 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
   },
   title: {
+    alignSelf: 'stretch',
     fontSize: 20,
     fontWeight: 'bold',
     color: '#ffffff',
     textAlign: 'center',
   },
   requester: {
+    alignSelf: 'stretch',
     fontSize: 14,
     color: PINK_200,
     textAlign: 'center',
@@ -170,12 +172,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   mcText: {
+    alignSelf: 'stretch',
     fontSize: 12,
     color: GRAY_300,
     fontStyle: 'italic',
     textAlign: 'center',
   },
   preparing: {
+    alignSelf: 'stretch',
     fontSize: 12,
     color: GRAY_400,
     textAlign: 'center',
