@@ -71,7 +71,7 @@ jest.mock('@/context/RoomContext', () => ({
 }));
 
 jest.mock('@/context/ThemeContext', () => ({
-  useTheme: () => ({ theme: 'dark', toggleTheme: jest.fn() }),
+  useTheme: () => ({ preference: 'dark', resolvedTheme: 'dark', setPreference: jest.fn() }),
 }));
 
 describe('SettingsSheet', () => {
