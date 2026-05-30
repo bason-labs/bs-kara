@@ -128,3 +128,48 @@ const FEATURES = [
     ],
   },
 ]
+
+// ─── Phase 1: Parallel reader agents ───────────────────────────────────────
+
+phase('Analyze')
+log(`Reading ${FEATURES.length} bk-web features in parallel...`)
+
+const specs = await parallel(FEATURES.map((feature) => () =>
+  agent(
+    `You are a READ-ONLY agent. Do NOT write any files.
+
+Read the bk-web source files for the feature "${feature.name}" and produce a structured port spec for bk-mobile.
+
+FEATURE: ${feature.name}
+DESCRIPTION: ${feature.description}
+
+BK-WEB FILES TO READ (paths from ${REPO}/):
+${feature.webFiles.map((f) => `  - ${f}`).join('\n')}
+
+Steps:
+1. Read every file listed above using the Read tool.
+2. Return a port spec with these fields:
+   - feature: "${feature.name}" (exact string)
+   - sourceFiles: the paths you read, relative from ${REPO} (e.g. "bk-web/hooks/useSongScore.ts")
+   - targetFiles: [{path, action}] for every bk-mobile file to create or modify.
+     Paths relative from ${REPO} (e.g. "bk-mobile/hooks/useSongScore.ts").
+     action is "create" or "modify".
+   - api: TypeScript signature as a plain string — the props interface + hook/component return type
+   - firebasePaths: RTDB paths this feature reads/writes (e.g. ["rooms/{roomId}/reactions/{reactionId}"])
+   - sharedDeps: symbols imported from @bs-kara/shared (e.g. ["db", "computeScore", "getRoomDataPath"])
+   - rnAdaptations: specific React Native substitutions required, one per item:
+       * "Replace qrcode.react QRCodeSVG with react-native-qrcode-svg QRCode"
+       * "Replace CSS keyframe animation with RN Animated.loop + Animated.timing"
+       * "Replace localStorage with AsyncStorage from @react-native-async-storage/async-storage"
+       * "Replace window.location.origin with EXPO_PUBLIC_SITE_URL env var"
+       * "Replace Web Speech API / browser SpeechSynthesis with expo-speech"
+       (Add only the ones that actually apply to this feature)
+   - webSourceContent: full source of every file you read, concatenated.
+     Prefix each file with "// === FILE: <relative-path> ===" on its own line.
+
+Return ONLY via StructuredOutput. Do not write to any file.`,
+    { label: `read:${feature.name}`, phase: 'Analyze', schema: SPEC_SCHEMA }
+  )
+))
+
+log('All specs ready. Starting sequential implementation...')
