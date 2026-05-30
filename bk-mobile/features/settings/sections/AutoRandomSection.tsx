@@ -92,7 +92,7 @@ export function AutoRandomSection({
             value={isAutoRandomMode}
             onValueChange={onAutoRandomChange}
             trackColor={{ false: c.border, true: c.brand }}
-            thumbColor={c.fg}
+            thumbColor="#fff"
           />
         </TouchableOpacity>
 
