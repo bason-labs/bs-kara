@@ -49,7 +49,7 @@ describe('SongResultItem', () => {
   });
 
   it('does not render duration badge when duration is absent', () => {
-    const videoWithoutDuration = { ...mockVideo, duration: undefined };
+    const videoWithoutDuration = { ...mockVideo, duration: undefined } as any;
     const { queryByTestId } = render(
       <SongResultItem video={videoWithoutDuration} onAdd={jest.fn()} added={false} />
     );
