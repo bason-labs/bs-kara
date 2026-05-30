@@ -8,6 +8,7 @@ import {
   AccessibilityInfo,
   useWindowDimensions,
 } from 'react-native';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import YoutubeIframe from 'react-native-youtube-iframe';
 import { X } from 'lucide-react-native';
@@ -36,9 +37,11 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
   // Local play state — starts from the Firebase value but flips to true
   // immediately when MC finishes, without waiting for Firebase round-trip.
   const [shouldPlay, setShouldPlay] = useState(isPlaying);
-  const { width } = useWindowDimensions();
-  const playerWidth = width;
-  const playerHeight = Math.round(width * (9 / 16));
+  const { width, height } = useWindowDimensions();
+  // After orientation locks to landscape, width > height.
+  // useWindowDimensions updates on rotation, so these will be correct landscape values.
+  const playerWidth = Math.max(width, height);
+  const playerHeight = Math.min(width, height);
 
   // MC is fully owned here. This component only mounts when fullscreen is open,
   // so ready=true avoids any ready-prop race that caused immediate gate closure.
@@ -73,6 +76,7 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
     AccessibilityInfo.isReduceMotionEnabled().then((val) => {
       if (mounted) setReduceMotion(val);
     });
+    void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT).catch(() => {});
     AsyncStorage.getItem(ROTATE_HINT_KEY).then((seen) => {
       if (!seen && mounted) {
         setShowHint(true);
@@ -81,6 +85,7 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
     });
     return () => {
       mounted = false;
+      void ScreenOrientation.unlockAsync().catch(() => {});
     };
   }, []);
 
