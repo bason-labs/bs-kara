@@ -32,6 +32,9 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
 
   const [showHint, setShowHint] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
+  // Local play state — starts from the Firebase value but flips to true
+  // immediately when MC finishes, without waiting for Firebase round-trip.
+  const [shouldPlay, setShouldPlay] = useState(isPlaying);
   const { height, width } = useWindowDimensions();
   const playerWidth = Math.max(width, height);
   const playerHeight = Math.min(width, height);
@@ -45,10 +48,15 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
     mcVoice,
   });
 
-  // Kick-play: when gate drops (true → false), guarantee video autoplays.
+  // Keep shouldPlay in sync with Firebase isPlaying (for pause from other controls).
+  useEffect(() => { setShouldPlay(isPlaying); }, [isPlaying]);
+
+  // Kick-play: when MC gate drops (true → false), flip shouldPlay immediately
+  // and also write to Firebase so other devices stay in sync.
   const prevMcGatedRef = useRef(false);
   useEffect(() => {
     if (prevMcGatedRef.current && !isMcGated) {
+      setShouldPlay(true);
       void setIsPlaying(true);
     }
     prevMcGatedRef.current = isMcGated;
@@ -87,7 +95,7 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
             videoId={videoId}
             height={playerHeight}
             width={playerWidth}
-            play={isPlaying}
+            play={shouldPlay}
             webViewStyle={{ backgroundColor: '#000' }}
           />
         )}
