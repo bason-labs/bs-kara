@@ -1,5 +1,4 @@
 import { View, Text, Image, TouchableOpacity, useWindowDimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Mic, Play, Pause, Maximize2, Trash2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import type { YouTubeVideo } from '@bs-kara/shared';
@@ -125,28 +124,25 @@ export function NowPlayingCard({
         {onSkip && (
           <TouchableOpacity
             onPress={onSkip}
-            activeOpacity={0.8}
+            activeOpacity={0.7}
             accessibilityRole="button"
-            style={{ borderRadius: 12, overflow: 'hidden' }}
+            style={{
+              alignSelf: 'center',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              paddingVertical: 10,
+              paddingHorizontal: 16,
+              borderRadius: 999,
+              backgroundColor: c.surface2,
+              borderWidth: 1,
+              borderColor: c.border,
+            }}
           >
-            <LinearGradient
-              colors={[c.gradientStart, c.gradientMid, c.gradientEnd]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-              }}
-            >
-              <Trash2 size={14} color="#fff" strokeWidth={2.2} />
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
-                {t('nowPlaying.removeAriaLabel')}
-              </Text>
-            </LinearGradient>
+            <Trash2 size={13} color={c.muted} strokeWidth={2.2} />
+            <Text style={{ color: c.muted, fontSize: 13 }}>
+              {t('nowPlaying.removeAriaLabel')}
+            </Text>
           </TouchableOpacity>
         )}
       </View>

@@ -27,7 +27,8 @@ export function TopBar({ roomCode }: TopBarProps) {
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: 16, paddingVertical: 12 }}>
+      paddingHorizontal: 16, paddingVertical: 12,
+      borderBottomWidth: 1, borderBottomColor: c.border }}>
 
       {/* Left: gradient BS icon + Kara wordmark */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
