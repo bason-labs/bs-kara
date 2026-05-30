@@ -173,3 +173,94 @@ Return ONLY via StructuredOutput. Do not write to any file.`,
 ))
 
 log('All specs ready. Starting sequential implementation...')
+
+
+// ─── Phase 2: Sequential implement + verify ────────────────────────────────
+
+const results = []
+
+for (let i = 0; i < FEATURES.length; i++) {
+  const feature = FEATURES[i]
+  const spec = specs[i]
+
+  if (!spec) {
+    log(`⚠️  Skipping ${feature.name} — reader returned null`)
+    results.push({ feature: feature.name, passed: false, error: 'Reader agent returned null' })
+    continue
+  }
+
+  log(`[${i + 1}/${FEATURES.length}] Implementing: ${feature.name}`)
+
+  phase('Implement')
+  await agent(
+    `Implement the "${feature.name}" feature in bk-mobile. Port it from bk-web.
+
+HARD CONSTRAINTS — any violation is a bug:
+1. bk-web/ is READ-ONLY. Never create, edit, or delete any file under ${REPO}/bk-web/.
+2. Only write files under ${REPO}/bk-mobile/.
+3. Follow bk-mobile conventions:
+   - Styling: NativeWind — use the "className" prop with Tailwind classes. No StyleSheet.create.
+   - Navigation: Expo Router (router.push / router.replace). No React Navigation.
+   - Bottom sheets: @gorhom/bottom-sheet BottomSheet component.
+   - Animations: React Native Animated API (Animated.Value, Animated.timing, Animated.loop).
+     No CSS, no framer-motion, no react-spring.
+   - Storage: AsyncStorage from @react-native-async-storage/async-storage. No localStorage.
+   - QR codes: react-native-qrcode-svg QRCode component. No qrcode.react.
+   - Voice input: @react-native-voice/voice. No Web Speech API.
+   - TTS: expo-speech as fallback when /api/tts fetch fails. No SpeechSynthesisUtterance.
+4. Do not modify any file not listed in targetFiles.
+5. When modifying an existing file, always read it with the Read tool first.
+
+PORT SPEC:
+Feature: ${spec.feature}
+API: ${spec.api}
+Firebase RTDB paths: ${(spec.firebasePaths || []).join(', ') || 'none'}
+Shared imports (@bs-kara/shared): ${(spec.sharedDeps || []).join(', ') || 'none'}
+RN adaptations required:
+${(spec.rnAdaptations || []).map((a) => `  - ${a}`).join('\n') || '  (none)'}
+
+TARGET FILES:
+${spec.targetFiles.map((f) => `  ${f.action.toUpperCase()}: ${REPO}/${f.path}`).join('\n')}
+
+BK-WEB SOURCE (reference — adapt for React Native, do not copy verbatim):
+${spec.webSourceContent}
+
+Implement now. Use Write for new files, Edit for modifications.`,
+    { label: `implement:${feature.name}`, phase: 'Implement' }
+  )
+
+  phase('Verify')
+  const verifyResult = await agent(
+    `Verify bk-mobile compiles and lints cleanly after implementing "${feature.name}".
+
+Run these commands in order:
+1. cd ${REPO}/bk-mobile && npx tsc --noEmit 2>&1
+2. cd ${REPO}/bk-mobile && npm run lint 2>&1
+
+PASS condition: both commands exit with zero errors.
+FAIL condition: either command has errors.
+
+If FAIL on first run — attempt ONE self-repair:
+  a. Read the error output carefully.
+  b. Identify the specific lines causing errors.
+  c. Fix only those lines using Edit. Do not touch files unrelated to "${feature.name}".
+  d. Re-run BOTH commands.
+  e. Report the result of the re-run (do not attempt a second repair).
+
+Return:
+  passed: true if both commands are error-free (after repair if needed), false otherwise
+  errors: full error text if still failing, empty string "" if passed
+  warnings: any non-blocking lint warnings (empty string "" if none)`,
+    { label: `verify:${feature.name}`, phase: 'Verify', schema: VERIFY_SCHEMA }
+  )
+
+  if (!verifyResult || !verifyResult.passed) {
+    const err = verifyResult && verifyResult.errors ? verifyResult.errors : 'Unknown verification error'
+    log(`❌ Halted at [${i + 1}/${FEATURES.length}] ${feature.name}`)
+    results.push({ feature: feature.name, passed: false, error: err })
+    return { halted: true, haltedAt: feature.name, completedCount: i, results }
+  }
+
+  log(`✅ ${feature.name}${verifyResult.warnings ? ' (warnings present)' : ''}`)
+  results.push({ feature: feature.name, passed: true, warnings: verifyResult.warnings || '' })
+}
