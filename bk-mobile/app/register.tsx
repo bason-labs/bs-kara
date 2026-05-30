@@ -21,6 +21,7 @@ import { auth } from '@bs-kara/shared';
 import { usePhoneAuth } from '@/hooks/usePhoneAuth';
 import { registerUser, lookupUserByPhone, ensureHostUid } from '@/lib/registeredUsers';
 import { toE164VN } from '@/lib/phone';
+import { useColors } from '@/hooks/useColors';
 
 type UiStep = 'phone' | 'otp' | 'name';
 const RESEND_SECONDS = 60;
@@ -38,6 +39,7 @@ function PhoneStep({
   error: string | null;
 }) {
   const { t } = useTranslation();
+  const c = useColors();
   const [raw, setRaw] = useState('');
   const e164 = toE164VN(raw);
   const canSubmit = e164 !== null && !loading;
@@ -45,7 +47,7 @@ function PhoneStep({
   return (
     <View className="w-full gap-5">
       <View className="gap-1.5">
-        <Text className="text-xs uppercase tracking-[4px] text-[#7aa8a8]">
+        <Text className="text-xs uppercase tracking-[4px]" style={{ color: c.muted }}>
           {t('auth.phoneLabel')}
         </Text>
         <TextInput
@@ -57,13 +59,14 @@ function PhoneStep({
           editable={!loading}
           returnKeyType="done"
           onSubmitEditing={() => { if (e164) onSubmit(e164); }}
-          className="w-full px-4 py-3.5 rounded-2xl bg-[#152a2a] border border-[#1f3a3a] text-[#e0ffff] text-lg tracking-widest"
+          className="w-full px-4 py-3.5 rounded-2xl text-lg tracking-widest"
+          style={{ backgroundColor: c.surface2, borderWidth: 1, borderColor: c.border, color: c.fg }}
         />
         {raw.length > 0 && e164 === null && (
-          <Text className="text-xs text-[#ff5f6d]">{t('auth.errors.invalidPhone')}</Text>
+          <Text className="text-xs" style={{ color: c.danger }}>{t('auth.errors.invalidPhone')}</Text>
         )}
         {error && (
-          <Text className="text-xs text-[#ff5f6d]">{t('auth.errors.sendFailed')}</Text>
+          <Text className="text-xs" style={{ color: c.danger }}>{t('auth.errors.sendFailed')}</Text>
         )}
       </View>
 
@@ -80,7 +83,7 @@ function PhoneStep({
           end={{ x: 1, y: 1 }}
           className="py-4 items-center"
         >
-          <Text className="text-[#e0ffff] font-semibold text-base tracking-wide">
+          <Text className="font-semibold text-base tracking-wide" style={{ color: c.fg }}>
             {loading ? t('auth.sendingOtp') : t('auth.sendOtp')}
           </Text>
         </LinearGradient>
@@ -105,6 +108,7 @@ function OtpStep({
   error: string | null;
 }) {
   const { t } = useTranslation();
+  const c = useColors();
   const [code, setCode] = useState('');
   const [countdown, setCountdown] = useState(RESEND_SECONDS);
   const inputRef = useRef<TextInput>(null);
@@ -131,7 +135,7 @@ function OtpStep({
 
   return (
     <View className="w-full gap-5 items-center">
-      <Text className="text-sm text-[#7aa8a8] text-center">
+      <Text className="text-sm text-center" style={{ color: c.muted }}>
         {t('auth.otpHint', { phone: masked })}
       </Text>
 
@@ -148,13 +152,14 @@ function OtpStep({
           return (
             <View
               key={i}
-              className="w-11 h-14 rounded-xl bg-[#152a2a] items-center justify-center"
+              className="w-11 h-14 rounded-xl items-center justify-center"
               style={{
+                backgroundColor: c.surface2,
                 borderWidth: 2,
-                borderColor: isActive ? '#40e0d0' : char ? '#2a5050' : '#1f3a3a',
+                borderColor: isActive ? c.accent : char ? '#2a5050' : c.border,
               }}
             >
-              <Text className="text-[#e0ffff] text-xl font-bold">{char}</Text>
+              <Text className="text-xl font-bold" style={{ color: c.fg }}>{char}</Text>
             </View>
           );
         })}
@@ -172,7 +177,7 @@ function OtpStep({
       />
 
       {error && (
-        <Text className="text-xs text-[#ff5f6d] text-center">{t('auth.errors.otpFailed')}</Text>
+        <Text className="text-xs text-center" style={{ color: c.danger }}>{t('auth.errors.otpFailed')}</Text>
       )}
 
       <TouchableOpacity
@@ -181,7 +186,7 @@ function OtpStep({
         activeOpacity={0.7}
         style={{ opacity: loading || countdown > 0 ? 0.4 : 1 }}
       >
-        <Text className="text-sm text-[#7aa8a8]">
+        <Text className="text-sm" style={{ color: c.muted }}>
           {countdown > 0
             ? t('auth.resendIn', { seconds: countdown })
             : t('auth.resend')}
@@ -201,7 +206,7 @@ function OtpStep({
           end={{ x: 1, y: 1 }}
           className="py-4 items-center"
         >
-          <Text className="text-[#e0ffff] font-semibold text-base tracking-wide">
+          <Text className="font-semibold text-base tracking-wide" style={{ color: c.fg }}>
             {loading ? t('auth.verifying') : t('auth.verify')}
           </Text>
         </LinearGradient>
@@ -220,15 +225,16 @@ function NameStep({
   loading: boolean;
 }) {
   const { t } = useTranslation();
+  const c = useColors();
   const [name, setName] = useState('');
 
   return (
     <View className="w-full gap-6">
       <View className="gap-2">
-        <Text className="text-xs uppercase tracking-[4px] text-[#7aa8a8]">
+        <Text className="text-xs uppercase tracking-[4px]" style={{ color: c.muted }}>
           {t('auth.displayNameLabel')}
         </Text>
-        <Text className="text-sm text-[#7aa8a8]">{t('auth.displayNameHint')}</Text>
+        <Text className="text-sm" style={{ color: c.muted }}>{t('auth.displayNameHint')}</Text>
         <TextInput
           value={name}
           onChangeText={setName}
@@ -238,7 +244,8 @@ function NameStep({
           autoFocus
           returnKeyType="done"
           onSubmitEditing={() => onSubmit(name.trim() || undefined)}
-          className="w-full px-4 py-3.5 rounded-2xl bg-[#152a2a] border border-[#1f3a3a] text-[#e0ffff] text-base"
+          className="w-full px-4 py-3.5 rounded-2xl text-base"
+          style={{ backgroundColor: c.surface2, borderWidth: 1, borderColor: c.border, color: c.fg }}
         />
       </View>
 
@@ -256,7 +263,7 @@ function NameStep({
             end={{ x: 1, y: 1 }}
             className="py-4 items-center"
           >
-            <Text className="text-[#e0ffff] font-semibold text-base tracking-wide">
+            <Text className="font-semibold text-base tracking-wide" style={{ color: c.fg }}>
               {loading ? '…' : t('auth.continue')}
             </Text>
           </LinearGradient>
@@ -269,7 +276,7 @@ function NameStep({
           style={{ opacity: loading ? 0.4 : 1 }}
           className="py-2.5 items-center"
         >
-          <Text className="text-sm text-[#7aa8a8]">{t('auth.skip')}</Text>
+          <Text className="text-sm" style={{ color: c.muted }}>{t('auth.skip')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -282,6 +289,7 @@ const STEPS: UiStep[] = ['phone', 'otp', 'name'];
 
 export default function RegisterScreen() {
   const { t } = useTranslation();
+  const c = useColors();
   const router = useRouter();
   const { step: authStep, error, sendOtp, verifyOtp, reset, recaptchaRef } = usePhoneAuth();
   const [uiStep, setUiStep] = useState<UiStep>('phone');
@@ -330,7 +338,7 @@ export default function RegisterScreen() {
   const stepIndex = STEPS.indexOf(uiStep);
 
   return (
-    <SafeAreaView className="flex-1 bg-[#06100f]">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: c.bg }}>
       <FirebaseRecaptchaVerifierModal
         ref={recaptchaRef}
         firebaseConfig={app.options}
@@ -344,8 +352,8 @@ export default function RegisterScreen() {
           activeOpacity={0.7}
           className="flex-row items-center gap-2 px-4 pt-4 pb-2"
         >
-          <ArrowLeft size={20} color="#7aa8a8" />
-          <Text className="text-[#7aa8a8] text-sm">{t('auth.back')}</Text>
+          <ArrowLeft size={20} color={c.muted} />
+          <Text className="text-sm" style={{ color: c.muted }}>{t('auth.back')}</Text>
         </TouchableOpacity>
       )}
 
@@ -360,8 +368,8 @@ export default function RegisterScreen() {
           <View className="flex-1 items-center justify-center px-6 py-10 gap-8">
             {/* Header */}
             <View className="items-center gap-1.5">
-              <Text className="text-4xl font-bold text-[#40e0d0]">{t('auth.title')}</Text>
-              <Text className="text-sm text-[#7aa8a8] text-center">{t('auth.subtitle')}</Text>
+              <Text className="text-4xl font-bold" style={{ color: c.accent }}>{t('auth.title')}</Text>
+              <Text className="text-sm text-center" style={{ color: c.muted }}>{t('auth.subtitle')}</Text>
             </View>
 
             {/* Step dots */}
@@ -373,7 +381,7 @@ export default function RegisterScreen() {
                     height: 6,
                     borderRadius: 3,
                     width: i === stepIndex ? 32 : 8,
-                    backgroundColor: i === stepIndex ? '#40e0d0' : i < stepIndex ? '#008b8b66' : '#1f3a3a',
+                    backgroundColor: i === stepIndex ? c.accent : i < stepIndex ? `${c.brand}66` : c.border,
                   }}
                 />
               ))}
@@ -381,12 +389,12 @@ export default function RegisterScreen() {
 
             {/* Card */}
             <View
-              className="w-full bg-[#0e1c1c] border border-[#1f3a3a] rounded-3xl p-7"
-              style={{ shadowColor: '#008b8b', shadowOpacity: 0.15, shadowRadius: 20, elevation: 8 }}
+              className="w-full rounded-3xl p-7"
+              style={{ backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, shadowColor: c.brand, shadowOpacity: 0.15, shadowRadius: 20, elevation: 8 }}
             >
               {isLoading && uiStep !== 'otp' && uiStep !== 'name' && (
-                <View className="absolute inset-0 items-center justify-center z-10 rounded-3xl bg-[#0e1c1c]/80">
-                  <ActivityIndicator color="#40e0d0" />
+                <View className="absolute inset-0 items-center justify-center z-10 rounded-3xl" style={{ backgroundColor: `${c.surface}cc` }}>
+                  <ActivityIndicator color={c.accent} />
                 </View>
               )}
 
