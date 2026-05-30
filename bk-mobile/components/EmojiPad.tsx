@@ -1,13 +1,15 @@
 import { View, TouchableOpacity, Text } from 'react-native';
 import { REACTIONS } from '@bs-kara/shared';
+import { useColors } from '@/hooks/useColors';
 
 interface EmojiPadProps {
   onSend: (emoji: string) => void;
 }
 
 export function EmojiPad({ onSend }: EmojiPadProps) {
+  const c = useColors();
   return (
-    <View className="flex-row justify-around px-4 py-3 border-t border-[#1f3a3a] bg-[#0e1c1c]">
+    <View className="flex-row justify-around px-4 py-3 border-t" style={{ borderTopColor: c.border, backgroundColor: c.surface }}>
       {REACTIONS.map((emoji) => (
         <TouchableOpacity
           key={emoji}

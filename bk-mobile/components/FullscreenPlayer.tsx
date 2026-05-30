@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useRoomContext } from '@/context/RoomContext';
 import { useMCPlayer } from '@/hooks/useMCPlayer';
 import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
+import { useColors } from '@/hooks/useColors';
 
 const ROTATE_HINT_KEY = 'bsk_seenRotateHint';
 
@@ -29,6 +30,7 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
   const { t } = useTranslation();
   const { roomData, setIsPlaying } = useRoomContext();
   const { currentPlaying, isMCEnabled, mcVoice } = roomData;
+  const c = useColors();
 
   const [showHint, setShowHint] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -135,7 +137,7 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
                 justifyContent: 'center',
               }}
             >
-              <X size={22} color="#e0ffff" />
+              <X size={22} color={c.fg} />
             </TouchableOpacity>
           </SafeAreaView>
         )}
@@ -152,7 +154,7 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
               paddingVertical: 10,
             }}
           >
-            <Text style={{ color: '#e0ffff', fontSize: 13 }}>
+            <Text style={{ color: c.fg, fontSize: 13 }}>
               {t('player.rotateHint', '↻ Xoay điện thoại')}
             </Text>
           </View>

@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Sparkles, X } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import { useColors } from '@/hooks/useColors';
 
 export interface MCAnnouncementOverlayProps {
   // 'tv' not used in mobile but kept for parity; mobile always uses 'phone' sizing
@@ -31,6 +32,7 @@ export function MCAnnouncementOverlay({
 }: MCAnnouncementOverlayProps): React.ReactElement {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const c = useColors();
 
   // Opacity pulse animation for the "preparing" state (replaces CSS animate-pulse)
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -68,7 +70,7 @@ export function MCAnnouncementOverlay({
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel={t('player.closeFullscreen')}
-          style={[styles.closeButton, { top: Math.max(8, insets.top) }]}
+          style={[styles.closeButton, { top: Math.max(8, insets.top), backgroundColor: c.gradientStart }]}
         >
           <X size={20} color="#ffffff" strokeWidth={2.4} />
         </TouchableOpacity>
@@ -112,8 +114,6 @@ const PINK_BADGE_BG = 'rgba(236, 72, 153, 0.2)'; // pink-500/20
 const PINK_BADGE_BORDER = 'rgba(244, 114, 182, 0.4)'; // pink-400/40
 const GRAY_300 = '#d1d5db';
 const GRAY_400 = '#9ca3af';
-const BRAND_GRADIENT_START = '#008b8b';
-
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
@@ -131,9 +131,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    // Gradient approximated with a single brand color since RN View
-    // does not support CSS gradients natively.
-    backgroundColor: BRAND_GRADIENT_START,
     alignItems: 'center',
     justifyContent: 'center',
   },

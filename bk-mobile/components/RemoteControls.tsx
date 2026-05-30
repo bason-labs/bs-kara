@@ -1,5 +1,6 @@
 import { View, TouchableOpacity } from 'react-native';
 import { Pause, Play, SkipBack, SkipForward } from 'lucide-react-native';
+import { useColors } from '@/hooks/useColors';
 
 interface RemoteControlsProps {
   isPlaying: boolean;
@@ -18,6 +19,7 @@ export function RemoteControls({
   onPrev,
   onNext,
 }: RemoteControlsProps) {
+  const c = useColors();
   return (
     <View
       style={{
@@ -36,7 +38,7 @@ export function RemoteControls({
           accessibilityRole="button"
           style={[{ padding: 12 }, !hasHistory && { opacity: 0.3 }]}
         >
-          <SkipBack size={28} color="#7aa8a8" />
+          <SkipBack size={28} color={c.muted} />
         </TouchableOpacity>
       </View>
 
@@ -49,12 +51,12 @@ export function RemoteControls({
           width: 64,
           height: 64,
           borderRadius: 32,
-          backgroundColor: '#008b8b',
+          backgroundColor: c.brand,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        {isPlaying ? <Pause size={28} color="#e0ffff" /> : <Play size={28} color="#e0ffff" />}
+        {isPlaying ? <Pause size={28} color={c.fg} /> : <Play size={28} color={c.fg} />}
       </TouchableOpacity>
 
       <View pointerEvents={hasQueue ? 'auto' : 'none'}>
@@ -65,7 +67,7 @@ export function RemoteControls({
           accessibilityRole="button"
           style={[{ padding: 12 }, !hasQueue && { opacity: 0.3 }]}
         >
-          <SkipForward size={28} color="#7aa8a8" />
+          <SkipForward size={28} color={c.muted} />
         </TouchableOpacity>
       </View>
     </View>

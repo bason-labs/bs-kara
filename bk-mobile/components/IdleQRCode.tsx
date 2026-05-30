@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useTranslation } from 'react-i18next';
+import { useColors } from '@/hooks/useColors';
 
 export interface IdleQRCodeProps {
   roomCode: string | null;
@@ -21,6 +22,7 @@ const SITE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
  */
 export function IdleQRCode({ roomCode, size = 240 }: IdleQRCodeProps): React.ReactElement {
   const { t } = useTranslation();
+  const c = useColors();
 
   // Derive join URL synchronously — no window.location in RN; we read the
   // EXPO_PUBLIC_API_BASE_URL env var at module level instead.
@@ -49,7 +51,7 @@ export function IdleQRCode({ roomCode, size = 240 }: IdleQRCodeProps): React.Rea
       </View>
 
       {/* "Scan to join" label */}
-      <Text className="text-sm font-medium text-[#e0ffff] text-center">
+      <Text className="text-sm font-medium text-center" style={{ color: c.fg }}>
         {t('tv.scanToJoin')}
       </Text>
 
@@ -60,7 +62,7 @@ export function IdleQRCode({ roomCode, size = 240 }: IdleQRCodeProps): React.Rea
         </Text>
         <View
           className="rounded-full px-3 py-1"
-          style={{ backgroundColor: '#008b8b' }}
+          style={{ backgroundColor: c.brand }}
         >
           <Text
             className="text-base font-bold text-white tracking-widest"
