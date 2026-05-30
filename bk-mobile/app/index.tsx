@@ -2,10 +2,12 @@ import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useRoomGate } from '@/hooks/useRoomGate';
+import { useColors } from '@/hooks/useColors';
 
 export default function GateScreen() {
   const router = useRouter();
   const { activeRoomCode, isLoading } = useRoomGate();
+  const c = useColors();
 
   useEffect(() => {
     if (isLoading) return;
@@ -17,8 +19,8 @@ export default function GateScreen() {
   }, [isLoading, activeRoomCode, router]);
 
   return (
-    <View className="flex-1 items-center justify-center bg-[#06100f]">
-      <ActivityIndicator color="#008b8b" size="large" />
+    <View className="flex-1 items-center justify-center" style={{ backgroundColor: c.bg }}>
+      <ActivityIndicator color={c.brand} size="large" />
     </View>
   );
 }

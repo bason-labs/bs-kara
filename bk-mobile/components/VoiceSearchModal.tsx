@@ -3,6 +3,7 @@ import { Animated, Easing, Modal, Text, TouchableOpacity, TouchableWithoutFeedba
 import { useTranslation } from 'react-i18next';
 import { Mic, X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useColors } from '@/hooks/useColors';
 
 interface VoiceSearchModalProps {
   visible: boolean;
@@ -12,6 +13,7 @@ interface VoiceSearchModalProps {
 }
 
 function PulseDot() {
+  const c = useColors();
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
@@ -33,12 +35,13 @@ function PulseDot() {
         backgroundColor: 'rgba(64,224,208,0.4)',
         transform: [{ scale: ringScale }], opacity: ringOpacity,
       }} />
-      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#40e0d0' }} />
+      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c.accent }} />
     </View>
   );
 }
 
 function BlinkCursor() {
+  const c = useColors();
   const opacity = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     Animated.loop(
@@ -50,11 +53,12 @@ function BlinkCursor() {
     return () => opacity.stopAnimation();
   }, [opacity]);
   return (
-    <Animated.Text style={{ color: '#7df9ff', fontSize: 20, fontWeight: '600', opacity }}>|</Animated.Text>
+    <Animated.Text style={{ color: c.glow, fontSize: 20, fontWeight: '600', opacity }}>|</Animated.Text>
   );
 }
 
 function MicOrb() {
+  const c = useColors();
   // Compact orb sized for a bounded dialog card (was 168×168 / 96 mic in the
   // previous full-screen overlay layout).
   const ORB_SIZE = 128;
@@ -90,12 +94,12 @@ function MicOrb() {
       <Animated.View style={ringStyle(ring1)} />
       <Animated.View style={ringStyle(ring2)} />
       <LinearGradient
-        colors={['#008b8b', '#006d6f', '#0d98ba']}
+        colors={[c.gradientStart, c.gradientMid, c.gradientEnd]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={{
           width: MIC_SIZE, height: MIC_SIZE, borderRadius: MIC_SIZE / 2,
           alignItems: 'center', justifyContent: 'center',
-          shadowColor: '#7df9ff',
+          shadowColor: c.glow,
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.6,
           shadowRadius: 12,
@@ -112,6 +116,7 @@ export function VoiceSearchModal({
   visible, interimTranscript, onClose, suggestions = [],
 }: VoiceSearchModalProps) {
   const { t } = useTranslation();
+  const c = useColors();
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
@@ -125,7 +130,7 @@ export function VoiceSearchModal({
           <View style={{
             width: '100%',
             maxWidth: 380,
-            backgroundColor: '#0e1c1c',
+            backgroundColor: c.surface,
             borderRadius: 20,
             padding: 24,
             gap: 18,
@@ -133,13 +138,13 @@ export function VoiceSearchModal({
           }}>
             {/* Header: title + close */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={{ color: '#e0ffff', fontSize: 16, fontWeight: '700' }}>
+              <Text style={{ color: c.fg, fontSize: 16, fontWeight: '700' }}>
                 {t('voice.title')}
               </Text>
               <TouchableOpacity testID="voice-close-button" onPress={onClose} activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 style={{ width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}>
-                <X size={20} color="#7aa8a8" />
+                <X size={20} color={c.muted} />
               </TouchableOpacity>
             </View>
 
@@ -151,7 +156,7 @@ export function VoiceSearchModal({
             {/* Transcript (only when recognizing) */}
             {interimTranscript ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 28 }}>
-                <Text style={{ fontSize: 18, fontWeight: '600', color: '#e0ffff',
+                <Text style={{ fontSize: 18, fontWeight: '600', color: c.fg,
                   textAlign: 'center', lineHeight: 24 }}>
                   {interimTranscript}
                 </Text>
@@ -162,7 +167,7 @@ export function VoiceSearchModal({
             {/* Hint row */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
               <PulseDot />
-              <Text style={{ fontSize: 13, color: '#7aa8a8' }}>
+              <Text style={{ fontSize: 13, color: c.muted }}>
                 {interimTranscript ? t('voice.recognizing') : t('voice.hint')}
               </Text>
             </View>
@@ -171,10 +176,10 @@ export function VoiceSearchModal({
             {suggestions.length > 0 && !interimTranscript && (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
                 {suggestions.map((s) => (
-                  <View key={s} style={{ backgroundColor: '#152a2a', borderRadius: 999,
+                  <View key={s} style={{ backgroundColor: c.surface2, borderRadius: 999,
                     paddingHorizontal: 12, paddingVertical: 6,
-                    borderWidth: 1, borderColor: '#1f3a3a' }}>
-                    <Text style={{ fontSize: 11, color: '#7aa8a8' }}>"{s}"</Text>
+                    borderWidth: 1, borderColor: c.border }}>
+                    <Text style={{ fontSize: 11, color: c.muted }}>"{s}"</Text>
                   </View>
                 ))}
               </View>
@@ -183,8 +188,8 @@ export function VoiceSearchModal({
             {/* Cancel button */}
             <TouchableOpacity testID="voice-cancel-button" onPress={onClose} activeOpacity={0.7}
               style={{ paddingVertical: 12, borderRadius: 12, borderWidth: 1,
-                borderColor: '#1f3a3a', alignItems: 'center' }}>
-              <Text style={{ color: '#7aa8a8', fontWeight: '600' }}>{t('voice.cancel')}</Text>
+                borderColor: c.border, alignItems: 'center' }}>
+              <Text style={{ color: c.muted, fontWeight: '600' }}>{t('voice.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableWithoutFeedback>

@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { Animated, View } from 'react-native';
+import { useColors } from '@/hooks/useColors';
 
 const ROW_COUNT = 8;
 
 function SkeletonRow({ delay }: { delay: number }) {
+  const c = useColors();
   const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -22,14 +24,14 @@ function SkeletonRow({ delay }: { delay: number }) {
       testID="skeleton-row"
       style={{ opacity, flexDirection: 'row', alignItems: 'center', gap: 12,
         paddingHorizontal: 16, paddingVertical: 10,
-        borderBottomWidth: 1, borderBottomColor: '#1f3a3a' }}
+        borderBottomWidth: 1, borderBottomColor: c.border }}
     >
-      <View style={{ width: 72, height: 44, borderRadius: 6, backgroundColor: '#152a2a' }} />
+      <View style={{ width: 72, height: 44, borderRadius: 6, backgroundColor: c.surface2 }} />
       <View style={{ flex: 1, gap: 6 }}>
-        <View style={{ height: 12, borderRadius: 4, backgroundColor: '#1f3a3a', width: '75%' }} />
-        <View style={{ height: 10, borderRadius: 4, backgroundColor: '#152a2a', width: '45%' }} />
+        <View style={{ height: 12, borderRadius: 4, backgroundColor: c.border, width: '75%' }} />
+        <View style={{ height: 10, borderRadius: 4, backgroundColor: c.surface2, width: '45%' }} />
       </View>
-      <View style={{ width: 60, height: 30, borderRadius: 999, backgroundColor: '#1f3a3a' }} />
+      <View style={{ width: 60, height: 30, borderRadius: 999, backgroundColor: c.border }} />
     </Animated.View>
   );
 }

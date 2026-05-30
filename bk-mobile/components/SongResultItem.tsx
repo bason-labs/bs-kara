@@ -4,6 +4,7 @@ import { Check, Plus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { YouTubeVideo } from '@bs-kara/shared';
 import { EQBars } from './EQBars';
+import { useColors } from '@/hooks/useColors';
 
 interface SongResultItemProps {
   video: YouTubeVideo;
@@ -17,19 +18,20 @@ export function SongResultItem({
   video, onAdd, added, queued, isCurrentlyPlaying,
 }: SongResultItemProps) {
   const { t } = useTranslation();
+  const c = useColors();
 
   const borderColor = isCurrentlyPlaying
     ? 'rgba(125,249,255,0.55)'
     : queued
       ? 'rgba(64,224,208,0.35)'
-      : '#1f3a3a';
+      : c.border;
 
   const statusPill: React.ReactNode = isCurrentlyPlaying ? (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4,
       paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999,
       backgroundColor: 'rgba(125,249,255,0.18)', alignSelf: 'flex-start', marginTop: 4 }}>
-      <View style={{ width: 5, height: 5, borderRadius: 999, backgroundColor: '#7df9ff' }} />
-      <Text style={{ color: '#7df9ff', fontSize: 11 }}>{t('search.statusNowPlaying')}</Text>
+      <View style={{ width: 5, height: 5, borderRadius: 999, backgroundColor: c.glow }} />
+      <Text style={{ color: c.glow, fontSize: 11 }}>{t('search.statusNowPlaying')}</Text>
     </View>
   ) : null;
 
@@ -40,7 +42,7 @@ export function SongResultItem({
         <View testID="action-playing" style={{ width: 44, height: 44, borderRadius: 22,
           alignItems: 'center', justifyContent: 'center',
           borderWidth: 1, borderColor: 'rgba(125,249,255,0.4)' }}>
-          <Check size={20} color="#7df9ff" />
+          <Check size={20} color={c.glow} />
         </View>
       );
     }
@@ -48,14 +50,14 @@ export function SongResultItem({
       return (
         <View testID="action-queued" style={{ width: 44, height: 44, borderRadius: 22,
           alignItems: 'center', justifyContent: 'center',
-          backgroundColor: '#152a2a', borderWidth: 1, borderColor: 'rgba(64,224,208,0.3)' }}>
-          <Check size={20} color="#40e0d0" />
+          backgroundColor: c.surface2, borderWidth: 1, borderColor: 'rgba(64,224,208,0.3)' }}>
+          <Check size={20} color={c.accent} />
         </View>
       );
     }
     return (
       <LinearGradient
-        colors={['#008b8b', '#006d6f', '#0d98ba']}
+        colors={[c.gradientStart, c.gradientMid, c.gradientEnd]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ width: 44, height: 44, borderRadius: 22 }}
       >
@@ -67,7 +69,7 @@ export function SongResultItem({
     );
   }
 
-  const cardBg = isCurrentlyPlaying ? 'rgba(125,249,255,0.04)' : '#0e1c1c';
+  const cardBg = isCurrentlyPlaying ? 'rgba(125,249,255,0.04)' : c.surface;
 
   return (
     <View style={{
@@ -77,7 +79,7 @@ export function SongResultItem({
     }}>
       {/* Thumbnail — 110×62 with overlays */}
       <View style={{ width: 110, height: 62, borderRadius: 8, overflow: 'hidden',
-        backgroundColor: '#152a2a', flexShrink: 0 }}>
+        backgroundColor: c.surface2, flexShrink: 0 }}>
         <Image source={{ uri: video.thumbnail }}
           style={{ width: 110, height: 62 }} resizeMode="cover" />
         {/* Duration badge */}
@@ -95,18 +97,18 @@ export function SongResultItem({
         {isCurrentlyPlaying && (
           <View style={{ position: 'absolute', bottom: 6, left: 6,
             backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 4, padding: 3 }}>
-            <EQBars color="#7df9ff" />
+            <EQBars color={c.glow} />
           </View>
         )}
       </View>
 
       {/* Content */}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ color: '#e0ffff', fontSize: 14.5, fontWeight: '500', lineHeight: 20 }}
+        <Text style={{ color: c.fg, fontSize: 14.5, fontWeight: '500', lineHeight: 20 }}
           numberOfLines={2}>
           {video.title}
         </Text>
-        <Text style={{ color: '#7aa8a8', fontSize: 11.5 }} numberOfLines={1}>
+        <Text style={{ color: c.muted, fontSize: 11.5 }} numberOfLines={1}>
           {video.channel}
         </Text>
         {statusPill}

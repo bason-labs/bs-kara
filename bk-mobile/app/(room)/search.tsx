@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useColors } from '@/hooks/useColors';
 import {
   View, Text, TextInput, FlatList, Image, Modal,
   TouchableOpacity, TouchableWithoutFeedback, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform,
@@ -26,6 +27,7 @@ import type { YouTubeVideo } from '@bs-kara/shared';
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 
 export default function SearchScreen() {
+  const c = useColors();
   const { t } = useTranslation();
   const { addSongToQueue, roomData, roomCode } = useRoomContext();
   const { history, push: pushHistory, remove: removeHistory } = useSearchHistory();
@@ -183,7 +185,7 @@ export default function SearchScreen() {
           <Text style={{ color: '#f59e0b', fontSize: 15, fontWeight: '600', marginTop: 12, textAlign: 'center' }}>
             {t('search.errorQuotaTitle')}
           </Text>
-          <Text style={{ color: '#7aa8a8', fontSize: 13, marginTop: 6, textAlign: 'center' }}>
+          <Text style={{ color: c.muted, fontSize: 13, marginTop: 6, textAlign: 'center' }}>
             {t('search.errorQuotaSubtitle')}
           </Text>
         </View>
@@ -196,7 +198,7 @@ export default function SearchScreen() {
           <Text style={{ color: '#f87171', fontSize: 15, fontWeight: '600', marginTop: 12, textAlign: 'center' }}>
             {t('search.errorGenericTitle')}
           </Text>
-          <Text style={{ color: '#7aa8a8', fontSize: 13, marginTop: 6, textAlign: 'center' }}>
+          <Text style={{ color: c.muted, fontSize: 13, marginTop: 6, textAlign: 'center' }}>
             {t('search.errorGenericSubtitle')}
           </Text>
         </View>
@@ -205,11 +207,11 @@ export default function SearchScreen() {
     if (hasSearched && results.length === 0 && !searchError) {
       return (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
-          <SearchX size={36} color="#7aa8a8" />
-          <Text style={{ color: '#e0ffff', fontSize: 15, fontWeight: '600', marginTop: 12, textAlign: 'center' }}>
+          <SearchX size={36} color={c.muted} />
+          <Text style={{ color: c.fg, fontSize: 15, fontWeight: '600', marginTop: 12, textAlign: 'center' }}>
             {t('search.errorNoResultsTitle')}
           </Text>
-          <Text style={{ color: '#7aa8a8', fontSize: 13, marginTop: 6, textAlign: 'center' }}>
+          <Text style={{ color: c.muted, fontSize: 13, marginTop: 6, textAlign: 'center' }}>
             {t('search.errorNoResultsSubtitle')}
           </Text>
         </View>
@@ -219,16 +221,16 @@ export default function SearchScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#06100f' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       {!isFocused && <TopBar roomCode={roomCode} />}
 
       {/* Search bar */}
       <View style={{ flexDirection: 'row', alignItems: 'center',
-        marginHorizontal: 16, marginTop: 0, marginBottom: 4, gap: 10 }}>
+        marginHorizontal: 16, marginTop: 12, marginBottom: 4, gap: 10 }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center',
-          backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a',
+          backgroundColor: c.surface, borderWidth: 1, borderColor: c.border,
           borderRadius: 999, paddingHorizontal: 14, height: 52, gap: 8 }}>
-          <Search size={15} color="#7aa8a8" />
+          <Search size={15} color={c.muted} />
           <TextInput
             ref={inputRef}
             value={query}
@@ -237,21 +239,21 @@ export default function SearchScreen() {
             onFocus={() => setIsFocused(true)}
             returnKeyType="search"
             placeholder={t('search.placeholder')}
-            placeholderTextColor="#7aa8a8"
-            style={{ flex: 1, color: '#e0ffff', fontSize: 14 }}
+            placeholderTextColor={c.muted}
+            style={{ flex: 1, color: c.fg, fontSize: 14 }}
           />
           {query.length > 0 ? (
             <TouchableOpacity onPress={() => { setQuery(''); clearSuggestions(); }}
               activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <X size={16} color="#7aa8a8" />
+              <X size={16} color={c.muted} />
             </TouchableOpacity>
           ) : (
             <View style={{ position: 'relative' }}>
               <TouchableOpacity onPress={() => setShowFiltersSheet(true)} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <SlidersHorizontal size={18} color={activeChips.size > 0 ? '#7df9ff' : '#7aa8a8'} />
+                <SlidersHorizontal size={18} color={activeChips.size > 0 ? c.glow : c.muted} />
               </TouchableOpacity>
               {activeChips.size > 0 && (
-                <View style={{ position: 'absolute', top: -4, right: -4, width: 14, height: 14, borderRadius: 7, backgroundColor: '#40e0d0', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ position: 'absolute', top: -4, right: -4, width: 14, height: 14, borderRadius: 7, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 8, fontWeight: '700', color: '#001a1a' }}>{activeChips.size}</Text>
                 </View>
               )}
@@ -261,9 +263,9 @@ export default function SearchScreen() {
         {voiceSupported && (
           <TouchableOpacity testID="voice-button" activeOpacity={0.7} onPress={() => void startVoice()}
             style={{ width: 40, height: 40, borderRadius: 999, borderWidth: 1,
-              borderColor: '#1f3a3a', backgroundColor: '#0e1c1c',
+              borderColor: c.border, backgroundColor: c.surface,
               alignItems: 'center', justifyContent: 'center' }}>
-            <Mic size={18} color="#7aa8a8" />
+            <Mic size={18} color={c.muted} />
           </TouchableOpacity>
         )}
       </View>
@@ -276,7 +278,7 @@ export default function SearchScreen() {
             const opt = ALL_FILTER_OPTIONS.find((o) => o.id === chipId);
             if (!opt) return null;
             return (
-              <LinearGradient key={chipId} colors={['#008b8b', '#006d6f', '#0d98ba']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 999 }}>
+              <LinearGradient key={chipId} colors={[c.gradientStart, c.gradientMid, c.gradientEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 999 }}>
                 <TouchableOpacity
                   onPress={() => {
                     const next = new Set(activeChips);
@@ -307,10 +309,11 @@ export default function SearchScreen() {
           data={results}
           keyExtractor={(item) => item.id}
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 16 }}
           ListHeaderComponent={
             !query.trim() && activeChips.size === 0 ? (
               <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 3,
-                color: '#7aa8a8', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
+                color: c.muted, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
                 {'🔥 '}{t('search.hotHitsLabel')}
               </Text>
             ) : null
@@ -329,16 +332,16 @@ export default function SearchScreen() {
 
       {/* Focused search overlay */}
       <Modal visible={isFocused} animationType="fade" transparent={false} onRequestClose={handleBack}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#06100f' }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
           <KeyboardAvoidingView style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
             {/* Top bar */}
             <View style={{ flexDirection: 'row', alignItems: 'center',
               paddingHorizontal: 8, paddingVertical: 8,
-              borderBottomWidth: 1, borderBottomColor: '#1f3a3a', gap: 8 }}>
+              borderBottomWidth: 1, borderBottomColor: c.border, gap: 8 }}>
               <TouchableOpacity onPress={handleBack} activeOpacity={0.7} style={{ padding: 8 }}>
-                <ArrowLeft size={22} color="#7aa8a8" />
+                <ArrowLeft size={22} color={c.muted} />
               </TouchableOpacity>
               <TextInput
                 ref={panelInputRef}
@@ -347,23 +350,23 @@ export default function SearchScreen() {
                 onSubmitEditing={handleSearchSubmit}
                 returnKeyType="search"
                 placeholder={t('search.placeholder')}
-                placeholderTextColor="#7aa8a8"
-                style={{ flex: 1, backgroundColor: '#0e1c1c', color: '#e0ffff',
+                placeholderTextColor={c.muted}
+                style={{ flex: 1, backgroundColor: c.surface, color: c.fg,
                   fontSize: 14, borderRadius: 999,
                   paddingHorizontal: 16, height: 52,
-                  borderWidth: 1, borderColor: '#1f3a3a' }}
+                  borderWidth: 1, borderColor: c.border }}
               />
               {query.length > 0 ? (
                 <TouchableOpacity onPress={handleClearQuery} activeOpacity={0.7}
                   style={{ padding: 8, borderRadius: 999,
-                    backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a' }}>
-                  <X size={20} color="#7aa8a8" />
+                    backgroundColor: c.surface, borderWidth: 1, borderColor: c.border }}>
+                  <X size={20} color={c.muted} />
                 </TouchableOpacity>
               ) : voiceSupported ? (
                 <TouchableOpacity onPress={() => void startVoice()} activeOpacity={0.7}
                   style={{ padding: 8, borderRadius: 999,
-                    backgroundColor: '#0e1c1c', borderWidth: 1, borderColor: '#1f3a3a' }}>
-                  <Mic size={20} color="#7aa8a8" />
+                    backgroundColor: c.surface, borderWidth: 1, borderColor: c.border }}>
+                  <Mic size={20} color={c.muted} />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -377,23 +380,23 @@ export default function SearchScreen() {
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                   <View style={{ height: 52, flexDirection: 'row', alignItems: 'center',
-                    borderBottomWidth: 1, borderBottomColor: '#1f3a3a' }}>
+                    borderBottomWidth: 1, borderBottomColor: c.border }}>
                     <TouchableOpacity onPress={() => handleHistoryPress(item.q)} activeOpacity={0.7}
                       style={{ flex: 1, flexDirection: 'row', alignItems: 'center',
                         gap: 12, paddingHorizontal: 16, height: '100%' }}>
-                      <History size={18} color="#7aa8a8" style={{ flexShrink: 0 }} />
-                      <Text style={{ flex: 1, color: '#e0ffff', fontSize: 15 }} numberOfLines={1}>
+                      <History size={18} color={c.muted} style={{ flexShrink: 0 }} />
+                      <Text style={{ flex: 1, color: c.fg, fontSize: 15 }} numberOfLines={1}>
                         {item.q}
                       </Text>
                       {item.thumb ? (
                         <Image source={{ uri: item.thumb }}
-                          style={{ width: 56, height: 36, borderRadius: 4, backgroundColor: '#152a2a' }} />
+                          style={{ width: 56, height: 36, borderRadius: 4, backgroundColor: c.surface2 }} />
                       ) : null}
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleSuggestionFill(item.q)}
                       hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                       style={{ paddingHorizontal: 8 }}>
-                      <ArrowUpLeft size={18} color="#7aa8a8" />
+                      <ArrowUpLeft size={18} color={c.muted} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => removeHistory(item.q)}
                       hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
@@ -413,19 +416,19 @@ export default function SearchScreen() {
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                   <View style={{ flexDirection: 'row', alignItems: 'center',
-                    borderBottomWidth: 1, borderBottomColor: '#1f3a3a' }}>
+                    borderBottomWidth: 1, borderBottomColor: c.border }}>
                     <TouchableOpacity onPress={() => handleSuggestionSearch(item)} activeOpacity={0.7}
                       style={{ flex: 1, flexDirection: 'row', alignItems: 'center',
                         gap: 12, paddingHorizontal: 16, paddingVertical: 12 }}>
-                      <Search size={18} color="#7aa8a8" style={{ flexShrink: 0 }} />
-                      <Text style={{ flex: 1, color: '#e0ffff', fontSize: 15 }} numberOfLines={1}>
+                      <Search size={18} color={c.muted} style={{ flexShrink: 0 }} />
+                      <Text style={{ flex: 1, color: c.fg, fontSize: 15 }} numberOfLines={1}>
                         {item}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleSuggestionFill(item)}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       style={{ paddingHorizontal: 16 }}>
-                      <ArrowUpLeft size={18} color="#7aa8a8" />
+                      <ArrowUpLeft size={18} color={c.muted} />
                     </TouchableOpacity>
                   </View>
                 )}
@@ -458,35 +461,35 @@ export default function SearchScreen() {
           onPress={dismissRequesterModal}
         >
           <TouchableWithoutFeedback>
-          <View style={{ backgroundColor: '#0e1c1c', borderTopLeftRadius: 24,
+          <View style={{ backgroundColor: c.surface, borderTopLeftRadius: 24,
             borderTopRightRadius: 24, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 40, gap: 16 }}>
-            <Text style={{ color: '#e0ffff', fontSize: 18, fontWeight: '700' }}>
+            <Text style={{ color: c.fg, fontSize: 18, fontWeight: '700' }}>
               {t('requester.title')}
             </Text>
             <TextInput
               value={requesterName}
               onChangeText={setRequesterName}
               placeholder={t('requester.placeholder')}
-              placeholderTextColor="#7aa8a8"
-              style={{ backgroundColor: '#152a2a', color: '#e0ffff',
-                borderWidth: 1, borderColor: '#1f3a3a', borderRadius: 12,
+              placeholderTextColor={c.muted}
+              style={{ backgroundColor: c.surface2, color: c.fg,
+                borderWidth: 1, borderColor: c.border, borderRadius: 12,
                 paddingHorizontal: 16, paddingVertical: 12 }}
               autoFocus
             />
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <TouchableOpacity
                 style={{ flex: 1, paddingVertical: 12, borderRadius: 12,
-                  borderWidth: 1, borderColor: '#1f3a3a', alignItems: 'center' }}
+                  borderWidth: 1, borderColor: c.border, alignItems: 'center' }}
                 onPress={() => { if (pendingVideoRef.current) confirmAdd(pendingVideoRef.current, null); }}>
-                <Text style={{ color: '#7aa8a8', fontWeight: '600' }}>{t('requester.skipButton')}</Text>
+                <Text style={{ color: c.muted, fontWeight: '600' }}>{t('requester.skipButton')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{ flex: 1, paddingVertical: 12, borderRadius: 12,
-                  backgroundColor: '#008b8b', alignItems: 'center' }}
+                  backgroundColor: c.brand, alignItems: 'center' }}
                 onPress={() => {
                   if (pendingVideoRef.current) confirmAdd(pendingVideoRef.current, requesterName || null);
                 }}>
-                <Text style={{ color: '#e0ffff', fontWeight: '600' }}>{t('requester.confirmButton')}</Text>
+                <Text style={{ color: '#fff', fontWeight: '600' }}>{t('requester.confirmButton')}</Text>
               </TouchableOpacity>
             </View>
           </View>

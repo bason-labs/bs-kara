@@ -12,6 +12,8 @@ jest.mock('@/context/RoomContext', () => ({
       currentPlaying: { id: 'abc', title: 'Song', channel: 'Ch', thumbnail: '', duration: '3:00' },
       isPlaying: false,
       isTvActive: false,
+      isMCEnabled: false,
+      mcVoice: undefined,
       history: [],
       queue: [],
     },
@@ -20,11 +22,19 @@ jest.mock('@/context/RoomContext', () => ({
     playNext: jest.fn(),
     playPrevious: jest.fn(),
     sendEmoji: jest.fn(),
+    tryClaimAnnouncementLock: jest.fn(),
   }),
+}));
+
+// useMCPlayer pulls in expo-av which is unavailable in Jest — mock at the hook
+// level so the test never touches the native module.
+jest.mock('@/hooks/useMCPlayer', () => ({
+  useMCPlayer: () => ({ isMcGated: false, mcText: null }),
 }));
 
 jest.mock('react-native-youtube-iframe', () => 'YoutubeIframe');
 jest.mock('@/components/FullscreenPlayer', () => ({ FullscreenPlayer: () => null }));
+jest.mock('@/components/MCAnnouncementOverlay', () => ({ MCAnnouncementOverlay: () => null }));
 jest.mock('@/components/TopBar', () => ({ TopBar: () => null }));
 jest.mock('@/components/RemoteControls', () => ({ RemoteControls: () => null }));
 jest.mock('@/components/EmojiPad', () => ({ EmojiPad: () => null }));

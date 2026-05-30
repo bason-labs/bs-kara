@@ -1,4 +1,5 @@
 import { TextInput, View } from 'react-native';
+import { useColors } from '@/hooks/useColors';
 
 interface OTPInputProps {
   value: string;
@@ -8,6 +9,8 @@ interface OTPInputProps {
 }
 
 export function OTPInput({ value, onChange, onComplete, ariaLabel }: OTPInputProps) {
+  const c = useColors();
+
   function handleChange(text: string) {
     const digits = text.replace(/\D/g, '').slice(0, 7);
     onChange(digits);
@@ -23,10 +26,10 @@ export function OTPInput({ value, onChange, onComplete, ariaLabel }: OTPInputPro
         keyboardType="number-pad"
         maxLength={7}
         placeholder="0000"
-        placeholderTextColor="#7aa8a8"
+        placeholderTextColor={c.muted}
         accessibilityLabel={ariaLabel}
-        className="w-full text-center text-4xl font-bold text-[#e0ffff] bg-[#0e1c1c] border border-[#1f3a3a] rounded-2xl py-5 px-4"
-        style={{ letterSpacing: 16 }}
+        className="w-full text-center text-4xl font-bold rounded-2xl py-5 px-4"
+        style={{ letterSpacing: 16, color: c.fg, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border }}
       />
     </View>
   );

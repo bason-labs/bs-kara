@@ -1,7 +1,8 @@
 import { View, Text, Image, TouchableOpacity, useWindowDimensions } from 'react-native';
-import { Mic, Play, Pause, Maximize2 } from 'lucide-react-native';
+import { Mic, Play, Pause, Maximize2, Trash2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import type { YouTubeVideo } from '@bs-kara/shared';
+import { useColors } from '@/hooks/useColors';
 
 interface NowPlayingCardProps {
   song: YouTubeVideo | null;
@@ -23,6 +24,7 @@ export function NowPlayingCard({
   onSkip,
 }: NowPlayingCardProps) {
   const { t } = useTranslation();
+  const c = useColors();
   const { width: windowWidth } = useWindowDimensions();
   const heroHeight = (windowWidth - 48) * (9 / 16);
 
@@ -53,10 +55,10 @@ export function NowPlayingCard({
               paddingVertical: 4,
             }}
           >
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#40e0d0' }} />
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' }} />
             <Text
               style={{
-                color: '#40e0d0',
+                color: '#fff',
                 fontSize: 10,
                 fontWeight: '700',
                 letterSpacing: 2,
@@ -87,17 +89,17 @@ export function NowPlayingCard({
                 justifyContent: 'center',
               }}
             >
-              <Maximize2 size={18} color="#e0ffff" />
+              <Maximize2 size={18} color="#fff" />
             </TouchableOpacity>
           )}
         </View>
         {/* Song info */}
         <View style={{ gap: 4 }}>
-          <Text style={{ color: '#e0ffff', fontSize: 16, fontWeight: '600' }} numberOfLines={2}>
+          <Text style={{ color: c.fg, fontSize: 16, fontWeight: '600' }} numberOfLines={2}>
             {song.title}
           </Text>
           {song.channel ? (
-            <Text style={{ color: '#7aa8a8', fontSize: 12 }}>{song.channel}</Text>
+            <Text style={{ color: c.muted, fontSize: 12 }}>{song.channel}</Text>
           ) : null}
           {song.requesterName ? (
             <View
@@ -113,15 +115,34 @@ export function NowPlayingCard({
                 marginTop: 2,
               }}
             >
-              <Mic size={11} color="#40e0d0" />
-              <Text style={{ color: '#40e0d0', fontSize: 11 }}>{song.requesterName}</Text>
+              <Mic size={11} color={c.accent} />
+              <Text style={{ color: c.accent, fontSize: 11 }}>{song.requesterName}</Text>
             </View>
           ) : null}
         </View>
         {/* Skip current */}
         {onSkip && (
-          <TouchableOpacity onPress={onSkip} activeOpacity={0.7} accessibilityRole="button">
-            <Text style={{ color: '#7aa8a8', fontSize: 12 }}>{t('nowPlaying.removeAriaLabel')}</Text>
+          <TouchableOpacity
+            onPress={onSkip}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            style={{
+              alignSelf: 'center',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              paddingVertical: 10,
+              paddingHorizontal: 16,
+              borderRadius: 999,
+              backgroundColor: c.surface2,
+              borderWidth: 1,
+              borderColor: c.border,
+            }}
+          >
+            <Trash2 size={13} color={c.muted} strokeWidth={2.2} />
+            <Text style={{ color: c.muted, fontSize: 13 }}>
+              {t('nowPlaying.removeAriaLabel')}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -132,20 +153,22 @@ export function NowPlayingCard({
   return (
     <View
       testID="now-playing-card"
-      className="flex-row items-center gap-3 mx-4 mb-3 p-3 bg-[#0e1c1c] border border-[#008b8b] rounded-2xl"
+      className="flex-row items-center gap-3 mx-4 mb-3 p-3 rounded-2xl"
+      style={{ backgroundColor: c.surface, borderWidth: 1, borderColor: c.brand }}
     >
-      <Mic size={16} color="#008b8b" />
+      <Mic size={16} color={c.brand} />
       <Image
         source={{ uri: song.thumbnail }}
-        className="w-12 h-9 rounded-lg bg-[#152a2a]"
+        className="w-12 h-9 rounded-lg"
+        style={{ backgroundColor: c.surface2 }}
         resizeMode="cover"
       />
       <View className="flex-1 gap-0.5">
-        <Text className="text-[#e0ffff] text-sm font-semibold" numberOfLines={1}>
+        <Text className="text-sm font-semibold" style={{ color: c.fg }} numberOfLines={1}>
           {song.title}
         </Text>
         {song.requesterName ? (
-          <Text className="text-[#7aa8a8] text-xs">{song.requesterName}</Text>
+          <Text className="text-xs" style={{ color: c.muted }}>{song.requesterName}</Text>
         ) : null}
       </View>
       <TouchableOpacity
@@ -155,7 +178,7 @@ export function NowPlayingCard({
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         style={{ padding: 8 }}
       >
-        {isPlaying ? <Pause size={20} color="#40e0d0" /> : <Play size={20} color="#40e0d0" />}
+        {isPlaying ? <Pause size={20} color={c.accent} /> : <Play size={20} color={c.accent} />}
       </TouchableOpacity>
     </View>
   );
