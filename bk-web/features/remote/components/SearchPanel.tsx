@@ -41,9 +41,6 @@ import { FiltersSheet } from './FiltersSheet';
 // used to spread into 6 SkeletonRow elements.
 const SEARCH_SKELETONS = Array.from({ length: 6 });
 
-// Static example pills shown in the voice listening overlay. Hoisted to
-// avoid recreating the array each render and to keep the JSX tidy.
-const VOICE_EXAMPLES = ['Duyên phận tone nữ', 'Đắp mộ cuộc tình', 'Lạc trôi karaoke'];
 
 interface ResultRowProps {
   video: YouTubeVideo;
@@ -444,14 +441,14 @@ export function SearchPanel({
           so it slides in under the chrome and doesn't fight z-index with
           other modals. */}
       {isListening && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[rgba(6,16,15,0.82)] dark:bg-[rgba(6,16,15,0.82)] backdrop-blur-[10px]">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[rgba(6,16,15,0.88)] backdrop-blur-[10px]">
           <button
             type="button"
             onClick={closeVoicePopup}
             aria-label={t('search.closeVoiceAriaLabel')}
-            className="absolute top-5 right-5 w-11 h-11 flex items-center justify-center rounded-full bg-surface-2 border border-border"
+            className="absolute top-5 right-5 w-11 h-11 flex items-center justify-center rounded-full bg-white/10 border border-white/20"
           >
-            <X size={20} />
+            <X size={20} className="text-white" />
           </button>
           <div className="relative w-[168px] h-[168px] flex items-center justify-center mb-6">
             <div className="absolute inset-0 rounded-full border-2 border-glow/60 animate-voice-pulse" />
@@ -461,22 +458,12 @@ export function SearchPanel({
             </div>
           </div>
           <div className="flex items-center gap-1 mb-3 min-h-8">
-            <span className="font-[family-name:var(--font-display)] text-2xl font-semibold text-fg tracking-tight">
+            <span className="font-[family-name:var(--font-display)] text-2xl font-semibold text-white tracking-tight">
               {interimTranscript || t('search.listeningMessage')}
             </span>
             <span className="w-0.5 h-[22px] bg-glow animate-blink" />
           </div>
-          <p className="text-[13px] text-muted">{t('search.voiceListenHint')}</p>
-          <div className="flex flex-wrap justify-center gap-2 mt-8 px-4">
-            {VOICE_EXAMPLES.map((ex) => (
-              <span
-                key={ex}
-                className="px-3 py-1.5 bg-surface border border-border rounded-full text-[11px] text-muted"
-              >
-                {ex}
-              </span>
-            ))}
-          </div>
+          <p className="text-[13px] text-white/60">{t('search.voiceListenHint')}</p>
         </div>
       )}
 
