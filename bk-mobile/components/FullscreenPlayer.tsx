@@ -88,17 +88,17 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
       onRequestClose={onClose}
     >
       <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}>
-        {/* Suppress the iframe while the MC is speaking so the song audio
-            doesn't bleed through during the announcement. */}
-        {!isMcGated && (
-          <YoutubeIframe
-            videoId={videoId}
-            height={playerHeight}
-            width={playerWidth}
-            play={shouldPlay}
-            webViewStyle={{ backgroundColor: '#000' }}
-          />
-        )}
+        {/* Always mounted so the WebView initialises during the MC overlay.
+            play=false keeps it audio-silent while isMcGated; the MC overlay
+            sits above it in z-order. When isMcGated drops, play flips true
+            on an already-ready player — no fresh-mount timing race. */}
+        <YoutubeIframe
+          videoId={videoId}
+          height={playerHeight}
+          width={playerWidth}
+          play={!isMcGated && shouldPlay}
+          webViewStyle={{ backgroundColor: '#000' }}
+        />
 
         {isMcGated && currentPlaying && (
           <MCAnnouncementOverlay
