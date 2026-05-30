@@ -201,6 +201,7 @@
       "appearance": "Giao diện",
       "room": "Phòng"
     },
+    "themeLabel": "Giao diện",
     "themeHint": "Chọn giao diện sáng, tối hoặc theo hệ thống.",
     "roomCodeLabel": "Mã phòng hiện tại",
     "openTv": "Mở TV",
