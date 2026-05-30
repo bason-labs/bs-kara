@@ -264,3 +264,48 @@ Return:
   log(`✅ ${feature.name}${verifyResult.warnings ? ' (warnings present)' : ''}`)
   results.push({ feature: feature.name, passed: true, warnings: verifyResult.warnings || '' })
 }
+
+
+// ─── Phase 3: Summary ──────────────────────────────────────────────────────
+
+phase('Summary')
+
+const passedCount = results.filter((r) => r.passed).length
+const failedCount = results.filter((r) => !r.passed).length
+
+const summaryLines = results.map((r) =>
+  r.passed
+    ? `- ✅ **${r.feature}**${r.warnings ? ' — lint warnings present' : ''}`
+    : `- ❌ **${r.feature}** — ${r.error.slice(0, 300)}`
+)
+
+const nextSteps = failedCount > 0
+  ? '- Review the failed features above.\n- Fix the reported errors manually in bk-mobile.\n- Re-run the workflow; completed features will be skipped if already verified.'
+  : '- All features implemented.\n- Run the full bk-mobile test suite:\n  ```\n  cd bk-mobile && npm test\n  ```\n- Smoke-test the app on a simulator to confirm UI parity with bk-web remote.'
+
+await agent(
+  `Write a sync results report. Use the Write tool to create this file:
+
+PATH: ${REPO}/docs/superpowers/sync-results.md
+
+CONTENT (write exactly):
+
+# bk-web → bk-mobile Sync Results
+
+**Features attempted:** ${FEATURES.length}
+**Passed:** ${passedCount}
+**Failed:** ${failedCount}
+
+## Per-feature results
+
+${summaryLines.join('\n')}
+
+## Next steps
+
+${nextSteps}
+
+Write the file now. Do not modify any other file.`,
+  { label: 'summary', phase: 'Summary' }
+)
+
+return { passed: passedCount, failed: failedCount, total: FEATURES.length, results }
