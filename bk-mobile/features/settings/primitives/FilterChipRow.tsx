@@ -45,7 +45,8 @@ export function FilterChipRow({
                 style={{ borderRadius: 999 }}
               >
                 <TouchableOpacity
-                  onPress={() => !disabled && onChange(opt.value)}
+                  disabled={disabled}
+                  onPress={() => onChange(opt.value)}
                   activeOpacity={0.8}
                   style={{ paddingHorizontal: 14, paddingVertical: 6 }}
                 >
@@ -59,7 +60,8 @@ export function FilterChipRow({
           return (
             <TouchableOpacity
               key={opt.value}
-              onPress={() => !disabled && onChange(opt.value)}
+              disabled={disabled}
+              onPress={() => onChange(opt.value)}
               activeOpacity={0.7}
               style={{
                 backgroundColor: c.surface2,
