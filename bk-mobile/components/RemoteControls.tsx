@@ -56,7 +56,7 @@ export function RemoteControls({
           justifyContent: 'center',
         }}
       >
-        {isPlaying ? <Pause size={28} color={c.fg} /> : <Play size={28} color={c.fg} />}
+        {isPlaying ? <Pause size={28} color="#fff" /> : <Play size={28} color="#fff" />}
       </TouchableOpacity>
 
       <View pointerEvents={hasQueue ? 'auto' : 'none'}>

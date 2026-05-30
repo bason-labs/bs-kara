@@ -112,7 +112,7 @@ export default function JoinScreen() {
               end={{ x: 1, y: 1 }}
               className="py-4 items-center"
             >
-              <Text className="font-semibold text-base tracking-wide" style={{ color: c.fg }}>
+              <Text className="font-semibold text-base tracking-wide" style={{ color: '#fff' }}>
                 {profile ? t('auth.goToMyRoom') : t('auth.loginOrRegister')}
               </Text>
             </LinearGradient>
@@ -193,7 +193,7 @@ export default function JoinScreen() {
               end={{ x: 1, y: 1 }}
               className="py-3.5 items-center"
             >
-              <Text className="font-semibold text-sm tracking-wide" style={{ color: c.fg }}>
+              <Text className="font-semibold text-sm tracking-wide" style={{ color: '#fff' }}>
                 {isJoining ? 'Đang kiểm tra…' : t('home.joinButton')}
               </Text>
             </LinearGradient>

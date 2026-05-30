@@ -488,7 +488,7 @@ export default function SearchScreen() {
                 onPress={() => {
                   if (pendingVideoRef.current) confirmAdd(pendingVideoRef.current, requesterName || null);
                 }}>
-                <Text style={{ color: c.fg, fontWeight: '600' }}>{t('requester.confirmButton')}</Text>
+                <Text style={{ color: '#fff', fontWeight: '600' }}>{t('requester.confirmButton')}</Text>
               </TouchableOpacity>
             </View>
           </View>
