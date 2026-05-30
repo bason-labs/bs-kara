@@ -51,7 +51,7 @@ export default function QueueScreen() {
               item={item}
               onRemove={() => setPendingRemove(item)}
               drag={drag}
-              dragEnabled
+              dragEnabled={roomData.dragDropEnabled}
               currentPlayingId={roomData.currentPlaying?.id ?? null}
             />
           )}
