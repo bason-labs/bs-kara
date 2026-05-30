@@ -10,6 +10,12 @@ jest.mock('nativewind', () => ({
   useColorScheme: () => ({ setColorScheme: jest.fn() }),
 }));
 
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
+  useLocalSearchParams: () => ({}),
+  Link: ({ children }) => children,
+}));
+
 jest.mock('@gorhom/bottom-sheet', () => {
   const { View } = require('react-native');
   const BottomSheet = ({ children }) => <View>{children}</View>;

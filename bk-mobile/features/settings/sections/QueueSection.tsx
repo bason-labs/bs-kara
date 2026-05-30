@@ -1,5 +1,5 @@
-import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { GripVertical, Mic } from 'lucide-react-native';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { ToggleRow } from '../primitives/ToggleRow';
 
@@ -23,28 +23,27 @@ export function QueueSection({
   const { t } = useTranslation();
   return (
     <>
-      <SectionLabel label={t('settings.sections.queue')} />
-      <View style={{ marginHorizontal: 12, marginBottom: 4 }}>
-        <ToggleRow
-          testID="toggle-drag-drop"
-          label={t('settings.dragDropLabel')}
-          hint={t('settings.dragDropHint')}
-          value={dragDropEnabled}
-          onValueChange={onDragDropChange}
-        />
-        <ToggleRow
-          label={t('settings.requesterPromptLabel')}
-          hint={t('settings.requesterPromptHint')}
-          value={requesterPromptEnabled}
-          onValueChange={onRequesterPromptChange}
-        />
-        <ToggleRow
-          label={t('settings.guestCanRemoveLabel')}
-          hint={t('settings.guestCanRemoveHint')}
-          value={guestCanRemove}
-          onValueChange={onGuestCanRemoveChange}
-        />
-      </View>
+      <SectionLabel label={t('settings.sections.queue')} icon={GripVertical} />
+      <ToggleRow
+        testID="toggle-drag-drop"
+        label={t('settings.dragDropLabel')}
+        hint={t('settings.dragDropHint')}
+        value={dragDropEnabled}
+        onValueChange={onDragDropChange}
+      />
+      <ToggleRow
+        icon={Mic}
+        label={t('settings.requesterPromptLabel')}
+        hint={t('settings.requesterPromptHint')}
+        value={requesterPromptEnabled}
+        onValueChange={onRequesterPromptChange}
+      />
+      <ToggleRow
+        label={t('settings.guestCanRemoveLabel')}
+        hint={t('settings.guestCanRemoveHint')}
+        value={guestCanRemove}
+        onValueChange={onGuestCanRemoveChange}
+      />
     </>
   );
 }

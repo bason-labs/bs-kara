@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ListMusic, Play, Search, Settings } from 'lucide-react-native';
 import { useSettingsContext } from '@/context/SettingsContext';
 import { useColors } from '@/hooks/useColors';
+import { useTheme } from '@/context/ThemeContext';
 
 export type NavTab = 'search' | 'queue' | 'player' | 'settings';
 
@@ -19,8 +20,10 @@ export function BottomNav({ activeTab, isPlaying, queueLength, onTabChange }: Bo
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const c = useColors();
+  const { resolvedTheme } = useTheme();
   const GLOW = c.glow;
   const MUTED = c.muted;
+  const bgColor = resolvedTheme === 'dark' ? 'rgba(6,16,15,0.85)' : c.surface;
 
   const tabs: { id: NavTab; label: string }[] = [
     { id: 'search', label: t('tabs.search', 'Tìm bài') },
@@ -36,7 +39,7 @@ export function BottomNav({ activeTab, isPlaying, queueLength, onTabChange }: Bo
   }
 
   return (
-    <View testID="bottom-nav" style={{ flexDirection: 'row', backgroundColor: 'rgba(6,16,15,0.65)', borderTopWidth: 1, borderTopColor: c.border, paddingBottom: insets.bottom }}>
+    <View testID="bottom-nav" style={{ flexDirection: 'row', backgroundColor: bgColor, borderTopWidth: 1, borderTopColor: c.border, paddingBottom: insets.bottom }}>
       {tabs.map((tab) => {
         const active = activeTab === tab.id;
         return (

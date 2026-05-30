@@ -1,15 +1,17 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Sun, Monitor, Moon, Palette } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { DarkColors, LightColors } from '@/constants/colors';
 import { SectionLabel } from '../primitives/SectionLabel';
 import type { Theme } from '@/context/ThemeContext';
 
-const THEME_OPTIONS: { value: Theme; icon: string }[] = [
-  { value: 'light', icon: '☀️' },
-  { value: 'system', icon: '🖥️' },
-  { value: 'dark', icon: '🌙' },
+const THEME_OPTIONS: { value: Theme; Icon: LucideIcon }[] = [
+  { value: 'light', Icon: Sun },
+  { value: 'system', Icon: Monitor },
+  { value: 'dark', Icon: Moon },
 ];
 
 export function ThemeSection() {
@@ -19,7 +21,7 @@ export function ThemeSection() {
 
   return (
     <>
-      <SectionLabel label={t('settings.sections.appearance')} />
+      <SectionLabel label={t('settings.sections.appearance')} icon={Palette} />
       <View
         style={{
           marginHorizontal: 12,
@@ -73,7 +75,7 @@ export function ThemeSection() {
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ fontSize: 14 }}>{opt.icon}</Text>
+                    <opt.Icon size={15} color="#fff" strokeWidth={2.2} />
                   </TouchableOpacity>
                 </LinearGradient>
               );
@@ -91,7 +93,7 @@ export function ThemeSection() {
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontSize: 14 }}>{opt.icon}</Text>
+                <opt.Icon size={15} color={c.muted} strokeWidth={2.2} />
               </TouchableOpacity>
             );
           })}
