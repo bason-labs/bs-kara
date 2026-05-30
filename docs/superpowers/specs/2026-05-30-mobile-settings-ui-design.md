@@ -88,7 +88,7 @@ Each section component:
 
 - Calls `useTheme()` for `{ preference, setPreference }`
 - Renders a row card with label on the left, 3-button toggle pill on the right
-- Active button: brand gradient background (`colors.brand`) + white icon
+- Active button: `LinearGradient` wrapping the icon button, using `colors[resolvedTheme].brand` as the gradient start/end colour pair (matching the existing voice picker style)
 - Inactive buttons: surface background, muted icon tint
 - Labels: ☀️ = Sáng, 🖥️ = Hệ thống, 🌙 = Tối (mapped from `preference` values `light / system / dark`)
 
@@ -157,3 +157,4 @@ No component tests for section shells — they are purely presentational after t
 | `features/settings/index.ts` | New — re-exports |
 | `app/(room)/settings.tsx` | Thinned — imports from features/settings |
 | `components/SettingsSheet.tsx` | Thinned — imports from features/settings |
+| `components/ThemeToggle.tsx` | Update — replace `toggleTheme()` call with `setPreference()`, cycling `dark → light → system` |
