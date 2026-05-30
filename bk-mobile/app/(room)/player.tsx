@@ -3,17 +3,27 @@ import { View, Text, SafeAreaView } from 'react-native';
 import YoutubeIframe from 'react-native-youtube-iframe';
 import { useTranslation } from 'react-i18next';
 import { useRoomContext } from '@/context/RoomContext';
+import { useMCPlayer } from '@/hooks/useMCPlayer';
 import { TopBar } from '@/components/TopBar';
 import { NowPlayingCard } from '@/components/NowPlayingCard';
 import { RemoteControls } from '@/components/RemoteControls';
 import { FullscreenPlayer } from '@/components/FullscreenPlayer';
 import { EmojiPad } from '@/components/EmojiPad';
+import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
 
 export default function PlayerScreen() {
   const { t } = useTranslation();
-  const { roomData, roomCode, togglePlayPause, setIsPlaying, playNext, playPrevious, sendEmoji } = useRoomContext();
-  const { currentPlaying, isPlaying, isTvActive, history, queue } = roomData;
+  const { roomData, roomCode, togglePlayPause, setIsPlaying, playNext, playPrevious, sendEmoji, tryClaimAnnouncementLock } = useRoomContext();
+  const { currentPlaying, isPlaying, isTvActive, history, queue, isMCEnabled, mcVoice } = roomData;
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
+
+  const { isMcGated, mcText } = useMCPlayer({
+    isMCEnabled,
+    currentPlaying: currentPlaying ?? null,
+    ready: !isTvActive,
+    mcVoice,
+    tryClaimAnnouncementLock,
+  });
 
   if (!currentPlaying) {
     return (
@@ -30,7 +40,7 @@ export default function PlayerScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#06100f' }}>
-      {!isTvActive && (
+      {!isTvActive && !isMcGated && (
         <YoutubeIframe videoId={currentPlaying.id} height={0} width={0} play={isPlaying} />
       )}
 
@@ -62,10 +72,23 @@ export default function PlayerScreen() {
         onNext={playNext}
       />
 
+      {isMcGated && !isTvActive && (
+        <MCAnnouncementOverlay
+          variant="phone"
+          title={currentPlaying.title}
+          requesterName={currentPlaying.requesterName}
+          mcText={mcText ?? undefined}
+        />
+      )}
+
       {fullscreenOpen && !isTvActive && (
         <FullscreenPlayer
           videoId={currentPlaying.id}
           isPlaying={isPlaying}
+          isMcGated={isMcGated}
+          mcTitle={currentPlaying.title}
+          mcRequesterName={currentPlaying.requesterName}
+          mcText={mcText ?? undefined}
           onClose={() => setFullscreenOpen(false)}
         />
       )}

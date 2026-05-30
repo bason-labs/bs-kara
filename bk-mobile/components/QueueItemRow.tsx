@@ -1,6 +1,7 @@
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { GripVertical, Mic, Trash2 } from 'lucide-react-native';
 import type { QueueItem } from '@bs-kara/shared';
+import { PlayNowButton } from './PlayNowButton';
 
 interface QueueItemRowProps {
   item: QueueItem;
@@ -9,6 +10,9 @@ interface QueueItemRowProps {
   dragEnabled?: boolean;
   onEditRequester?: () => void;
   currentUserName?: string;
+  isHost?: boolean;
+  currentPlayingId?: string | null;
+  onPlayNow?: () => void;
 }
 
 export function QueueItemRow({
@@ -18,6 +22,9 @@ export function QueueItemRow({
   dragEnabled = true,
   onEditRequester,
   currentUserName,
+  isHost = false,
+  currentPlayingId,
+  onPlayNow,
 }: QueueItemRowProps) {
   const isMyRow = currentUserName && item.requesterName === currentUserName;
 
@@ -79,6 +86,15 @@ export function QueueItemRow({
           </TouchableOpacity>
         ) : null}
       </View>
+
+      {onPlayNow && (
+        <PlayNowButton
+          videoId={item.id}
+          currentPlayingId={currentPlayingId}
+          onPress={onPlayNow}
+          isHost={isHost}
+        />
+      )}
 
       <TouchableOpacity
         testID="remove-button"
