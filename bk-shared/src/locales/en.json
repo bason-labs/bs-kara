@@ -201,6 +201,7 @@
       "appearance": "Appearance",
       "room": "Room"
     },
+    "themeLabel": "Theme",
     "themeHint": "Pick a light, dark, or system-matching theme.",
     "roomCodeLabel": "Current room code",
     "openTv": "Open TV",
