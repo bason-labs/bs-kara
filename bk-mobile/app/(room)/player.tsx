@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, SafeAreaView } from 'react-native';
 import YoutubeIframe from 'react-native-youtube-iframe';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +9,6 @@ import { NowPlayingCard } from '@/components/NowPlayingCard';
 import { RemoteControls } from '@/components/RemoteControls';
 import { FullscreenPlayer } from '@/components/FullscreenPlayer';
 import { EmojiPad } from '@/components/EmojiPad';
-import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
 
 export default function PlayerScreen() {
   const { t } = useTranslation();
@@ -17,13 +16,24 @@ export default function PlayerScreen() {
   const { currentPlaying, isPlaying, isTvActive, history, queue, isMCEnabled, mcVoice } = roomData;
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
 
+  // MC only fires when fullscreen is open — the overlay lives inside FullscreenPlayer.
   const { isMcGated, mcText } = useMCPlayer({
     isMCEnabled,
     currentPlaying: currentPlaying ?? null,
-    ready: !isTvActive,
+    ready: !isTvActive && fullscreenOpen,
     mcVoice,
     tryClaimAnnouncementLock,
   });
+
+  // Kick-play: when the MC gate drops (true → false) inside fullscreen, ensure
+  // the video autoplays even if Firebase isPlaying drifted to false mid-announcement.
+  const prevMcGatedRef = useRef(false);
+  useEffect(() => {
+    if (prevMcGatedRef.current && !isMcGated && fullscreenOpen) {
+      void setIsPlaying(true);
+    }
+    prevMcGatedRef.current = isMcGated;
+  }, [isMcGated, fullscreenOpen, setIsPlaying]);
 
   if (!currentPlaying) {
     return (
@@ -40,7 +50,8 @@ export default function PlayerScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#06100f' }}>
-      {!isTvActive && !isMcGated && (
+      {/* Background audio driver — suppress while fullscreen is open (it has its own iframe). */}
+      {!isTvActive && !isMcGated && !fullscreenOpen && (
         <YoutubeIframe videoId={currentPlaying.id} height={0} width={0} play={isPlaying} />
       )}
 
@@ -71,15 +82,6 @@ export default function PlayerScreen() {
         onPrev={playPrevious}
         onNext={playNext}
       />
-
-      {isMcGated && !isTvActive && (
-        <MCAnnouncementOverlay
-          variant="phone"
-          title={currentPlaying.title}
-          requesterName={currentPlaying.requesterName}
-          mcText={mcText ?? undefined}
-        />
-      )}
 
       {fullscreenOpen && !isTvActive && (
         <FullscreenPlayer
