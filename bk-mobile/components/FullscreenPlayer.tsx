@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   View,
@@ -13,6 +13,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import YoutubeIframe from 'react-native-youtube-iframe';
 import { X } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import { useRoomContext } from '@/context/RoomContext';
+import { useMCPlayer } from '@/hooks/useMCPlayer';
 import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
 
 const ROTATE_HINT_KEY = 'bsk_seenRotateHint';
@@ -21,30 +23,36 @@ interface FullscreenPlayerProps {
   videoId: string;
   isPlaying: boolean;
   onClose: () => void;
-  // MC gate props — when isMcGated is true the video is suppressed and the
-  // MCAnnouncementOverlay is shown instead.  The overlay's onClose is wired
-  // to the same onClose so the user can still leave fullscreen mid-announcement.
-  isMcGated?: boolean;
-  mcTitle?: string;
-  mcRequesterName?: string;
-  mcText?: string;
 }
 
-export function FullscreenPlayer({
-  videoId,
-  isPlaying,
-  onClose,
-  isMcGated = false,
-  mcTitle,
-  mcRequesterName,
-  mcText,
-}: FullscreenPlayerProps) {
+export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlayerProps) {
   const { t } = useTranslation();
+  const { roomData, setIsPlaying } = useRoomContext();
+  const { currentPlaying, isMCEnabled, mcVoice } = roomData;
+
   const [showHint, setShowHint] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const { height, width } = useWindowDimensions();
   const playerWidth = Math.max(width, height);
   const playerHeight = Math.min(width, height);
+
+  // MC is fully owned here. This component only mounts when fullscreen is open,
+  // so ready=true avoids any ready-prop race that caused immediate gate closure.
+  const { isMcGated, mcText } = useMCPlayer({
+    isMCEnabled,
+    currentPlaying: currentPlaying ?? null,
+    ready: true,
+    mcVoice,
+  });
+
+  // Kick-play: when gate drops (true → false), guarantee video autoplays.
+  const prevMcGatedRef = useRef(false);
+  useEffect(() => {
+    if (prevMcGatedRef.current && !isMcGated) {
+      void setIsPlaying(true);
+    }
+    prevMcGatedRef.current = isMcGated;
+  }, [isMcGated, setIsPlaying]);
 
   useEffect(() => {
     let mounted = true;
@@ -71,11 +79,9 @@ export function FullscreenPlayer({
       presentationStyle="overFullScreen"
       onRequestClose={onClose}
     >
-      <View
-        style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}
-      >
-        {/* Suppress the iframe while the MC is gated so the song audio doesn't
-            bleed through during the announcement. */}
+      <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Suppress the iframe while the MC is speaking so the song audio
+            doesn't bleed through during the announcement. */}
         {!isMcGated && (
           <YoutubeIframe
             videoId={videoId}
@@ -86,20 +92,16 @@ export function FullscreenPlayer({
           />
         )}
 
-        {/* MC overlay: rendered over the black background. The top bar is hidden
-            while the Modal is open, so we pass onClose to give the user an escape. */}
-        {isMcGated && mcTitle && (
+        {isMcGated && currentPlaying && (
           <MCAnnouncementOverlay
             variant="phone"
-            title={mcTitle}
-            requesterName={mcRequesterName}
-            mcText={mcText}
+            title={currentPlaying.title}
+            requesterName={currentPlaying.requesterName}
+            mcText={mcText ?? undefined}
             onClose={onClose}
           />
         )}
 
-        {/* Close button is only shown when the MC overlay is NOT active; when it
-            IS active, MCAnnouncementOverlay renders its own close button. */}
         {!isMcGated && (
           <SafeAreaView style={{ position: 'absolute', top: 0, right: 0 }}>
             <TouchableOpacity
