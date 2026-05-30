@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ScoreResult } from '@bs-kara/shared';
 import { ScoreBlock } from '@/components/ScoreBlock';
+import { useColors } from '@/hooks/useColors';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -233,6 +234,7 @@ export function EndScreenOverlay({
   onVisibleChange,
   score,
 }: EndScreenOverlayProps): ReactElement | null {
+  const c = useColors();
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState<typeof MESSAGES[number]>(pickMessage);
 
@@ -370,7 +372,7 @@ export function EndScreenOverlay({
         pointerEvents="auto"
       >
         <LinearGradient
-          colors={['#006666', '#008b8b', '#0d98ba']}
+          colors={[c.gradientStart, c.gradientMid, c.gradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[StyleSheet.absoluteFillObject, styles.container]}

@@ -3,6 +3,7 @@ import { Animated, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2 } from 'lucide-react-native';
+import { useColors } from '@/hooks/useColors';
 
 const TAB_BAR_HEIGHT = 52;
 const AUTO_DISMISS_MS = 1800;
@@ -14,6 +15,7 @@ interface AddedToastProps {
 export function AddedToast({ onDismiss }: AddedToastProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const c = useColors();
   const translateY = useRef(new Animated.Value(40)).current;
 
   useEffect(() => {
@@ -51,9 +53,9 @@ export function AddedToast({ onDismiss }: AddedToastProps) {
             flexDirection: 'row',
             alignItems: 'center',
             gap: 8,
-            backgroundColor: '#0e1c1c',
+            backgroundColor: c.surface,
             borderWidth: 1,
-            borderColor: '#1f3a3a',
+            borderColor: c.border,
             borderRadius: 999,
             paddingHorizontal: 14,
             paddingVertical: 10,
@@ -64,8 +66,8 @@ export function AddedToast({ onDismiss }: AddedToastProps) {
             elevation: 6,
           }}
         >
-          <CheckCircle2 size={14} color="#008b8b" />
-          <Text style={{ color: '#e0ffff', fontSize: 13, fontWeight: '500' }}>
+          <CheckCircle2 size={14} color={c.brand} />
+          <Text style={{ color: c.fg, fontSize: 13, fontWeight: '500' }}>
             {t('toast.addedToQueue')}
           </Text>
         </View>

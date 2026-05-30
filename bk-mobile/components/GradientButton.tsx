@@ -1,5 +1,6 @@
 import { TouchableOpacity, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useColors } from '@/hooks/useColors';
 
 interface GradientButtonProps {
   label: string;
@@ -8,6 +9,7 @@ interface GradientButtonProps {
 }
 
 export function GradientButton({ label, onPress, disabled }: GradientButtonProps) {
+  const c = useColors();
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -17,12 +19,12 @@ export function GradientButton({ label, onPress, disabled }: GradientButtonProps
       style={{ opacity: disabled ? 0.5 : 1 }}
     >
       <LinearGradient
-        colors={['#008b8b', '#006d6f', '#0d98ba']}
+        colors={[c.gradientStart, c.gradientMid, c.gradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         className="py-4 items-center"
       >
-        <Text className="text-[#e0ffff] font-semibold text-base">{label}</Text>
+        <Text className="font-semibold text-base" style={{ color: c.fg }}>{label}</Text>
       </LinearGradient>
     </TouchableOpacity>
   );
