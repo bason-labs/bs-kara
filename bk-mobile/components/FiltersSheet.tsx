@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
+import { useColors } from '@/hooks/useColors';
 
 export interface FilterOption { id: string; label: string; keyword: string; }
 export interface FilterGroup { labelKey: string; options: FilterOption[]; }
@@ -52,6 +53,7 @@ interface FiltersSheetProps {
 
 export function FiltersSheet({ visible, selected, onApply, onClose }: FiltersSheetProps) {
   const { t } = useTranslation();
+  const c = useColors();
   const [draft, setDraft] = useState<Set<string>>(new Set(selected));
 
   useEffect(() => {
@@ -90,7 +92,7 @@ export function FiltersSheet({ visible, selected, onApply, onClose }: FiltersShe
         />
       )}
       backgroundStyle={{
-        backgroundColor: '#0e1c1c',
+        backgroundColor: c.surface,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
       }}
@@ -105,17 +107,17 @@ export function FiltersSheet({ visible, selected, onApply, onClose }: FiltersShe
     >
       <BottomSheetView style={{ flex: 1, paddingHorizontal: 20, paddingBottom: 24 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <Text style={{ color: '#e0ffff', fontSize: 17, fontWeight: '700' }}>
+          <Text style={{ color: c.fg, fontSize: 17, fontWeight: '700' }}>
             {t('search.filtersSheetTitle', 'Bộ lọc bài hát')}
           </Text>
           <TouchableOpacity onPress={() => setDraft(new Set())} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={{ color: '#7aa8a8', fontSize: 14 }}>{t('search.filtersReset', 'Đặt lại')}</Text>
+            <Text style={{ color: c.muted, fontSize: 14 }}>{t('search.filtersReset', 'Đặt lại')}</Text>
           </TouchableOpacity>
         </View>
 
         {FILTER_GROUPS.map((group) => (
           <View key={group.labelKey} style={{ marginBottom: 16 }}>
-            <Text style={{ color: '#7aa8a8', fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10 }}>
+            <Text style={{ color: c.muted, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10 }}>
               {t(group.labelKey)}
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
@@ -123,7 +125,7 @@ export function FiltersSheet({ visible, selected, onApply, onClose }: FiltersShe
                 const active = draft.has(opt.id);
                 if (active) {
                   return (
-                    <LinearGradient key={opt.id} colors={['#008b8b', '#006d6f', '#0d98ba']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 999 }}>
+                    <LinearGradient key={opt.id} colors={[c.gradientStart, c.gradientMid, c.gradientEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 999 }}>
                       <TouchableOpacity onPress={() => toggle(opt.id)} activeOpacity={0.8} style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
                         <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{opt.label}</Text>
                       </TouchableOpacity>
@@ -131,8 +133,8 @@ export function FiltersSheet({ visible, selected, onApply, onClose }: FiltersShe
                   );
                 }
                 return (
-                  <TouchableOpacity key={opt.id} onPress={() => toggle(opt.id)} activeOpacity={0.7} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: '#1f3a3a' }}>
-                    <Text style={{ color: '#7aa8a8', fontSize: 13 }}>{opt.label}</Text>
+                  <TouchableOpacity key={opt.id} onPress={() => toggle(opt.id)} activeOpacity={0.7} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: c.border }}>
+                    <Text style={{ color: c.muted, fontSize: 13 }}>{opt.label}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -141,7 +143,7 @@ export function FiltersSheet({ visible, selected, onApply, onClose }: FiltersShe
         ))}
 
         {count > 0 ? (
-          <LinearGradient colors={['#008b8b', '#006d6f', '#0d98ba']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 14, marginTop: 8 }}>
+          <LinearGradient colors={[c.gradientStart, c.gradientMid, c.gradientEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 14, marginTop: 8 }}>
             <TouchableOpacity onPress={() => { onApply(draft); onClose(); }} activeOpacity={0.8} style={{ paddingVertical: 14, alignItems: 'center' }}>
               <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>
                 {t('search.filtersApply', 'Áp dụng {{count}} bộ lọc', { count })}
@@ -149,8 +151,8 @@ export function FiltersSheet({ visible, selected, onApply, onClose }: FiltersShe
             </TouchableOpacity>
           </LinearGradient>
         ) : (
-          <TouchableOpacity onPress={handleViewAll} activeOpacity={0.8} style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: '#152a2a', marginTop: 8 }}>
-            <Text style={{ color: '#7aa8a8', fontSize: 15, fontWeight: '600' }}>
+          <TouchableOpacity onPress={handleViewAll} activeOpacity={0.8} style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: c.surface2, marginTop: 8 }}>
+            <Text style={{ color: c.muted, fontSize: 15, fontWeight: '600' }}>
               {t('search.filtersViewAll', 'Xem tất cả bài hát')}
             </Text>
           </TouchableOpacity>
