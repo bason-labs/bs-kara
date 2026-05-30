@@ -103,4 +103,16 @@ describe('ThemeContext', () => {
     await act(async () => { setter('system'); });
     expect(AsyncStorage.setItem).toHaveBeenCalledWith('karaoke_theme', 'system');
   });
+
+  it('resolvedTheme updates when OS scheme changes while preference is system', async () => {
+    useColorSchemeSpy.mockReturnValue('dark');
+    const { getByTestId, rerender } = render(
+      <ThemeProvider><ResolvedDisplay /></ThemeProvider>
+    );
+    expect(getByTestId('resolved').props.children).toBe('dark');
+
+    useColorSchemeSpy.mockReturnValue('light');
+    rerender(<ThemeProvider><ResolvedDisplay /></ThemeProvider>);
+    expect(getByTestId('resolved').props.children).toBe('light');
+  });
 });
