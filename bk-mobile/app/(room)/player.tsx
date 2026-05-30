@@ -8,6 +8,7 @@ import { NowPlayingCard } from '@/components/NowPlayingCard';
 import { RemoteControls } from '@/components/RemoteControls';
 import { FullscreenPlayer } from '@/components/FullscreenPlayer';
 import { EmojiPad } from '@/components/EmojiPad';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useColors } from '@/hooks/useColors';
 
 export default function PlayerScreen() {
@@ -16,6 +17,7 @@ export default function PlayerScreen() {
   const { roomData, roomCode, togglePlayPause, setIsPlaying, playNext, playPrevious, sendEmoji } = useRoomContext();
   const { currentPlaying, isPlaying, isTvActive, history, queue } = roomData;
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
+  const [skipConfirmOpen, setSkipConfirmOpen] = useState(false);
 
   if (!currentPlaying) {
     return (
@@ -50,7 +52,7 @@ export default function PlayerScreen() {
             void setIsPlaying(true);
           }}
           isTvActive={isTvActive}
-          onSkip={playNext}
+          onSkip={() => setSkipConfirmOpen(true)}
         />
       </View>
 
@@ -72,6 +74,16 @@ export default function PlayerScreen() {
           onClose={() => setFullscreenOpen(false)}
         />
       )}
+
+      <ConfirmDialog
+        open={skipConfirmOpen}
+        title={t('nowPlaying.removeConfirm.title')}
+        message={t('nowPlaying.removeConfirm.message')}
+        confirmLabel={t('nowPlaying.removeConfirm.confirm')}
+        cancelLabel={t('queue.removeConfirm.cancel')}
+        onConfirm={() => { setSkipConfirmOpen(false); void playNext(); }}
+        onCancel={() => setSkipConfirmOpen(false)}
+      />
     </SafeAreaView>
   );
 }
