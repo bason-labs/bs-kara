@@ -50,7 +50,7 @@ export function ToggleRow({
         value={value}
         onValueChange={onValueChange}
         trackColor={{ false: c.border, true: c.brand }}
-        thumbColor={c.fg}
+        thumbColor="#fff"
       />
     </View>
   );
