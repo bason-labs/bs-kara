@@ -7,9 +7,11 @@ import { TopBar } from '@/components/TopBar';
 import { QueueItemRow } from '@/components/QueueItemRow';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { QueueItem } from '@bs-kara/shared';
+import { useColors } from '@/hooks/useColors';
 
 export default function QueueScreen() {
   const { t } = useTranslation();
+  const c = useColors();
   const {
     roomData,
     roomCode,
@@ -26,11 +28,11 @@ export default function QueueScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#06100f' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <TopBar roomCode={roomCode} />
 
       <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-        <Text style={{ color: '#e0ffff', fontSize: 18, fontWeight: '700' }}>
+        <Text style={{ color: c.fg, fontSize: 18, fontWeight: '700' }}>
           {t('queue.title')}
           {roomData.queue.length > 0 ? ` (${roomData.queue.length})` : ''}
         </Text>
@@ -38,7 +40,7 @@ export default function QueueScreen() {
 
       {roomData.queue.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: '#7aa8a8', fontSize: 14 }}>{t('queue.emptyMessage')}</Text>
+          <Text style={{ color: c.muted, fontSize: 14 }}>{t('queue.emptyMessage')}</Text>
         </View>
       ) : (
         <DraggableFlatList
