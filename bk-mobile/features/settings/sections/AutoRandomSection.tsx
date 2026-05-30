@@ -1,5 +1,6 @@
 import { View, Text, Switch, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Shuffle } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { DarkColors, LightColors } from '@/constants/colors';
 import { FilterChipRow } from '../primitives/FilterChipRow';
@@ -45,7 +46,7 @@ export function AutoRandomSection({
 
   return (
     <>
-      <SectionLabel label={t('settings.sections.autoRandom')} />
+      <SectionLabel label={t('settings.sections.autoRandom')} icon={Shuffle} />
       <View
         style={{
           backgroundColor: isAutoRandomMode

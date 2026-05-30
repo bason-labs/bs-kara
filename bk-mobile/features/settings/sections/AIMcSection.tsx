@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Check } from 'lucide-react-native';
+import { Check, Sparkles, Trophy } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { DarkColors, LightColors } from '@/constants/colors';
 import { SectionLabel } from '../primitives/SectionLabel';
@@ -37,31 +37,33 @@ export function AIMcSection({
 
   return (
     <>
-      <SectionLabel label={t('settings.sections.aiMc')} />
-      <View style={{ marginHorizontal: 12, marginBottom: 4 }}>
-        <ToggleRow
-          label={t('settings.aiMcLabel')}
-          hint={t('settings.aiMcHint')}
-          value={isMCEnabled}
-          onValueChange={onMCEnabledChange}
-        />
-        <ToggleRow
-          label={t('scoring.toggleLabel')}
-          hint={t('scoring.toggleHelp')}
-          value={aiScoringEnabled}
-          onValueChange={onAiScoringChange}
-        />
-        {isMCEnabled && (
-          <View
-            style={{
-              backgroundColor: c.surface2,
-              borderWidth: 1,
-              borderColor: c.border,
-              borderRadius: 12,
-              padding: 16,
-              marginTop: 8,
-            }}
-          >
+      <SectionLabel label={t('settings.sections.aiMc')} icon={Sparkles} />
+      <ToggleRow
+        icon={Sparkles}
+        label={t('settings.aiMcLabel')}
+        hint={t('settings.aiMcHint')}
+        value={isMCEnabled}
+        onValueChange={onMCEnabledChange}
+      />
+      <ToggleRow
+        icon={Trophy}
+        label={t('scoring.toggleLabel')}
+        hint={t('scoring.toggleHelp')}
+        value={aiScoringEnabled}
+        onValueChange={onAiScoringChange}
+      />
+      {isMCEnabled && (
+        <View
+          style={{
+            marginHorizontal: 12,
+            marginBottom: 4,
+            backgroundColor: c.surface2,
+            borderWidth: 1,
+            borderColor: c.border,
+            borderRadius: 12,
+            padding: 16,
+          }}
+        >
             <Text
               style={{
                 color: c.muted,
@@ -128,7 +130,6 @@ export function AIMcSection({
             </View>
           </View>
         )}
-      </View>
     </>
   );
 }
