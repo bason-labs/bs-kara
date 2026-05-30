@@ -31,7 +31,7 @@ export default function QueueScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <TopBar roomCode={roomCode} />
 
-      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
         <Text style={{ color: c.fg, fontSize: 18, fontWeight: '700' }}>
           {t('queue.title')}
           {roomData.queue.length > 0 ? ` (${roomData.queue.length})` : ''}
@@ -47,6 +47,7 @@ export default function QueueScreen() {
           data={roomData.queue}
           keyExtractor={(item) => item.queueId}
           onDragEnd={handleDragEnd}
+          contentContainerStyle={{ paddingBottom: 16 }}
           renderItem={({ item, drag }: RenderItemParams<QueueItem>) => (
             <QueueItemRow
               item={item}
