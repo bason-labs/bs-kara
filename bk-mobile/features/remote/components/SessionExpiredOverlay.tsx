@@ -1,5 +1,6 @@
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Modal, View, Text, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useColors } from '@/hooks/useColors';
 
 interface SessionExpiredOverlayProps {
   timedOut: boolean;
@@ -24,6 +25,8 @@ export function SessionExpiredOverlay({
   rejoinReason,
   onRejoin,
 }: SessionExpiredOverlayProps): React.ReactElement | null {
+  const c = useColors();
+
   if (!timedOut) return null;
 
   const isHardBlocked = rejoinReason === 'subscription_expired';
@@ -42,30 +45,63 @@ export function SessionExpiredOverlay({
       accessibilityViewIsModal
       accessibilityLabel={title}
     >
-      <View style={styles.backdrop}>
-        <View style={styles.content}>
-          <Text style={styles.title}>{title}</Text>
+      <View
+        style={{
+          flex: 1,
+          // Replicates "bg-bg/95" — dark teal at 95% opacity; no backdrop-blur in RN.
+          backgroundColor: `${c.bg}f2`,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 24,
+        }}
+      >
+        <View style={{ alignItems: 'center', gap: 8 }}>
+          <Text
+            style={{
+              color: c.fg,
+              fontSize: 18,
+              fontWeight: '600',
+              textAlign: 'center',
+              marginBottom: 4,
+            }}
+          >
+            {title}
+          </Text>
 
           {!isHardBlocked && (
             <>
-              <Text style={styles.subtitle}>
+              <Text
+                style={{
+                  color: c.muted,
+                  fontSize: 14,
+                  textAlign: 'center',
+                  marginBottom: 24,
+                }}
+              >
                 Nhấn để tiếp tục tham gia phòng.
               </Text>
 
               <TouchableOpacity
                 onPress={onRejoin}
                 activeOpacity={0.8}
-                style={styles.buttonWrapper}
+                style={{ borderRadius: 9999, overflow: 'hidden' }}
                 accessibilityRole="button"
                 accessibilityLabel="Tham gia lại"
               >
                 <LinearGradient
-                  colors={['#008b8b', '#006d6f', '#0d98ba']}
+                  colors={[c.gradientStart, c.gradientMid, c.gradientEnd]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={styles.buttonGradient}
+                  style={{
+                    paddingHorizontal: 32,
+                    paddingVertical: 14,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
                 >
-                  <Text style={styles.buttonLabel}>Tham gia lại</Text>
+                  <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '600' }}>
+                    Tham gia lại
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
             </>
@@ -75,46 +111,3 @@ export function SessionExpiredOverlay({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    // Replicates "bg-bg/95" — dark teal at 95% opacity; no backdrop-blur in RN.
-    backgroundColor: 'rgba(6, 16, 15, 0.95)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  content: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  title: {
-    color: '#e0ffff',
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  subtitle: {
-    color: '#7aa8a8',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  buttonWrapper: {
-    borderRadius: 9999,
-    overflow: 'hidden',
-  },
-  buttonGradient: {
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonLabel: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-});
