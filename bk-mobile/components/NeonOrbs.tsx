@@ -178,8 +178,8 @@ function Orb({
 // ---------------------------------------------------------------------------
 
 export function NeonOrbs({ style }: NeonOrbsProps) {
-  const { theme } = useTheme();
-  const colors = theme === 'dark' ? DarkColors : LightColors;
+  const { resolvedTheme } = useTheme();
+  const colors = resolvedTheme === 'dark' ? DarkColors : LightColors;
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
