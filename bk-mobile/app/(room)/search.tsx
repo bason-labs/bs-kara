@@ -226,7 +226,7 @@ export default function SearchScreen() {
 
       {/* Search bar */}
       <View style={{ flexDirection: 'row', alignItems: 'center',
-        marginHorizontal: 16, marginTop: 0, marginBottom: 4, gap: 10 }}>
+        marginHorizontal: 16, marginTop: 12, marginBottom: 4, gap: 10 }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center',
           backgroundColor: c.surface, borderWidth: 1, borderColor: c.border,
           borderRadius: 999, paddingHorizontal: 14, height: 52, gap: 8 }}>
@@ -309,6 +309,7 @@ export default function SearchScreen() {
           data={results}
           keyExtractor={(item) => item.id}
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 16 }}
           ListHeaderComponent={
             !query.trim() && activeChips.size === 0 ? (
               <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 3,
