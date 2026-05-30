@@ -41,6 +41,7 @@ export function AutoRandomSection({
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? DarkColors : LightColors;
+  const brandRgb = resolvedTheme === 'dark' ? '0,139,139' : '0,109,111';
 
   return (
     <>
@@ -48,10 +49,10 @@ export function AutoRandomSection({
       <View
         style={{
           backgroundColor: isAutoRandomMode
-            ? 'rgba(0,139,139,0.08)'
+            ? `rgba(${brandRgb},0.08)`
             : c.surface2,
           borderWidth: 1,
-          borderColor: isAutoRandomMode ? 'rgba(0,139,139,0.4)' : c.border,
+          borderColor: isAutoRandomMode ? `rgba(${brandRgb},0.4)` : c.border,
           borderRadius: 16,
           marginHorizontal: 12,
           marginBottom: 4,
@@ -101,7 +102,7 @@ export function AutoRandomSection({
               paddingBottom: 16,
               paddingTop: 8,
               borderTopWidth: 1,
-              borderTopColor: 'rgba(0,139,139,0.2)',
+              borderTopColor: `rgba(${brandRgb},0.2)`,
             }}
           >
             <Text style={{ color: c.muted, fontSize: 12, marginBottom: 16 }}>
