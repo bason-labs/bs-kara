@@ -51,7 +51,7 @@ export function BottomNav({ activeTab, isPlaying, queueLength, onTabChange }: Bo
             <Text style={{ fontSize: 10.5, fontWeight: '600', marginTop: 2, color: active ? c.fg : MUTED }}>{tab.label}</Text>
             {tab.id === 'queue' && queueLength > 0 && (
               <View testID="queue-badge" style={{ position: 'absolute', top: 2, right: 10, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: c.accent, borderWidth: 2, borderColor: c.bg, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 9.5, fontWeight: '700', color: '#001a1a' }}>{queueLength}</Text>
+                <Text style={{ fontSize: 9.5, fontWeight: '700', color: resolvedTheme === 'dark' ? '#001a1a' : '#fff' }}>{queueLength}</Text>
               </View>
             )}
           </Pressable>

@@ -1,5 +1,6 @@
 import { View, TouchableOpacity } from 'react-native';
 import { PlayCircle } from 'lucide-react-native';
+import { useColors } from '@/hooks/useColors';
 
 interface PlayNowButtonProps {
   videoId: string;
@@ -28,6 +29,7 @@ export function PlayNowButton({
   onPress,
   isHost,
 }: PlayNowButtonProps) {
+  const c = useColors();
   if (!isHost) return null;
   if (currentPlayingId === videoId) return null;
 
@@ -42,13 +44,13 @@ export function PlayNowButton({
           width: 40,
           height: 40,
           borderRadius: 20,
-          backgroundColor: '#1f3a3a',
+          backgroundColor: c.brand,
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
         }}
       >
-        <PlayCircle size={20} color="#40e0d0" strokeWidth={2.2} />
+        <PlayCircle size={20} color="#fff" strokeWidth={2.2} />
       </TouchableOpacity>
     </View>
   );
