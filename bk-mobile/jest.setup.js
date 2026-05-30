@@ -2,6 +2,14 @@
 // React Native's setup.js is already loaded in setupFiles
 // This file runs after that and can add additional mocks if needed
 
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
+jest.mock('nativewind', () => ({
+  useColorScheme: () => ({ setColorScheme: jest.fn() }),
+}));
+
 jest.mock('@gorhom/bottom-sheet', () => {
   const { View } = require('react-native');
   const BottomSheet = ({ children }) => <View>{children}</View>;
