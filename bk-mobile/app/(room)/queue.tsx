@@ -15,6 +15,8 @@ export default function QueueScreen() {
     roomCode,
     removeSong,
     reorderQueue,
+    playSongNow,
+    isHost,
   } = useRoomContext();
 
   const [pendingRemove, setPendingRemove] = useState<QueueItem | null>(null);
@@ -49,6 +51,9 @@ export default function QueueScreen() {
               onRemove={() => setPendingRemove(item)}
               drag={drag}
               dragEnabled={roomData.dragDropEnabled}
+              isHost={isHost}
+              currentPlayingId={roomData.currentPlaying?.id ?? null}
+              onPlayNow={() => void playSongNow(item, item.queueId)}
             />
           )}
         />
