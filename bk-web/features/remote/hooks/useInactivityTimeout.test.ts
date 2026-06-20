@@ -97,4 +97,21 @@ describe('useInactivityTimeout', () => {
     await act(async () => { vi.advanceTimersByTime(61_000); });
     expect(result.current.timedOut).toBe(false);
   });
+
+  // Locks the render-phase "adjust state on prop change" refactor that
+  // replaced the clear-on-exit effect: when roomCode transitions to null
+  // (room exit), timedOut and rejoinReason must reset.
+  it('resets timedOut when roomCode transitions to null', async () => {
+    const { result, rerender } = renderHook(
+      ({ room }: { room: string | null }) => useInactivityTimeout(room),
+      { initialProps: { room: '1234' as string | null } },
+    );
+    sessionStorage.setItem(STORAGE_KEY, String(Date.now() - 61 * 60 * 1000));
+    await act(async () => { vi.advanceTimersByTime(61_000); });
+    expect(result.current.timedOut).toBe(true);
+
+    rerender({ room: null });
+    expect(result.current.timedOut).toBe(false);
+    expect(result.current.rejoinReason).toBeNull();
+  });
 });
