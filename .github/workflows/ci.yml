@@ -19,6 +19,9 @@ jobs:
       NEXT_PUBLIC_FIREBASE_DATABASE_URL: ${{ vars.NEXT_PUBLIC_FIREBASE_DATABASE_URL }}
       NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
       NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
+      # Job-level so the SonarCloud step's `if` can read env.SONAR_TOKEN.
+      # (A step's own `env:` is NOT visible to that same step's `if:` condition.)
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     permissions:
       contents: read
       pull-requests: write
@@ -59,8 +62,6 @@ jobs:
 
       - name: SonarCloud scan
         if: ${{ env.SONAR_TOKEN != '' }}
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         uses: SonarSource/sonarqube-scan-action@v4
 
   scope-gate:
