@@ -1,0 +1,20 @@
+[
+  { "name": "agent-ready", "color": "0e8a16", "description": "Fully specified; an agent may take it unsupervised" },
+  { "name": "needs-human", "color": "d93f0b", "description": "Requires a human decision or input" },
+  { "name": "blocked", "color": "b60205", "description": "Blocked by another issue or external dependency" },
+  { "name": "auto-merge", "color": "5319e7", "description": "Allow the agent to merge once all gates pass" },
+  { "name": "human-approved", "color": "0e8a16", "description": "A human approved an out-of-scope/control-path change" },
+  { "name": "type:feature", "color": "1d76db", "description": "New functionality" },
+  { "name": "type:bug", "color": "d73a4a", "description": "Something isn't working" },
+  { "name": "type:chore", "color": "c5def5", "description": "Tooling, deps, or maintenance" },
+  { "name": "type:docs", "color": "0075ca", "description": "Documentation only" },
+  { "name": "priority:high", "color": "b60205", "description": "High priority" },
+  { "name": "priority:med", "color": "fbca04", "description": "Medium priority" },
+  { "name": "priority:low", "color": "0e8a16", "description": "Low priority" },
+  { "name": "area:web", "color": "5319e7", "description": "Next.js web app (bk-web)" },
+  { "name": "area:mobile", "color": "1d76db", "description": "Expo/React Native app (bk-mobile)" },
+  { "name": "area:shared", "color": "006b75", "description": "Shared code (bk-shared)" },
+  { "name": "area:e2e", "color": "fbca04", "description": "Playwright end-to-end tests" },
+  { "name": "area:infra", "color": "c5def5", "description": "CI / tooling / automation" },
+  { "name": "area:multiple", "color": "bfdadc", "description": "Spans multiple areas" }
+]
