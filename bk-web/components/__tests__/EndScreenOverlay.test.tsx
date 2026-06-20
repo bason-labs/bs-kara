@@ -134,6 +134,43 @@ describe('EndScreenOverlay', () => {
     expect(container.querySelector('.bg-gradient-brand')).toBeNull();
   });
 
+  it('hides the overlay and re-picks the message when songId changes', async () => {
+    // Locks the render-phase "adjust state on songId change" refactor that
+    // replaced the setState-in-effect reset: a new songId must hide the
+    // currently-visible overlay and pick a fresh celebratory message.
+    // Math.random is pinned so pickMessage is deterministic per song:
+    // song A → MESSAGES[0], song B → MESSAGES[7].
+    const randomSpy = vi
+      .spyOn(Math, 'random')
+      .mockReturnValueOnce(0) // initial lazy message for song A → index 0
+      .mockReturnValue(7 / 8); // any later pick (song B) → index 7
+
+    const { container, rerender } = render(
+      <EndScreenOverlay player={makeTriggerPlayer()} songId="A" />,
+    );
+    // Walk song A to "near end" so the overlay is visible.
+    await act(async () => {
+      vi.advanceTimersByTime(600);
+    });
+    const overlayA = container.querySelector('.bg-gradient-brand');
+    expect(overlayA).not.toBeNull();
+    expect(overlayA?.textContent).toContain('Bạn hát tuyệt vời'); // MESSAGES[0]
+
+    // New song → render-phase reset hides the overlay immediately on rerender.
+    rerender(<EndScreenOverlay player={makeTriggerPlayer()} songId="B" />);
+    expect(container.querySelector('.bg-gradient-brand')).toBeNull();
+
+    // Walk song B to "near end" — the freshly picked message must show.
+    await act(async () => {
+      vi.advanceTimersByTime(600);
+    });
+    const overlayB = container.querySelector('.bg-gradient-brand');
+    expect(overlayB).not.toBeNull();
+    expect(overlayB?.textContent).toContain('Quá xuất sắc'); // MESSAGES[7]
+
+    randomSpy.mockRestore();
+  });
+
   it('does not mount ScoreBlock until the visibility gate fires', () => {
     // Player at the start of a 60s song — > 8s remaining → overlay invisible.
     const earlyPlayer = {
