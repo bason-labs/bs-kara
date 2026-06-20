@@ -1,0 +1,9 @@
+# Any change to the automation's own controls requires a human (you) to review.
+/.github/            @thienba
+/.claude/            @thienba
+/scripts/acdc/       @thienba
+/turbo.json          @thienba
+/pnpm-workspace.yaml @thienba
+/package.json        @thienba
+/database.rules.json @thienba
+/bk-web/lib/firebase* @thienba
