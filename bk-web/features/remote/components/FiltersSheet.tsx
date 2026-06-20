@@ -30,9 +30,13 @@ export function FiltersSheet({
 
   // Always holds the latest committed chips without being a dep of the open
   // effect (adding activeChips to that dep would reset the draft on every
-  // parent re-render while the sheet is already open).
+  // parent re-render while the sheet is already open). Written in an effect
+  // (refs must not be mutated during render); the open-effect reads it inside
+  // an effect, so it always sees the latest committed value.
   const committedRef = useRef(activeChips);
-  committedRef.current = activeChips;
+  useEffect(() => {
+    committedRef.current = activeChips;
+  });
 
   useEffect(() => {
     if (!open) return;
