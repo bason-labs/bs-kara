@@ -34,8 +34,12 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
 
-      - name: Green bar (typecheck + lint + test + build)
-        run: pnpm exec turbo run typecheck lint test build --filter=@bs-kara/web --filter=@bs-kara/acdc
+      # Build first so next regenerates .next/types/*; bk-web's tsconfig includes
+      # those, and running typecheck concurrently with build races on routes.d.ts.
+      - name: Build
+        run: pnpm exec turbo run build --filter=@bs-kara/web --filter=@bs-kara/acdc
+      - name: Green bar (typecheck + lint + test)
+        run: pnpm exec turbo run typecheck lint test --filter=@bs-kara/web --filter=@bs-kara/acdc
 
       - name: Install Playwright (chromium)
         run: pnpm exec playwright install --with-deps chromium
