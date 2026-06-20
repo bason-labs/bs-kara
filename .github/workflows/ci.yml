@@ -41,11 +41,11 @@ jobs:
       - name: Green bar (typecheck + lint + test)
         run: pnpm exec turbo run typecheck lint test --filter=@bs-kara/web --filter=@bs-kara/acdc
 
-      - name: Install Playwright (chromium)
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Install Playwright (chromium + webkit)
+        run: pnpm exec playwright install --with-deps chromium webkit
       - name: e2e
         env: { CI: '1' }
-        run: pnpm exec playwright test --project=chromium
+        run: pnpm exec playwright test --project=chromium --grep-invert "@live"
 
       - name: Upload Playwright report
         if: always()
@@ -77,27 +77,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: pnpm/action-setup@v4
-        with: { version: 10.11.0 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
-      - name: Determine human approval + area label
-        id: ctx
+      - name: Hard gate — block protected control-path changes without CODEOWNER approval
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.ref }}
         run: |
-          DECISION=$(gh pr view "$PR" --json reviewDecision --jq '.reviewDecision')
-          echo "approved=$([ "$DECISION" = "APPROVED" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-          AREA=$(gh pr view "$PR" --json labels --jq '.labels[].name | select(startswith("area:"))' | head -n1)
-          echo "area=$AREA" >> "$GITHUB_OUTPUT"
-      - name: Run scope-gate
-        env:
-          ACDC_BASE_REF: origin/${{ github.event.pull_request.base.ref }}
-          ACDC_HUMAN_APPROVED: ${{ steps.ctx.outputs.approved }}
-          ACDC_AREA_LABEL: ${{ steps.ctx.outputs.area }}
-        run: pnpm -C scripts/acdc exec tsx bin/scope-gate.ts
+          set -euo pipefail
+          CHANGED="$(git diff --name-only "origin/${BASE}...HEAD")"
+          echo "Changed files:"; printf '%s\n' "$CHANGED"
+          # This list lives in the BASE workflow (pull_request runs base YAML), so a PR
+          # cannot edit it to bypass the gate. Keep in sync with the canonical protected
+          # list in scripts/acdc/src/scopeGateCli.ts (PROTECTED_GLOBS) and .github/CODEOWNERS.
+          PROTECTED_RE='^(\.github/|\.claude/|scripts/acdc/|database\.rules\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|package\.json|turbo\.json|bk-web/lib/firebase|bk-shared/.*firebase|bk-web/.*firebase)'
+          HITS="$(printf '%s\n' "$CHANGED" | grep -E "$PROTECTED_RE" || true)"
+          if [ -n "$HITS" ]; then
+            DECISION="$(gh pr view "$PR" --json reviewDecision --jq '.reviewDecision')"
+            if [ "$DECISION" != "APPROVED" ]; then
+              echo "::error::scope-gate: PR modifies protected automation controls without CODEOWNER approval:"
+              printf '%s\n' "$HITS" | sed 's/^/::error::  /'
+              echo "A CODEOWNER must approve (repo must require CODEOWNER review) to override."
+              exit 1
+            fi
+            echo "Protected paths changed but PR is CODEOWNER-approved — allowed."
+          fi
 
   secret-scan:
     runs-on: ubuntu-latest

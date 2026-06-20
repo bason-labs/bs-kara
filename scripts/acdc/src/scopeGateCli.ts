@@ -1,3 +1,9 @@
+// NOTE: The ENFORCED scope gate is the inline, base-controlled bash check in
+// .github/workflows/ci.yml (the `scope-gate` job). On a pull_request event GitHub
+// runs the BASE branch's workflow YAML, so a PR cannot tamper with the gate that
+// judges it. This module is the canonical protected list for local/runbook use and
+// is kept in sync with that inline check (and .github/CODEOWNERS); it is not what
+// gates CI.
 import { evaluateScopeGate } from './scopeGate';
 
 export const PROTECTED_GLOBS = [
