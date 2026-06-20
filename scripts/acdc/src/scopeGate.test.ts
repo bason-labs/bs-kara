@@ -73,4 +73,27 @@ describe('evaluateScopeGate', () => {
     const r = evaluateScopeGate({ changedPaths: [], protectedGlobs: PROTECTED, humanApproved: false });
     expect(r.pass).toBe(true);
   });
+
+  it('flags an unknown area label (not multiple, not in the map)', () => {
+    const r = evaluateScopeGate({
+      changedPaths: ['bk-web/app/page.tsx'],
+      protectedGlobs: PROTECTED,
+      humanApproved: false,
+      areaLabel: 'area:does-not-exist',
+      areaGlobs: { 'area:web': ['bk-web/**'] },
+    });
+    expect(r.unknownArea).toBe(true);
+    expect(r.pass).toBe(true);
+  });
+
+  it('does not flag area:multiple as unknown', () => {
+    const r = evaluateScopeGate({
+      changedPaths: ['bk-web/app/page.tsx'],
+      protectedGlobs: PROTECTED,
+      humanApproved: false,
+      areaLabel: 'area:multiple',
+      areaGlobs: { 'area:web': ['bk-web/**'] },
+    });
+    expect(r.unknownArea).toBe(false);
+  });
 });

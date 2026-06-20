@@ -14,11 +14,10 @@ export interface ScopeGateInput {
 }
 
 export interface ScopeGateResult {
-  /** Protected paths touched without human approval. */
   hardViolations: string[];
-  /** Paths outside the declared area (advisory). */
   advisoryWarnings: string[];
-  /** True when there are no hard violations. */
+  /** True when an area label was given but is not recognized (and not 'area:multiple'). */
+  unknownArea: boolean;
   pass: boolean;
 }
 
@@ -34,12 +33,17 @@ export function evaluateScopeGate(input: ScopeGateInput): ScopeGateResult {
     : changedPaths.filter((p) => anyMatch(p, protectedGlobs));
 
   let advisoryWarnings: string[] = [];
-  if (areaLabel && areaGlobs && areaGlobs[areaLabel] && areaLabel !== 'area:multiple') {
+  let unknownArea = false;
+  if (areaLabel && areaLabel !== 'area:multiple' && areaGlobs) {
     const allowed = areaGlobs[areaLabel];
-    advisoryWarnings = changedPaths.filter(
-      (p) => !anyMatch(p, allowed) && !anyMatch(p, protectedGlobs),
-    );
+    if (allowed) {
+      advisoryWarnings = changedPaths.filter(
+        (p) => !anyMatch(p, allowed) && !anyMatch(p, protectedGlobs),
+      );
+    } else {
+      unknownArea = true;
+    }
   }
 
-  return { hardViolations, advisoryWarnings, pass: hardViolations.length === 0 };
+  return { hardViolations, advisoryWarnings, unknownArea, pass: hardViolations.length === 0 };
 }

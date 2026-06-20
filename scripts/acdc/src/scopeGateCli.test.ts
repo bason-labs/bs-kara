@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { runScopeGate } from './scopeGateCli';
+import { runScopeGate, parseChangedPaths, PROTECTED_GLOBS } from './scopeGateCli';
 
 describe('runScopeGate', () => {
   it('returns exit code 1 and prints violations when a protected path is touched', () => {
@@ -27,5 +27,39 @@ describe('runScopeGate', () => {
       () => {},
     );
     expect(code).toBe(0);
+  });
+
+  it('warns on an out-of-area change through the real AREA_GLOBS but still passes', () => {
+    const lines: string[] = [];
+    const code = runScopeGate(
+      { changedPaths: ['bk-mobile/app/x.tsx'], humanApproved: false, areaLabel: 'area:web' },
+      (m) => lines.push(m),
+    );
+    expect(code).toBe(0);
+    expect(lines.join('\n')).toContain('::warning::out-of-area change: bk-mobile/app/x.tsx');
+  });
+
+  it('warns on an unknown area label', () => {
+    const lines: string[] = [];
+    const code = runScopeGate(
+      { changedPaths: ['bk-web/app/page.tsx'], humanApproved: false, areaLabel: 'area:nope' },
+      (m) => lines.push(m),
+    );
+    expect(code).toBe(0);
+    expect(lines.join('\n')).toContain('unknown area label: area:nope');
+  });
+});
+
+describe('PROTECTED_GLOBS', () => {
+  it('protects the key automation-control paths', () => {
+    for (const g of ['.github/**', 'database.rules.json', 'scripts/acdc/**']) {
+      expect(PROTECTED_GLOBS).toContain(g);
+    }
+  });
+});
+
+describe('parseChangedPaths', () => {
+  it('splits, trims, and drops blank lines', () => {
+    expect(parseChangedPaths('a\n b \n\n c\n')).toEqual(['a', 'b', 'c']);
   });
 });

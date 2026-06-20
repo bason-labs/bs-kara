@@ -27,20 +27,28 @@ export interface RunScopeGateOptions {
   areaLabel?: string;
 }
 
+/** Splits `git diff --name-only` output into trimmed, non-empty paths. */
+export function parseChangedPaths(gitOutput: string): string[] {
+  return gitOutput.split('\n').map((s) => s.trim()).filter(Boolean);
+}
+
 /** Returns a process exit code (0 = pass, 1 = hard violation). */
 export function runScopeGate(opts: RunScopeGateOptions, log: (msg: string) => void): number {
-  const r = evaluateScopeGate({
+  const result = evaluateScopeGate({
     changedPaths: opts.changedPaths,
     protectedGlobs: PROTECTED_GLOBS,
     humanApproved: opts.humanApproved,
     areaLabel: opts.areaLabel,
     areaGlobs: AREA_GLOBS,
   });
-  for (const w of r.advisoryWarnings) log(`::warning::out-of-area change: ${w}`);
-  if (!r.pass) {
+  if (result.unknownArea) {
+    log(`::warning::unknown area label: ${opts.areaLabel} — skipping out-of-area check`);
+  }
+  for (const warning of result.advisoryWarnings) log(`::warning::out-of-area change: ${warning}`);
+  if (!result.pass) {
     log('::error::scope-gate failed — PR touches protected automation controls without human approval:');
-    for (const v of r.hardViolations) log(`::error::  ${v}`);
+    for (const violation of result.hardViolations) log(`::error::  ${violation}`);
     log('Add a CODEOWNER approval to override, or remove these changes.');
   }
-  return r.pass ? 0 : 1;
+  return result.pass ? 0 : 1;
 }

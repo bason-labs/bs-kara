@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import { execFileSync } from 'node:child_process';
-import { buildProofOfWorkComment } from '../src/proofComment';
+import { buildProofOfWorkComment, parseProofCommentEnv } from '../src/proofComment';
 
 const prNumber = process.env.ACDC_PR_NUMBER;
 if (!prNumber) {
@@ -8,12 +8,12 @@ if (!prNumber) {
   process.exit(0);
 }
 
-const body = buildProofOfWorkComment({
-  serverUrl: process.env.GITHUB_SERVER_URL ?? 'https://github.com',
-  owner: process.env.GITHUB_REPOSITORY_OWNER ?? 'bason-labs',
-  repo: (process.env.GITHUB_REPOSITORY ?? 'bason-labs/bs-kara').split('/')[1],
-  runId: process.env.GITHUB_RUN_ID ?? '0',
-  artifactName: 'playwright-report',
-});
+let body: string;
+try {
+  body = buildProofOfWorkComment(parseProofCommentEnv(process.env));
+} catch (err) {
+  process.stderr.write(`${(err as Error).message}\n`);
+  process.exit(1);
+}
 
 execFileSync('gh', ['pr', 'comment', prNumber, '--body', body], { stdio: 'inherit' });

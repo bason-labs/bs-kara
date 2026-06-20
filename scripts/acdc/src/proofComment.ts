@@ -15,3 +15,22 @@ export function buildProofOfWorkComment(i: ProofCommentInput): string {
     `(download the \`${i.artifactName}\` artifact).`,
   ].join('\n');
 }
+
+/** Builds ProofCommentInput from process env. Throws on a malformed GITHUB_REPOSITORY. */
+export function parseProofCommentEnv(
+  env: NodeJS.ProcessEnv,
+  artifactName = 'playwright-report',
+): ProofCommentInput {
+  const fullRepo = env.GITHUB_REPOSITORY || 'bason-labs/bs-kara';
+  const [owner, repo] = fullRepo.split('/');
+  if (!owner || !repo) {
+    throw new Error(`Invalid GITHUB_REPOSITORY: "${fullRepo}" (expected "owner/repo")`);
+  }
+  return {
+    serverUrl: env.GITHUB_SERVER_URL || 'https://github.com',
+    owner,
+    repo,
+    runId: env.GITHUB_RUN_ID || '0',
+    artifactName,
+  };
+}
