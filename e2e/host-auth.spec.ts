@@ -5,7 +5,8 @@ import { test, expect } from '@playwright/test';
 const TEST_PHONE = '0900000001';
 const TEST_OTP = '123456';
 
-test.describe('Host registration flow', () => {
+// @live — requires a live Firebase test phone + a pre-existing room; excluded from CI.
+test.describe('Host registration flow @live', () => {
   test('new host registers, gets room, sees all settings sections', async ({ page }) => {
     await page.goto('/register');
 
