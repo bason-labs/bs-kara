@@ -89,7 +89,7 @@ vi.mock('@/features/remote/hooks/useFullscreenOwnership', () => ({
   useFullscreenOwnership: () => ({ deviceId: 'test', claim: vi.fn(), release: vi.fn() }),
 }));
 
-vi.mock('@/hooks/useRoom', () => ({
+vi.mock('@bs-kara/shared/hooks', () => ({
   useRoom: () => ({
     roomData: {
       queue: [], currentPlaying: null, isPlaying: false, volume: 100, history: [],
@@ -110,6 +110,13 @@ vi.mock('@/hooks/useRoom', () => ({
     removeCurrentPlaying: vi.fn(), addToPlayedHistory: vi.fn(),
     setCurrentPlayingDirectly: vi.fn(), playSongNow: vi.fn(),
   }),
+  useTransientNotice: () => ({ notice: null, show: vi.fn() }),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock('@/hooks/useAutoRandom', () => ({ useAutoRandom: () => {} }));

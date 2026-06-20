@@ -23,6 +23,7 @@ const orderByChildMock = vi.fn((key: string) => ({ orderByChild: key }));
 const startAfterMock = vi.fn((value: unknown) => ({ startAfter: value }));
 
 vi.mock('firebase/database', () => ({
+  getDatabase: vi.fn(),
   ref: (db: unknown, path: string) => refMock(db, path),
   query: (target: unknown, ...mods: unknown[]) =>
     queryMock(target, ...(mods as [])),

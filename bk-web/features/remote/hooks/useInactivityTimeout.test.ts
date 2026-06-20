@@ -4,6 +4,7 @@ vi.mock('@/lib/firebase', () => ({ db: {} }));
 
 const { getDbMock } = vi.hoisted(() => ({ getDbMock: vi.fn() }));
 vi.mock('firebase/database', () => ({
+  getDatabase: vi.fn(),
   ref: vi.fn(() => ({})),
   get: getDbMock,
 }));

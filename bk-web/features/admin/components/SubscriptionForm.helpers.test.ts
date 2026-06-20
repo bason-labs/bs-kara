@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('@/lib/firebase', () => ({ db: {}, auth: {} }));
 vi.mock('firebase/database', () => ({
+  getDatabase: vi.fn(),
   ref: vi.fn(),
   get: vi.fn(),
   set: vi.fn(),

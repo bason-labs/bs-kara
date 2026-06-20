@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/lib/firebase', () => ({ db: {} }));
 
 vi.mock('firebase/database', () => ({
+  getDatabase: vi.fn(),
   ref: vi.fn((_db: unknown, path: string) => ({ path })),
   get: vi.fn(),
   set: vi.fn(),

@@ -26,7 +26,7 @@ const state = vi.hoisted(() => ({
   outroOnVisibleChange: null as ((visible: boolean) => void) | null,
 }));
 
-vi.mock('@/hooks/useRoom', () => ({
+vi.mock('@bs-kara/shared/hooks', () => ({
   useRoom: () => ({
     roomData: {
       queue: state.queue,
@@ -55,6 +55,7 @@ vi.mock('@/hooks/useRoom', () => ({
     setCurrentPlayingDirectly: vi.fn(),
     tryClaimAnnouncementLock: vi.fn(),
   }),
+  useTransientNotice: () => ({ notice: null, show: vi.fn() }),
 }));
 
 vi.mock('@/hooks/useMCPlayer', () => ({
@@ -80,9 +81,18 @@ vi.mock('@/features/tv/hooks/useTVPresence', () => ({
 vi.mock('@/lib/firebase', () => ({ db: {} }));
 
 vi.mock('firebase/database', () => ({
+  getDatabase: vi.fn(),
   ref: vi.fn(),
   set: vi.fn().mockResolvedValue(undefined),
   remove: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  push: vi.fn(),
+  runTransaction: vi.fn(),
+  onValue: vi.fn(() => () => {}),
+  onChildAdded: vi.fn(() => () => {}),
+  query: vi.fn((r) => r),
+  orderByChild: vi.fn(),
+  startAfter: vi.fn(),
   onDisconnect: () => ({
     cancel: vi.fn().mockResolvedValue(undefined),
     remove: vi.fn().mockResolvedValue(undefined),
