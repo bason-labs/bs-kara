@@ -76,12 +76,13 @@ describe('VideoPlayer', () => {
     expect(player.setPlaybackQuality).toHaveBeenCalledWith('default');
   });
 
-  it('does not pin a fixed quality in playerVars (vq stays auto-adaptive)', () => {
+  it('caps requested playerVars quality so slow networks do not buffer on 1080p', () => {
     render(
       <VideoPlayer videoId="x" onSongEnd={() => {}} isPlaying volume={50} />,
     );
     const playerVars = (capturedProps?.opts as { playerVars: { vq?: string } }).playerVars;
-    expect(playerVars.vq).toBe('default');
+    // 'large' = 480p cap (≤720p) — see commit 88c6fb2 / c4ad54d.
+    expect(playerVars.vq).toBe('large');
   });
 
   it('forwards onSongEnd as onEnd to the underlying player', () => {
