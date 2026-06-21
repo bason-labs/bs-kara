@@ -5,13 +5,23 @@
   <key>Label</key>
   <string>com.bason.acdc-watch</string>
 
-  <!-- Runs a login shell so PATH (node/pnpm/gh/claude via nvm, homebrew, etc.)
-       is set up, then cds to the repo and launches the watcher via tsx.
-       __HOME__ and __REPO__ are substituted by install.sh. -->
+  <!-- launchd provides only a minimal PATH (/usr/bin:/bin:...) and does NOT source
+       shell rc files, so node/pnpm/gh/claude are not found by default. install.sh
+       detects their real locations and bakes them into PATH (__PATH__). We use a
+       NON-login `zsh -c` because the login shell (-l) tripped a getcwd error under
+       launchd while sourcing rc files. __HOME__/__REPO__/__PATH__ are substituted
+       by install.sh. The watcher self-loads ~/.acdc/board.env, claude-token.env,
+       and firebase.env, so no other env wiring is needed here. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__PATH__</string>
+  </dict>
+
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
-    <string>-lc</string>
+    <string>-c</string>
     <string>cd "__REPO__" &amp;&amp; exec pnpm -C scripts/acdc exec tsx bin/acdc-watch.ts</string>
   </array>
 
@@ -26,8 +36,5 @@
 
   <key>StandardErrorPath</key>
   <string>__HOME__/.acdc/watch.log</string>
-
-  <key>WorkingDirectory</key>
-  <string>__REPO__</string>
 </dict>
 </plist>
