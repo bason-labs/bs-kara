@@ -24,6 +24,7 @@ import {
   type InFlightRecord,
 } from '../src/watcher/runState';
 import { parseProjectItems } from '../src/watcher/githubState';
+import { prIssuesFromList, itemsNeedingInReview } from '../src/watcher/reviewSync';
 import { acdcRunPrompt, buildDispatchEnv, claudeArgs } from '../src/watcher/dispatch';
 import {
   isBoardConfigured,
@@ -42,6 +43,7 @@ const COUNTER_PATH = path.join(ACDC_DIR, 'counters.json');
 const HEARTBEAT_PATH = path.join(ACDC_DIR, 'last-heartbeat');
 const TOKEN_ENV_PATH = path.join(ACDC_DIR, 'claude-token.env');
 const FIREBASE_ENV_PATH = path.join(ACDC_DIR, 'firebase.env');
+const BOARD_ENV_PATH = path.join(ACDC_DIR, 'board.env');
 const SETTINGS_PATH = '.claude/acdc-settings.json';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -261,6 +263,22 @@ function fetchTickets(cfg: BoardConfig): Ticket[] {
   }
 }
 
+// Issue numbers with an open worker PR (head branch `run/issue-<N>`). The
+// watcher runs from REPO_ROOT, so `gh pr list` targets the current repo.
+function fetchOpenPrIssues(): Set<number> {
+  try {
+    const raw = execFileSync(
+      'gh',
+      ['pr', 'list', '--state', 'open', '--json', 'number,headRefName'],
+      { encoding: 'utf8' },
+    );
+    return prIssuesFromList(raw);
+  } catch (err) {
+    log(`failed to list open PRs: ${(err as Error).message}`);
+    return new Set();
+  }
+}
+
 // ---- notifications + pause -------------------------------------------------
 function notify(message: string): void {
   try {
@@ -353,6 +371,21 @@ async function tick(cfg: Config): Promise<void> {
   // 3. re-derive state from the board
   const tickets = boardCfg ? fetchTickets(boardCfg) : [];
   const inFlight = new Set<number>(survivors.map((r) => r.issue));
+
+  // 3b. sync board: move "In Progress" cards to "In review" once their worker
+  // PR is open. The worker's own step-9 move is unreliable, so we drive it
+  // watcher-side. Best-effort: skip if the board isn't configured.
+  if (boardCfg) {
+    try {
+      const prIssues = fetchOpenPrIssues();
+      for (const issueNum of itemsNeedingInReview(tickets, prIssues)) {
+        log(`issue #${issueNum} has an open PR — moving board card to In review`);
+        moveBoard(boardCfg, issueNum, 'In review');
+      }
+    } catch (err) {
+      log(`In-review board sync failed: ${(err as Error).message}`);
+    }
+  }
 
   // 4. guards
   const counters = readCounters(now);
@@ -466,6 +499,11 @@ function maybeHeartbeat(now: number): void {
 // ---- main loop -------------------------------------------------------------
 async function main(): Promise<void> {
   ensureDirs();
+  // Self-load board config (ACDC_*) from ~/.acdc/board.env so the watcher works under
+  // launchd, which does not source it. Pre-existing env wins (explicit override).
+  for (const [k, v] of Object.entries(readEnvFile(BOARD_ENV_PATH))) {
+    if (process.env[k] === undefined) process.env[k] = v;
+  }
   log('ACDC watcher starting');
   for (;;) {
     const cfg = loadConfig(process.env);
