@@ -94,6 +94,10 @@ export function OTPInput({
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
       focusIndex(i + 1);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onChange('');
+      focusIndex(0);
     }
   }
 
