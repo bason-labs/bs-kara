@@ -1,0 +1,42 @@
+import { describe, it, expect } from 'vitest';
+import { loadConfig, isPaused } from './config';
+
+describe('loadConfig', () => {
+  it('returns defaults when env is empty', () => {
+    const c = loadConfig({});
+    expect(c).toEqual({
+      pollSeconds: 300,
+      maxConcurrent: 1,
+      workerTimeoutMin: 45,
+      maxTicketsPerWindow: 4,
+      maxDispatchesPerDay: 12,
+      maxAutoMergesPerWindow: 3,
+      maxAttempts: 2,
+    });
+  });
+
+  it('reads ACDC_MAX_CONCURRENT from env', () => {
+    expect(loadConfig({ ACDC_MAX_CONCURRENT: '3' }).maxConcurrent).toBe(3);
+  });
+
+  it('clamps ACDC_POLL_SECONDS to a minimum of 60', () => {
+    expect(loadConfig({ ACDC_POLL_SECONDS: '10' }).pollSeconds).toBe(60);
+  });
+
+  it('clamps ACDC_POLL_SECONDS to a maximum of 1800', () => {
+    expect(loadConfig({ ACDC_POLL_SECONDS: '9999' }).pollSeconds).toBe(1800);
+  });
+});
+
+describe('isPaused', () => {
+  it('returns the injected exists result', () => {
+    expect(isPaused(() => true, '/tmp/paused')).toBe(true);
+    expect(isPaused(() => false, '/tmp/paused')).toBe(false);
+  });
+
+  it('passes the pausedPath through to exists', () => {
+    let seen = '';
+    isPaused((p) => { seen = p; return false; }, '/var/run/acdc.paused');
+    expect(seen).toBe('/var/run/acdc.paused');
+  });
+});
