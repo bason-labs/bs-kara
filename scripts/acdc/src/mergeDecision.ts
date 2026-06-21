@@ -98,9 +98,8 @@ export function computeIndependentGate(input: IndependentGateInput): Independent
   return { independentGatePass, blockingFindings, dismissedBlockingFindings: 0, detail };
 }
 
-/** `gh pr view --json labels,reviews,statusCheckRollup` shape (the fields we read). */
+/** `gh pr view --json reviews,statusCheckRollup` shape (the PR fields we read). */
 export interface PrJson {
-  labels?: { name: string }[];
   reviews?: { author?: { login?: string }; state?: string }[];
   // statusCheckRollup mixes CheckRun ({name,status,conclusion}) and StatusContext
   // ({context,state}); we normalise both.
@@ -115,10 +114,14 @@ export interface PrJson {
 
 const AUTO_MERGE_LABEL = 'auto-merge';
 
-/** Maps raw `gh pr view --json ...` output to a MergeInput ready for decideMerge. */
-export function buildMergeInput(pr: PrJson): MergeInput {
-  const labels = (pr.labels ?? []).map((l) => l.name);
-  const hasAutoMergeLabel = labels.includes(AUTO_MERGE_LABEL);
+/**
+ * Maps raw `gh pr view` output + the GATING ISSUE's labels to a MergeInput.
+ * IMPORTANT: hasAutoMergeLabel comes from the ISSUE (the human's board ticket), NOT
+ * the PR. The worker can label its own PR, so the PR's labels must never authorize a
+ * merge; the issue's auto-merge label is the human's per-ticket authorization.
+ */
+export function buildMergeInput(pr: PrJson, issueLabels: string[]): MergeInput {
+  const hasAutoMergeLabel = issueLabels.includes(AUTO_MERGE_LABEL);
 
   const rollup = (pr.statusCheckRollup ?? []).map((e) => ({
     name: e.name ?? e.context ?? '?',
@@ -142,4 +145,40 @@ export function buildMergeInput(pr: PrJson): MergeInput {
     blockingFindings: gate.blockingFindings,
     dismissedBlockingFindings: gate.dismissedBlockingFindings,
   };
+}
+
+/** Parse the issue number N from a `run/issue-N` head branch, else null. */
+export function issueFromHeadRef(headRef: string): number | null {
+  const m = /^run\/issue-(\d+)$/.exec((headRef ?? '').trim());
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * Strictly bind a PR to the issue that authorizes it. Returns the issue number ONLY
+ * if the PR head is run/issue-N AND its closingIssuesReferences is exactly [N].
+ * Fail-closed (null) on any mismatch/ambiguity, so a worker cannot point `Closes #M`
+ * at someone else's auto-merge issue to hijack authorization.
+ */
+export function resolveGatingIssue(
+  headRef: string,
+  closingIssues: { number: number }[] | undefined,
+): number | null {
+  const n = issueFromHeadRef(headRef);
+  if (n === null) return null;
+  const numbers = (closingIssues ?? []).map((c) => c.number);
+  if (numbers.length !== 1) return null;
+  return numbers[0] === n ? n : null;
+}
+
+/**
+ * True only if SOME actor that applied the auto-merge label is a human other than the
+ * worker. `actors` MUST already be filtered to human (User-type) accounts by the
+ * caller (so non-worker *bots* can't authorize); this additionally excludes the
+ * worker's own (possibly User-type) account. Fail-closed: an empty/unknown
+ * workerLogin (bot identity not established) returns false, never authorizing a merge.
+ */
+export function appliedByHuman(actors: string[], workerLogin: string): boolean {
+  if (!workerLogin) return false;
+  const bot = workerLogin.toLowerCase();
+  return actors.some((a) => a.trim() !== '' && a.toLowerCase() !== bot);
 }

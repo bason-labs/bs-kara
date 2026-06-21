@@ -5,5 +5,8 @@ export function withinLimits(s: GuardState, l: Limits): { ok: boolean; reason: s
   if (s.dispatchesToday >= l.maxPerDay) return { ok: false, reason: 'daily dispatch ceiling reached' };
   return { ok: true, reason: '' };
 }
-export function circuitTripped(s: GuardState, l: Limits): boolean { return s.autoMergesThisWindow >= l.maxAutoMergesPerWindow; }
+// The watcher (sole merge authority) may auto-merge only while under the per-window
+// cap. We STOP MERGING for the window (leaving PRs open) rather than tripping a global
+// pause — reaching the cap is normal, not an anomaly.
+export function canAutoMerge(s: GuardState, l: Limits): boolean { return s.autoMergesThisWindow < l.maxAutoMergesPerWindow; }
 export function nextBackoffMs(consecutiveFailures: number): number { return Math.min(300_000, 1000 * 2 ** consecutiveFailures); }

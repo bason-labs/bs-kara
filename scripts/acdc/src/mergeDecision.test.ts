@@ -3,6 +3,8 @@ import {
   decideMerge,
   computeIndependentGate,
   buildMergeInput,
+  resolveGatingIssue,
+  appliedByHuman,
   type MergeInput,
 } from './mergeDecision';
 
@@ -137,7 +139,6 @@ describe('computeIndependentGate', () => {
 
 describe('buildMergeInput', () => {
   const GREEN_PR = {
-    labels: [{ name: 'auto-merge' }],
     reviews: [{ author: { login: 'coderabbitai[bot]' }, state: 'APPROVED' }],
     statusCheckRollup: [
       { name: 'build-test', status: 'COMPLETED', conclusion: 'SUCCESS' },
@@ -145,48 +146,95 @@ describe('buildMergeInput', () => {
       { name: 'secret-scan', status: 'COMPLETED', conclusion: 'SUCCESS' },
     ],
   };
+  const AUTO = ['agent-ready', 'auto-merge'];
 
-  it('produces a mergeable input from a fully green, approved, labelled PR', () => {
-    const input = buildMergeInput(GREEN_PR);
-    expect(decideMerge(input)).toEqual({ merge: true, reason: 'all positive gate signals present' });
+  it('produces a mergeable input from a green/approved PR whose ISSUE has auto-merge', () => {
+    expect(decideMerge(buildMergeInput(GREEN_PR, AUTO))).toEqual({
+      merge: true,
+      reason: 'all positive gate signals present',
+    });
   });
 
-  it('blocks when the auto-merge label is missing', () => {
-    const input = buildMergeInput({ ...GREEN_PR, labels: [] });
+  it('blocks when the ISSUE lacks auto-merge (a PR-applied label is irrelevant)', () => {
+    const input = buildMergeInput(GREEN_PR, ['agent-ready']);
     expect(input.hasAutoMergeLabel).toBe(false);
     expect(decideMerge(input).merge).toBe(false);
   });
 
   it('treats a red required check as not-passing', () => {
-    const input = buildMergeInput({
-      ...GREEN_PR,
-      statusCheckRollup: [{ name: 'build-test', status: 'COMPLETED', conclusion: 'FAILURE' }],
-    });
+    const input = buildMergeInput(
+      { ...GREEN_PR, statusCheckRollup: [{ name: 'build-test', status: 'COMPLETED', conclusion: 'FAILURE' }] },
+      AUTO,
+    );
     expect(input.requiredChecksPass).toBe(false);
   });
 
   it('treats a pending check as not-passing', () => {
-    const input = buildMergeInput({
-      ...GREEN_PR,
-      statusCheckRollup: [{ name: 'build-test', status: 'IN_PROGRESS', conclusion: '' }],
-    });
+    const input = buildMergeInput(
+      { ...GREEN_PR, statusCheckRollup: [{ name: 'build-test', status: 'IN_PROGRESS', conclusion: '' }] },
+      AUTO,
+    );
     expect(input.requiredChecksPass).toBe(false);
   });
 
   it('normalises a legacy StatusContext (context/state) check shape', () => {
-    const input = buildMergeInput({
-      ...GREEN_PR,
-      statusCheckRollup: [{ context: 'ci/legacy', state: 'SUCCESS' }],
-    });
+    const input = buildMergeInput(
+      { ...GREEN_PR, statusCheckRollup: [{ context: 'ci/legacy', state: 'SUCCESS' }] },
+      AUTO,
+    );
     expect(input.requiredChecksPass).toBe(true);
   });
 
   it('does not pass the independent gate when CodeRabbit only COMMENTED', () => {
-    const input = buildMergeInput({
-      ...GREEN_PR,
-      reviews: [{ author: { login: 'coderabbitai[bot]' }, state: 'COMMENTED' }],
-    });
+    const input = buildMergeInput(
+      { ...GREEN_PR, reviews: [{ author: { login: 'coderabbitai[bot]' }, state: 'COMMENTED' }] },
+      AUTO,
+    );
     expect(input.independentGatePass).toBe(false);
     expect(decideMerge(input).reason).toMatch(/independent/i);
+  });
+});
+
+describe('resolveGatingIssue', () => {
+  it('returns N when the head is run/issue-N and exactly that issue is linked', () => {
+    expect(resolveGatingIssue('run/issue-11', [{ number: 11 }])).toBe(11);
+  });
+
+  it('fails closed when the linked issue does not match the head branch (hijack attempt)', () => {
+    expect(resolveGatingIssue('run/issue-99', [{ number: 11 }])).toBeNull();
+  });
+
+  it('fails closed when no closing issue is linked', () => {
+    expect(resolveGatingIssue('run/issue-11', [])).toBeNull();
+  });
+
+  it('fails closed when multiple issues are linked (ambiguous)', () => {
+    expect(resolveGatingIssue('run/issue-11', [{ number: 11 }, { number: 12 }])).toBeNull();
+  });
+
+  it('fails closed on a non-run head branch', () => {
+    expect(resolveGatingIssue('feature/foo', [{ number: 11 }])).toBeNull();
+  });
+});
+
+describe('appliedByHuman', () => {
+  it('is true when a non-bot actor applied the auto-merge label', () => {
+    expect(appliedByHuman(['bs-kara-bot', 'thienba'], 'bs-kara-bot')).toBe(true);
+  });
+
+  it('is false when only the worker bot applied it (self-authorization attempt)', () => {
+    expect(appliedByHuman(['bs-kara-bot'], 'bs-kara-bot')).toBe(false);
+  });
+
+  it('matches the bot login case-insensitively', () => {
+    expect(appliedByHuman(['BS-Kara-Bot'], 'bs-kara-bot')).toBe(false);
+  });
+
+  it('fails closed when the worker login is unknown (empty)', () => {
+    expect(appliedByHuman(['thienba'], '')).toBe(false);
+  });
+
+  it('fails closed when there are no label-application actors', () => {
+    expect(appliedByHuman([], 'bs-kara-bot')).toBe(false);
   });
 });

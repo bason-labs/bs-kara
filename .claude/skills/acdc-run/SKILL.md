@@ -61,9 +61,11 @@ and the `@bs-kara/acdc` tooling workspace). Input: an issue number `N`.
    accountability (source files / test files / why each test exists) in the PR body.
 
 9. **Push & PR.** `git push -u origin run/issue-N`; `gh pr create --base main`
-   with `Closes #N`, the proof-of-work note, and the Rule-6 block. Then move the
-   board: `ACDC_ISSUE=N ACDC_STATUS="In review" pnpm -C scripts/acdc exec tsx
-   bin/board-move.ts`.
+   with `Closes #N` (REQUIRED — the watcher binds the PR to issue N via this link;
+   it must reference exactly issue N, the one your branch encodes), the proof-of-work
+   note, and the Rule-6 block. Then move the board: `ACDC_ISSUE=N ACDC_STATUS="In
+   review" pnpm -C scripts/acdc exec tsx bin/board-move.ts`. Do **not** add an
+   `auto-merge` label — that is the human's per-ticket authorization on the *issue*.
 
 10. **Resolve loop (bounded ≤3).** `gh pr checks <pr> --watch` until settled.
     For each **blocking** finding (a red required check; SonarCloud Blocker/Critical/
@@ -71,18 +73,16 @@ and the `@bs-kara/acdc` tooling workspace). Input: an issue number `N`.
     record an explicit dismissal with rationale (a PR review comment). Re-check
     `~/.acdc/paused` before every push; abort if set. After 3 iterations, stop.
 
-11. **Merge decision (deterministic — do NOT hand-judge it).** Run:
-    `ACDC_PR=<pr> pnpm -C scripts/acdc exec tsx bin/merge-decide.ts`
-    It reads the PR's labels, reviews, and check rollup via `gh`, derives the
-    independent-gate signal from **CodeRabbit's review STATE** (`APPROVED` = pass;
-    `CHANGES_REQUESTED` = blocking; `COMMENTED`-only or absent = NOT a pass, so it
-    refuses merge-by-absence) plus any **SonarCloud** check, and runs `decideMerge`
-    (`scripts/acdc/src/mergeDecision.ts`). It prints a JSON decision and exits 0 when
-    `merge: true`, 2 when `merge: false`. Never set the independent gate by hand — trust
-    the tool's read of CodeRabbit/Sonar.
-    - If `merge: true` → `gh pr merge <pr> --auto --merge` (GitHub enforces the
-      required checks server-side). The board moves to Done on merge.
-    - Otherwise → leave the PR open in *In review* and stop. Report the printed reason.
+11. **Open the PR and STOP — you do NOT merge.** You are a *proposer*: once the PR is
+    green and CodeRabbit has reviewed it, your job is done. Leave the PR open in
+    *In review* and exit. **Never** run `gh pr merge`, never merge via `gh api`/`git
+    push`/a script, and never add or change any label (you are denied these).
+    - The **watcher** is the sole merge authority. It reads the `auto-merge` label from
+      the **issue** (the human's ticket — not the PR), binds the PR↔issue strictly,
+      re-checks CI + CodeRabbit, and merges only auto-merge-labelled, human-authorized
+      tickets. If the ticket has no `auto-merge` label, the PR simply waits for a human.
+    - You cannot authorize your own merge: the auto-merge label is human-only and the
+      watcher verifies it was applied by a human, not by you.
 
 ## Environment notes (learned from the first real run)
 - **Firebase config for the e2e build.** The Playwright `webServer` builds `bk-web`,
@@ -98,7 +98,9 @@ and the `@bs-kara/acdc` tooling workspace). Input: an issue number `N`.
   fetch once the code is full; a home-screen e2e should use web-first
   `toBeEnabled()`/`toBeDisabled()` rather than fixed waits to stay deterministic.
 
-## Stop / escalate (→ `gh issue edit N --add-label needs-human` + a comment)
+## Stop / escalate (→ `ACDC_ISSUE=N pnpm -C scripts/acdc exec tsx bin/escalate-needs-human.ts N "reason"`)
+<!-- Direct `gh issue edit --add-label` is denied; escalate only through this wrapper. -->
+
 - The acceptance criteria are ambiguous or need a product decision.
 - The change would require a protected path or a scope-boundary violation.
 - The green bar or a blocking finding is unresolved after 3 resolve iterations.
