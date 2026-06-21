@@ -52,9 +52,19 @@ describe('runScopeGate', () => {
 
 describe('PROTECTED_GLOBS', () => {
   it('protects the key automation-control paths', () => {
-    for (const g of ['.github/**', 'database.rules.json', 'scripts/acdc/**']) {
+    for (const g of ['.github/**', 'database.rules.json', 'scripts/acdc/**', '.coderabbit.yaml']) {
       expect(PROTECTED_GLOBS).toContain(g);
     }
+  });
+
+  it('blocks an unapproved change to the CodeRabbit review-gate config', () => {
+    // .coderabbit.yaml configures the independent review gate; the autonomous agent
+    // must not be able to weaken it without a human (same rule as .gitleaks.toml).
+    const code = runScopeGate(
+      { changedPaths: ['.coderabbit.yaml'], humanApproved: false },
+      () => {},
+    );
+    expect(code).toBe(1);
   });
 });
 

@@ -71,13 +71,18 @@ and the `@bs-kara/acdc` tooling workspace). Input: an issue number `N`.
     record an explicit dismissal with rationale (a PR review comment). Re-check
     `~/.acdc/paused` before every push; abort if set. After 3 iterations, stop.
 
-11. **Merge decision.** Gather: does the ticket carry `auto-merge`? are all REQUIRED
-    checks an explicit PASS? did at least one INDEPENDENT gate (CodeRabbit or
-    SonarCloud) complete with PASS? any unresolved or dismissed blocking finding?
-    Feed these to `decideMerge` (`scripts/acdc/src/mergeDecision.ts`).
-    - If it returns `merge: true` → `gh pr merge <pr> --auto --merge` (GitHub
-      enforces the gates server-side). The board moves to Done on merge.
-    - Otherwise → leave the PR open in *In review* and stop. Report the reason.
+11. **Merge decision (deterministic — do NOT hand-judge it).** Run:
+    `ACDC_PR=<pr> pnpm -C scripts/acdc exec tsx bin/merge-decide.ts`
+    It reads the PR's labels, reviews, and check rollup via `gh`, derives the
+    independent-gate signal from **CodeRabbit's review STATE** (`APPROVED` = pass;
+    `CHANGES_REQUESTED` = blocking; `COMMENTED`-only or absent = NOT a pass, so it
+    refuses merge-by-absence) plus any **SonarCloud** check, and runs `decideMerge`
+    (`scripts/acdc/src/mergeDecision.ts`). It prints a JSON decision and exits 0 when
+    `merge: true`, 2 when `merge: false`. Never set the independent gate by hand — trust
+    the tool's read of CodeRabbit/Sonar.
+    - If `merge: true` → `gh pr merge <pr> --auto --merge` (GitHub enforces the
+      required checks server-side). The board moves to Done on merge.
+    - Otherwise → leave the PR open in *In review* and stop. Report the printed reason.
 
 ## Environment notes (learned from the first real run)
 - **Firebase config for the e2e build.** The Playwright `webServer` builds `bk-web`,
