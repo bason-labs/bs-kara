@@ -51,12 +51,18 @@ The watcher derives the bot's login from this token at runtime (`gh api user`).
 
 In **Settings → Rules / Branch protection** for `main`:
 
-- **Require a pull request before merging** (blocks direct pushes).
+- **Require a pull request before merging** (blocks direct pushes for non-bypass actors).
 - **Required status checks:** `build-test`, `scope-gate`, `secret-scan`, **CodeRabbit**.
-- **Require 1 approving review.** The worker bot authors PRs and cannot approve its own, so
-  it cannot merge; only the watcher (your identity) approves + merges.
-- **Disable "allow bypass" / admin bypass**, so the rules bind every identity — including an
-  org owner — and the command-level worker token cannot route around them.
+- **Require 1 approving review.** The worker bot authors PRs and cannot approve its own, so —
+  being a non-bypass actor — it cannot merge.
+- **Keep the admin (RepositoryRole) bypass for the maintainer; do NOT add the worker bot as a
+  bypass actor.** The worker runs as a *non-admin* bot, so the rules above bind it (it needs
+  an approval it can't give, plus the checks, and can't push to `main`). You (admin) keep
+  bypass so you can still merge your own control-plane PRs, and the watcher — running as your
+  admin identity — merges the bot's PRs after its own code-side gates pass. Disabling admin
+  bypass would lock a solo maintainer out of merging their own PRs (you can't self-approve),
+  so it is intentionally left on; safety comes from the worker being non-admin, not from
+  removing the human's bypass.
 
 With this in place, even if the worker escapes the command deny-list via arbitrary code, its
-token cannot merge, cannot self-approve, and cannot push to `main`.
+non-admin token cannot merge, cannot self-approve, and cannot push to `main`.
