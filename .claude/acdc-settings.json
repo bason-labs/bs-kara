@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "defaultMode": "default",
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./bk-web/.env)",
+      "Read(./bk-web/.env.*)",
+      "Bash(rm *)",
+      "Bash(gh secret *)",
+      "Bash(gh auth *)",
+      "Bash(gh workflow *)",
+      "Bash(gh api * -X DELETE *)",
+      "Bash(gh api * --method DELETE *)",
+      "Bash(gh label *)",
+      "Bash(gh pr edit * human-approved*)",
+      "Bash(gh ruleset *)",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(pnpm dlx *)",
+      "Bash(npx *)"
+    ],
+    "allow": [
+      "Bash(pnpm install --frozen-lockfile)",
+      "Bash(pnpm run *)",
+      "Bash(pnpm -C * run *)",
+      "Bash(pnpm exec turbo *)",
+      "Bash(pnpm exec playwright *)",
+      "Bash(pnpm -C scripts/acdc exec tsx *)",
+      "Bash(git *)",
+      "Bash(gh pr *)",
+      "Bash(gh issue *)",
+      "Bash(gh project item-list *)",
+      "Bash(gh project item-edit *)",
+      "Bash(node *)",
+      "Edit",
+      "Write",
+      "Read"
+    ]
+  }
+}
