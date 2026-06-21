@@ -24,3 +24,46 @@ export function itemsNeedingInReview(tickets: Ticket[], prIssues: Set<number>): 
     .filter((t) => t.status === 'In Progress' && prIssues.has(t.number))
     .map((t) => t.number);
 }
+
+/** A worker PR paired with the issue its head branch encodes. */
+export interface OpenPr {
+  pr: number;
+  issue: number;
+}
+
+/** Parse `gh pr list --json number,headRefName` → {pr, issue} for run/issue-<N> heads. */
+export function openWorkerPrs(raw: string): OpenPr[] {
+  let arr: unknown;
+  try {
+    arr = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(arr)) return [];
+  const out: OpenPr[] = [];
+  for (const p of arr) {
+    const head = (p as { headRefName?: string })?.headRefName ?? '';
+    const num = (p as { number?: number })?.number;
+    const m = /^run\/issue-(\d+)$/.exec(head);
+    if (m && typeof num === 'number') out.push({ pr: num, issue: Number(m[1]) });
+  }
+  return out;
+}
+
+/**
+ * Tickets in "In review" that are agent-ready and have an open worker PR → {issue, pr}.
+ * These are the candidates the WATCHER (not the worker) considers for auto-merge.
+ * One PR per issue (first wins) so a duplicate head can't double-process.
+ */
+export function itemsReadyToMerge(tickets: Ticket[], prs: OpenPr[]): OpenPr[] {
+  const byIssue = new Map<number, number>();
+  for (const p of prs) if (!byIssue.has(p.issue)) byIssue.set(p.issue, p.pr);
+  return tickets
+    .filter(
+      (t) =>
+        t.status === 'In review' &&
+        t.labels.includes('agent-ready') &&
+        byIssue.has(t.number),
+    )
+    .map((t) => ({ issue: t.number, pr: byIssue.get(t.number) as number }));
+}

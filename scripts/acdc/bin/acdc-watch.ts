@@ -14,7 +14,7 @@ import { loadConfig, isPaused, type Config } from '../src/watcher/config';
 import { selectDispatchable, type Ticket } from '../src/watcher/select';
 import {
   withinLimits,
-  circuitTripped,
+  canAutoMerge,
   type GuardState,
   type Limits,
 } from '../src/watcher/guards';
@@ -24,8 +24,20 @@ import {
   type InFlightRecord,
 } from '../src/watcher/runState';
 import { parseProjectItems } from '../src/watcher/githubState';
-import { prIssuesFromList, itemsNeedingInReview } from '../src/watcher/reviewSync';
+import {
+  prIssuesFromList,
+  itemsNeedingInReview,
+  openWorkerPrs,
+  itemsReadyToMerge,
+  type OpenPr,
+} from '../src/watcher/reviewSync';
 import { acdcRunPrompt, buildDispatchEnv, claudeArgs } from '../src/watcher/dispatch';
+import {
+  buildMergeInput,
+  decideMerge,
+  resolveGatingIssue,
+  type PrJson,
+} from '../src/mergeDecision';
 import {
   isBoardConfigured,
   readBoardConfig,
@@ -42,6 +54,10 @@ const PAUSED_PATH = path.join(ACDC_DIR, 'paused');
 const COUNTER_PATH = path.join(ACDC_DIR, 'counters.json');
 const HEARTBEAT_PATH = path.join(ACDC_DIR, 'last-heartbeat');
 const TOKEN_ENV_PATH = path.join(ACDC_DIR, 'claude-token.env');
+// Least-privilege GitHub identity for the worker (GH_TOKEN=...). When present the
+// worker's gh acts as a non-admin that cannot merge or push to main; the watcher
+// keeps using its own (privileged) gh identity to perform merges.
+const WORKER_TOKEN_ENV_PATH = path.join(ACDC_DIR, 'worker-token.env');
 const FIREBASE_ENV_PATH = path.join(ACDC_DIR, 'firebase.env');
 const BOARD_ENV_PATH = path.join(ACDC_DIR, 'board.env');
 const SETTINGS_PATH = '.claude/acdc-settings.json';
@@ -279,6 +295,167 @@ function fetchOpenPrIssues(): Set<number> {
   }
 }
 
+// ---- watcher-side merge (the SOLE merge authority; the worker never merges) ----
+function fetchOpenWorkerPrs(): OpenPr[] {
+  try {
+    const raw = execFileSync(
+      'gh',
+      ['pr', 'list', '--state', 'open', '--json', 'number,headRefName'],
+      { encoding: 'utf8' },
+    );
+    return openWorkerPrs(raw);
+  } catch (err) {
+    log(`failed to list open worker PRs: ${(err as Error).message}`);
+    return [];
+  }
+}
+
+// PR fields needed to decide + bind a merge. Superset of PrJson (assignable to it).
+interface PrMergeView extends PrJson {
+  headRefName?: string;
+  closingIssuesReferences?: { number: number }[];
+}
+
+function prMergeView(pr: number): PrMergeView | null {
+  try {
+    const raw = execFileSync(
+      'gh',
+      [
+        'pr',
+        'view',
+        String(pr),
+        '--json',
+        'reviews,statusCheckRollup,headRefName,closingIssuesReferences',
+      ],
+      { encoding: 'utf8' },
+    );
+    return JSON.parse(raw) as PrMergeView;
+  } catch (err) {
+    log(`failed to read PR #${pr}: ${(err as Error).message}`);
+    return null;
+  }
+}
+
+function fetchIssueLabels(issue: number): string[] {
+  try {
+    const raw = execFileSync(
+      'gh',
+      ['issue', 'view', String(issue), '--json', 'labels', '--jq', '[.labels[].name]'],
+      { encoding: 'utf8' },
+    );
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : [];
+  } catch (err) {
+    log(`failed to read issue #${issue} labels: ${(err as Error).message}`);
+    return [];
+  }
+}
+
+// Confirm the auto-merge label was applied by a HUMAN, not the worker bot — so a
+// worker that fabricates the label on its own issue (it has Issues:write for comments)
+// cannot authorize its own merge. workerLogin is the bot identity; when unset (worker
+// shares the watcher's identity) we cannot distinguish, so this degrades to a warning
+// at the call site rather than a hard gate.
+function autoMergeIsHumanAuthorized(issue: number, workerLogin: string): boolean {
+  if (!workerLogin) return true; // no separate worker identity — cannot distinguish
+  try {
+    const raw = execFileSync(
+      'gh',
+      [
+        'api',
+        `repos/{owner}/{repo}/issues/${issue}/timeline`,
+        '--paginate',
+        '--jq',
+        '[.[] | select(.event=="labeled" and .label.name=="auto-merge") | .actor.login]',
+      ],
+      { encoding: 'utf8' },
+    );
+    const actors = JSON.parse(raw) as string[];
+    return actors.some((a) => a.toLowerCase() !== workerLogin.toLowerCase());
+  } catch (err) {
+    log(`could not verify auto-merge authorship for #${issue}: ${(err as Error).message}`);
+    return false; // fail closed
+  }
+}
+
+function removeWorktree(issue: number): void {
+  const wt = path.resolve(REPO_ROOT, '..', 'bs-kara-wt', `issue-${issue}`);
+  try {
+    execFileSync('git', ['worktree', 'remove', '--force', wt], {
+      cwd: REPO_ROOT,
+      stdio: 'ignore',
+    });
+  } catch {
+    /* worktree may not exist on this host — best-effort cleanup */
+  }
+}
+
+// The merge gate. For each In-review, agent-ready PR whose worker has FINISHED:
+// bind it strictly to its gating issue, read the auto-merge label from that ISSUE
+// (never the PR), and merge only if our gates pass AND the per-window cap allows.
+// `gh pr merge` is itself enforced server-side by branch protection, so an attempt
+// fails closed (PR left open) if GitHub would block it.
+function runMergeStep(
+  boardCfg: BoardConfig,
+  tickets: Ticket[],
+  inFlight: Set<number>,
+  counters: Counters,
+  limits: Limits,
+): void {
+  const ready = itemsReadyToMerge(tickets, fetchOpenWorkerPrs());
+  const workerLogin = readEnvFile(WORKER_TOKEN_ENV_PATH).GH_LOGIN ?? '';
+  for (const { issue, pr } of ready) {
+    if (inFlight.has(issue)) continue; // worker still running — never merge mid-run
+    const guard: GuardState = {
+      dispatchesThisWindow: counters.dispatchesThisWindow,
+      dispatchesToday: counters.dispatchesToday,
+      autoMergesThisWindow: counters.autoMergesThisWindow,
+    };
+    if (!canAutoMerge(guard, limits)) {
+      log('auto-merge window cap reached — leaving remaining PRs open');
+      return;
+    }
+    try {
+      const view = prMergeView(pr);
+      if (!view) continue;
+      // STRICT bind: the gating issue must be exactly the one the head branch encodes.
+      const gIssue = resolveGatingIssue(view.headRefName ?? '', view.closingIssuesReferences);
+      if (gIssue === null || gIssue !== issue) {
+        log(`PR #${pr}: cannot bind to run/issue-${issue} gating issue — leaving open (fail-closed)`);
+        continue;
+      }
+      const decision = decideMerge(buildMergeInput(view, fetchIssueLabels(gIssue)));
+      if (!decision.merge) {
+        log(`PR #${pr} (issue #${gIssue}) not merging: ${decision.reason}`);
+        continue;
+      }
+      // The auto-merge authorization must come from a human, not the worker bot.
+      if (!autoMergeIsHumanAuthorized(gIssue, workerLogin)) {
+        log(`PR #${pr} (issue #${gIssue}): auto-merge not human-authorized — leaving open`);
+        continue;
+      }
+      // Approve first (the watcher is a different identity than the worker) so a
+      // ruleset requiring a review is satisfied; best-effort.
+      try {
+        execFileSync('gh', ['pr', 'review', String(pr), '--approve'], { stdio: 'ignore' });
+      } catch {
+        /* approval may be unnecessary or blocked — merge fails closed if it was required */
+      }
+      execFileSync('gh', ['pr', 'merge', String(pr), '--merge', '--delete-branch'], {
+        stdio: 'ignore',
+      });
+      log(`PR #${pr} (issue #${gIssue}) auto-merged by the watcher`);
+      moveBoard(boardCfg, gIssue, 'Done');
+      deleteInflight(gIssue);
+      removeWorktree(gIssue);
+      counters.autoMergesThisWindow += 1;
+      writeCounters(counters); // persist per-merge so the cap holds within a tick
+    } catch (err) {
+      log(`PR #${pr}: merge attempt failed (left open): ${(err as Error).message}`);
+    }
+  }
+}
+
 // ---- notifications + pause -------------------------------------------------
 function notify(message: string): void {
   try {
@@ -387,19 +564,26 @@ async function tick(cfg: Config): Promise<void> {
     }
   }
 
-  // 4. guards
   const counters = readCounters(now);
+
+  // 3c. WATCHER-SIDE MERGE — the sole merge authority. The worker only proposes
+  // (opens a PR); the watcher reads the auto-merge label from the ISSUE (the human's
+  // ticket), binds the PR↔issue strictly, and merges green + CodeRabbit-approved PRs
+  // whose worker has finished. PRs whose worker is still inflight are skipped.
+  if (boardCfg) {
+    try {
+      runMergeStep(boardCfg, tickets, inFlight, counters, limits);
+    } catch (err) {
+      log(`merge step failed: ${(err as Error).message}`);
+    }
+  }
+
+  // 4. dispatch guards
   const guard: GuardState = {
     dispatchesThisWindow: counters.dispatchesThisWindow,
     dispatchesToday: counters.dispatchesToday,
     autoMergesThisWindow: counters.autoMergesThisWindow,
   };
-  if (circuitTripped(guard, limits)) {
-    log('circuit breaker tripped (auto-merge cap) — pausing');
-    writePaused('circuit breaker: auto-merge cap exceeded');
-    notify('ACDC paused: auto-merge circuit breaker tripped');
-    return;
-  }
   const limitCheck = withinLimits(guard, limits);
   if (!limitCheck.ok) {
     log(`dispatch limits reached: ${limitCheck.reason} — skipping dispatch`);
@@ -417,6 +601,13 @@ async function tick(cfg: Config): Promise<void> {
   // 6. dispatch — guarded on credentials being present
   const token = readEnvFile(TOKEN_ENV_PATH).CLAUDE_CODE_OAUTH_TOKEN ?? '';
   const firebase = readEnvFile(FIREBASE_ENV_PATH);
+  const workerGhToken = readEnvFile(WORKER_TOKEN_ENV_PATH).GH_TOKEN ?? '';
+  if (!workerGhToken) {
+    log(
+      `no GH_TOKEN in ${WORKER_TOKEN_ENV_PATH} — worker will run with the watcher's GitHub identity ` +
+        `(less safe; set up the least-privilege worker token to fully enforce "worker cannot merge")`,
+    );
+  }
   if (!token) {
     log(`missing CLAUDE_CODE_OAUTH_TOKEN in ${TOKEN_ENV_PATH} — skipping dispatch`);
     writeCounters(counters);
@@ -435,7 +626,7 @@ async function tick(cfg: Config): Promise<void> {
 
     const child = spawn('claude', claudeArgs(acdcRunPrompt(issue), SETTINGS_PATH), {
       cwd: REPO_ROOT,
-      env: buildDispatchEnv(process.env, token, firebase),
+      env: buildDispatchEnv(process.env, token, firebase, workerGhToken || undefined),
       detached: false,
     });
 
