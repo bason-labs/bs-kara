@@ -129,4 +129,22 @@ describe('OTPInput', () => {
     expect(onChange).toHaveBeenLastCalledWith('');
     expect(document.activeElement).toBe(inputs[0]);
   });
+
+  it('Home key moves focus to the first box from any position', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    const inputs = screen.getAllByRole('textbox') as HTMLInputElement[];
+    inputs[3].focus();
+    await user.keyboard('{Home}');
+    expect(document.activeElement).toBe(inputs[0]);
+  });
+
+  it('End key moves focus to the last box from any position', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    const inputs = screen.getAllByRole('textbox') as HTMLInputElement[];
+    inputs[0].focus();
+    await user.keyboard('{End}');
+    expect(document.activeElement).toBe(inputs[3]);
+  });
 });

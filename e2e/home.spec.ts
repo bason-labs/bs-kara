@@ -25,4 +25,24 @@ test.describe('home page (desktop)', () => {
     await expect(page.getByLabel(/Digit \d/).first()).toBeVisible({ timeout: 10_000 });
     await expect(page).toHaveURL(/\/(\?.*)?$/);
   });
+
+  test('Home key moves focus to the first OTP box from any position', async ({ page }) => {
+    await page.goto('/');
+    const digits = page.getByLabel(/Digit \d/);
+    await expect(digits).toHaveCount(4);
+    // Focus the last box then press Home — focus must land on box 1.
+    await digits.nth(3).click();
+    await page.keyboard.press('Home');
+    await expect(digits.nth(0)).toBeFocused();
+  });
+
+  test('End key moves focus to the last OTP box from any position', async ({ page }) => {
+    await page.goto('/');
+    const digits = page.getByLabel(/Digit \d/);
+    await expect(digits).toHaveCount(4);
+    // Focus the first box then press End — focus must land on box 4.
+    await digits.nth(0).click();
+    await page.keyboard.press('End');
+    await expect(digits.nth(3)).toBeFocused();
+  });
 });
