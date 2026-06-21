@@ -79,6 +79,20 @@ and the `@bs-kara/acdc` tooling workspace). Input: an issue number `N`.
       enforces the gates server-side). The board moves to Done on merge.
     - Otherwise → leave the PR open in *In review* and stop. Report the reason.
 
+## Environment notes (learned from the first real run)
+- **Firebase config for the e2e build.** The Playwright `webServer` builds `bk-web`,
+  which needs `NEXT_PUBLIC_FIREBASE_*` or `next build` dies with "Cannot parse
+  Firebase url". A fresh worktree has no (gitignored) `.env.local`. Provide the
+  public client config via the **environment** (the Phase-3 watcher exports
+  `NEXT_PUBLIC_FIREBASE_*`); do NOT read/copy `.env.local` (the scoped settings deny
+  it). CI gets these from repo Variables.
+- **i18n lives in `bk-shared`.** Web copy/keys (e.g. `home.joinButton`) are in
+  `bk-shared/src/locales/*.json`, not `bk-web/locales`. Check there for `area:web`
+  i18n changes (and note `bk-shared` is its own area).
+- **OTP auto-submits on completion.** `OTPInput.onComplete` triggers the join
+  fetch once the code is full; a home-screen e2e should use web-first
+  `toBeEnabled()`/`toBeDisabled()` rather than fixed waits to stay deterministic.
+
 ## Stop / escalate (→ `gh issue edit N --add-label needs-human` + a comment)
 - The acceptance criteria are ambiguous or need a product decision.
 - The change would require a protected path or a scope-boundary violation.
