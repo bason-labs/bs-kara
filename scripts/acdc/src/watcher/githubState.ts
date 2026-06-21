@@ -2,16 +2,16 @@ import type { Ticket } from './select';
 
 // Parse the output of `gh project item-list <n> --owner <o> --format json`.
 //
-// Documented shape (must be CONFIRMED against real gh output once the board
-// exists — there is no board yet, so this parser is written against the
-// documented shape and kept defensive):
+// Verified shape (against a real org board, 2026-06-21):
 //   { items: [
-//     { status: <Status column name>,
-//       content: { number: <issue #>, labels: [<label name>, ...] } },
+//     { status: <Status column name>,            // top-level
+//       labels: [<label name string>, ...],      // top-level (NOT under content)
+//       content: { number: <issue #>, ... } },   // number under content
 //     ...
 //   ] }
 //
-// Draft cards have no `content.number` and are skipped. Everything is read
+// Draft cards have no `content.number` and are skipped. Labels are read from the
+// item top level (with content.labels as a defensive fallback). Everything is read
 // through optional chaining with safe defaults so a shape surprise degrades
 // gracefully rather than throwing.
 interface RawLabel {
@@ -23,6 +23,7 @@ interface RawContent {
 }
 interface RawItem {
   status?: string;
+  labels?: Array<string | RawLabel>;
   content?: RawContent;
 }
 interface RawPayload {
@@ -50,7 +51,7 @@ export function parseProjectItems(raw: string): Ticket[] {
     if (typeof number !== 'number') continue; // skip drafts / contentless cards
     tickets.push({
       number,
-      labels: normalizeLabels(item?.content?.labels),
+      labels: normalizeLabels(item?.labels ?? item?.content?.labels),
       status: item?.status ?? '',
     });
   }
