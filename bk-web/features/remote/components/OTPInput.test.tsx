@@ -117,4 +117,16 @@ describe('OTPInput', () => {
     expect(document.activeElement).toBe(inputs[1]);
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it('Escape clears all digits and refocuses the first box', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<Harness initialValue="1234" onChange={onChange} />);
+    const inputs = screen.getAllByRole('textbox') as HTMLInputElement[];
+    // Focus a box other than the first to prove focus returns to box 0.
+    inputs[2].focus();
+    await user.keyboard('{Escape}');
+    expect(onChange).toHaveBeenLastCalledWith('');
+    expect(document.activeElement).toBe(inputs[0]);
+  });
 });
