@@ -11,6 +11,7 @@ export const PROTECTED_GLOBS = [
   '.claude/**',
   'scripts/acdc/**',
   '.gitleaks.toml',
+  '.coderabbit.yaml',
   'sonar-project.properties',
   'package.json',
   'turbo.json',

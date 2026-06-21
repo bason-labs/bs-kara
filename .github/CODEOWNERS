@@ -10,6 +10,7 @@
 /package.json         @thienba
 /database.rules.json  @thienba
 /.gitleaks.toml       @thienba
+/.coderabbit.yaml     @thienba
 /sonar-project.properties @thienba
 /bk-web/lib/firebase* @thienba
 /bk-web/**/firebase*  @thienba
