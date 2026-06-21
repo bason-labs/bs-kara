@@ -68,4 +68,25 @@ describe('TVRoomLookup', () => {
     resolvePromise(null);
     await waitFor(() => expect(screen.getByRole('button')).not.toBeDisabled());
   });
+
+  // upper-case normalisation
+  it('does not display lower-case characters — uppercases input as user types', () => {
+    render(
+      <TVRoomLookup resolveRoomCode={vi.fn()} onActivate={vi.fn()} />
+    );
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'abc1' } });
+    expect(input).toHaveValue('ABC1');
+  });
+
+  it('passes upper-cased trimmed value to resolveRoomCode, not the raw typed string', async () => {
+    const resolveRoomCode = vi.fn().mockResolvedValue('ABC1');
+    const onActivate = vi.fn().mockResolvedValue(undefined);
+    render(
+      <TVRoomLookup resolveRoomCode={resolveRoomCode} onActivate={onActivate} />
+    );
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'abc1' } });
+    fireEvent.click(screen.getByRole('button'));
+    await waitFor(() => expect(resolveRoomCode).toHaveBeenCalledWith('ABC1'));
+  });
 });

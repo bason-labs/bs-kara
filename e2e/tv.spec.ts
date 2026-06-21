@@ -15,4 +15,12 @@ test.describe('/tv display', () => {
       page.getByRole('button', { name: /Kích hoạt phòng/i }),
     ).toBeVisible({ timeout: 10_000 });
   });
+
+  test('upper-cases typed input so lower-case codes render as upper-case', async ({ page }) => {
+    await page.goto('/tv');
+    const input = page.getByPlaceholder(/VD: 0912345678/i);
+    await expect(input).toBeVisible({ timeout: 10_000 });
+    await input.fill('abc1');
+    await expect(input).toHaveValue('ABC1');
+  });
 });
