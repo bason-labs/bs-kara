@@ -17,6 +17,7 @@ const onChildAddedMock = vi.fn(
 );
 
 vi.mock('firebase/database', () => ({
+  getDatabase: vi.fn(),
   ref: vi.fn(() => ({})),
   query: vi.fn((r: unknown) => r),
   orderByChild: vi.fn(),

@@ -41,6 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 test-results
+playwright-report
 .superpowers
 .tmp.superpowers/
 
@@ -51,6 +52,7 @@ test-results
 
 # monorepo root — generated files that belong inside workspace packages
 /.turbo
+**/.turbo/
 /android
 /.tmp
 /app.json

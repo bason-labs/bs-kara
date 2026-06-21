@@ -4,8 +4,9 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 const { mockLookup } = vi.hoisted(() => ({ mockLookup: vi.fn() }));
 
 vi.mock('@/lib/firebase', () => ({ auth: {}, db: {} }));
-vi.mock('firebase/database', () => ({ ref: vi.fn(), get: vi.fn() }));
+vi.mock('firebase/database', () => ({ getDatabase: vi.fn(), ref: vi.fn(), get: vi.fn() }));
 vi.mock('firebase/auth', () => ({
+  getAuth: vi.fn(),
   onAuthStateChanged: vi.fn(),
 }));
 vi.mock('@/lib/registeredUsers', () => ({

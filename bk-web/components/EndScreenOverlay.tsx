@@ -51,6 +51,8 @@ export function EndScreenOverlay({
   score,
 }: EndScreenOverlayProps) {
   const [visible, setVisible] = useState(false);
+  // pickMessage is impure (Math.random); a lazy useState initializer runs it
+  // once off the render path — the React-blessed home for impure init.
   const [message, setMessage] = useState(pickMessage);
   // Re-arming gate: only fire the outro once we've seen the player report
   // a position comfortably away from the end for the *current* songId.
@@ -61,9 +63,22 @@ export function EndScreenOverlay({
   // re-triggering the finale.
   const seenEarlyRef = useRef(false);
 
-  useEffect(() => {
+  // Reset overlay state on song change via React's render-phase "adjust state
+  // when a prop changes" pattern (tracking the previous songId in state)
+  // rather than a setState-in-effect. Resetting during render avoids the
+  // cascading-render risk the lint rule flags, and re-picks a fresh message
+  // for the new song.
+  const [prevSongId, setPrevSongId] = useState(songId);
+  if (prevSongId !== songId) {
+    setPrevSongId(songId);
     setVisible(false);
     setMessage(pickMessage());
+  }
+
+  // Re-arm the near-end gate per song. Kept in an effect (not the render-phase
+  // block above) because refs must not be mutated during render, and keyed on
+  // songId alone so a mid-song player-ref swap does not reset the gate.
+  useEffect(() => {
     seenEarlyRef.current = false;
   }, [songId]);
 

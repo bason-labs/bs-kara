@@ -1,21 +1,22 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { onDisconnect, ref, runTransaction } from 'firebase/database';
 import { db } from '@bs-kara/shared';
 import { getRoomDataPath } from '@bs-kara/shared';
 
 // Generates a stable per-tab device id. Survives re-renders within the same
 // tab; a new tab gets a new id (which is what we want for fullscreen claims).
+// The id is produced by a lazy useState initializer, which runs exactly once
+// off the render path — the React-blessed home for impure init (Date.now /
+// Math.random / crypto.randomUUID).
 function useDeviceId(): string {
-  const idRef = useRef<string>('');
-  if (!idRef.current) {
-    idRef.current =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  }
-  return idRef.current;
+  const [deviceId] = useState<string>(() =>
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+  return deviceId;
 }
 
 export function useFullscreenOwnership(roomId: string | null) {

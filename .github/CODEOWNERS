@@ -1,0 +1,16 @@
+# Any change to the automation's own controls requires a human (you) to review.
+# Keep in sync with the inline scope-gate in .github/workflows/ci.yml and
+# scripts/acdc/src/scopeGateCli.ts (PROTECTED_GLOBS).
+/.github/             @thienba
+/.claude/             @thienba
+/scripts/acdc/        @thienba
+/turbo.json           @thienba
+/pnpm-workspace.yaml  @thienba
+/pnpm-lock.yaml       @thienba
+/package.json         @thienba
+/database.rules.json  @thienba
+/.gitleaks.toml       @thienba
+/sonar-project.properties @thienba
+/bk-web/lib/firebase* @thienba
+/bk-web/**/firebase*  @thienba
+/bk-shared/**/firebase* @thienba

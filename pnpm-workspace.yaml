@@ -3,3 +3,4 @@ packages:
   - 'bk-mobile'
   - 'bk-mobile-ui'
   - 'bk-shared'
+  - 'scripts/acdc'

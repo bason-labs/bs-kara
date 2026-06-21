@@ -15,6 +15,7 @@ vi.mock('firebase/database', () => {
   };
   const refMock = vi.fn((_, path?: string) => ({ _path: path }));
   return {
+    getDatabase: vi.fn(),
     ref: refMock,
     set: setMock,
     remove: removeMock,

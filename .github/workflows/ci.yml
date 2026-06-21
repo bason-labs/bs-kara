@@ -1,0 +1,121 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    env:
+      # Public Firebase client config — embedded in the client bundle, not secret.
+      # Set these as repo Variables: Settings → Secrets and variables → Actions → Variables.
+      NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+      NEXT_PUBLIC_FIREBASE_DATABASE_URL: ${{ vars.NEXT_PUBLIC_FIREBASE_DATABASE_URL }}
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+      NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
+      # Job-level so the SonarCloud step's `if` can read env.SONAR_TOKEN.
+      # (A step's own `env:` is NOT visible to that same step's `if:` condition.)
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.11.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+
+      # Build first so next regenerates .next/types/*; bk-web's tsconfig includes
+      # those, and running typecheck concurrently with build races on routes.d.ts.
+      - name: Build
+        run: pnpm exec turbo run build --filter=@bs-kara/web --filter=@bs-kara/acdc
+      - name: Green bar (typecheck + lint + test)
+        run: pnpm exec turbo run typecheck lint test --filter=@bs-kara/web --filter=@bs-kara/acdc
+
+      - name: Install Playwright (chromium + webkit)
+        run: pnpm exec playwright install --with-deps chromium webkit
+      - name: e2e
+        env: { CI: '1' }
+        run: pnpm exec playwright test --project=chromium --grep-invert "@live"
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 14
+
+      - name: Proof-of-work comment
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACDC_PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: pnpm -C scripts/acdc exec tsx bin/post-proof-comment.ts
+
+      - name: SonarCloud scan
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@v4
+
+  scope-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Hard gate — block protected control-path changes without CODEOWNER approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          CHANGED="$(git diff --name-only "origin/${BASE}...HEAD")"
+          echo "Changed files:"; printf '%s\n' "$CHANGED"
+          # This list lives in the BASE workflow (pull_request runs base YAML), so a PR
+          # cannot edit it to bypass the gate. Keep in sync with the canonical protected
+          # list in scripts/acdc/src/scopeGateCli.ts (PROTECTED_GLOBS) and .github/CODEOWNERS.
+          PROTECTED_RE='^(\.github/|\.claude/|scripts/acdc/|\.gitleaks\.toml|sonar-project\.properties|database\.rules\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|package\.json|turbo\.json|bk-web/lib/firebase|bk-shared/.*firebase|bk-web/.*firebase)'
+          HITS="$(printf '%s\n' "$CHANGED" | grep -E "$PROTECTED_RE" || true)"
+          if [ -n "$HITS" ]; then
+            # Override A: a CODEOWNER review approval. Override B: the 'human-approved' label
+            # (the practical signal for a solo maintainer, who cannot approve their own PR).
+            # The autonomous agent is FORBIDDEN from ever applying 'human-approved' to itself
+            # (enforced in the Phase 2/3 runbook deny-list); it is a human-only sign-off.
+            DECISION="$(gh pr view "$PR" --json reviewDecision --jq '.reviewDecision')"
+            HAS_LABEL="$(gh pr view "$PR" --json labels --jq 'any(.labels[]; .name=="human-approved")')"
+            if [ "$DECISION" != "APPROVED" ] && [ "$HAS_LABEL" != "true" ]; then
+              echo "::error::scope-gate: PR modifies protected automation controls without human approval:"
+              printf '%s\n' "$HITS" | sed 's/^/::error::  /'
+              echo "Override: a CODEOWNER approves the PR, OR a maintainer adds the 'human-approved' label."
+              exit 1
+            fi
+            echo "Protected paths changed but human-approved (review or label) — allowed."
+          fi
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Install gitleaks
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz \
+            | tar -xz -C /usr/local/bin gitleaks
+      - name: Scan
+        # gitleaks v8.18.x uses `detect` (scans git history); `git`/`dir` are v8.19+ only.
+        run: gitleaks detect --no-banner --redact

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 vi.mock('@/lib/firebase', () => ({ auth: {} }));
 vi.mock('firebase/auth', () => ({
+  getAuth: vi.fn(),
   RecaptchaVerifier: vi.fn(function (this: unknown) {
     return { render: vi.fn().mockResolvedValue(0), clear: vi.fn() };
   }),

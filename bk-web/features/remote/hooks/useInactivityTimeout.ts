@@ -19,6 +19,19 @@ export function useInactivityTimeout(roomCode: string | null) {
   const [rejoinReason, setRejoinReason] = useState<RoomAccessReason | null>(null);
   const timeoutMinutesRef = useRef<number>(DEFAULT_TIMEOUT_MINUTES);
 
+  // Clear on room exit. Render-phase "adjust state when a prop changes":
+  // when roomCode transitions to falsy we reset the timeout state. Doing this
+  // during render (guarded by a tracked previous value) is the React-blessed
+  // pattern and avoids the cascading-render risk of resetting inside an effect.
+  const [prevRoomCode, setPrevRoomCode] = useState(roomCode);
+  if (prevRoomCode !== roomCode) {
+    setPrevRoomCode(roomCode);
+    if (!roomCode) {
+      setTimedOut(false);
+      setRejoinReason(null);
+    }
+  }
+
   // Load admin-configured timeout setting once per room
   useEffect(() => {
     if (!roomCode) return;
@@ -58,14 +71,6 @@ export function useInactivityTimeout(roomCode: string | null) {
     check(); // catch stale sessions immediately without waiting for first interval
     const id = setInterval(check, CHECK_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [roomCode]);
-
-  // Clear on room exit
-  useEffect(() => {
-    if (!roomCode) {
-      setTimedOut(false);
-      setRejoinReason(null);
-    }
   }, [roomCode]);
 
   const rejoin = useCallback(async (): Promise<RejoinResult> => {

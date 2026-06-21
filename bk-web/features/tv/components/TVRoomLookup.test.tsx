@@ -35,8 +35,9 @@ describe('TVRoomLookup', () => {
     );
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '0000' } });
     fireEvent.click(screen.getByRole('button'));
+    // Test i18n returns translation keys; assert the not-found key renders.
     await waitFor(() =>
-      expect(screen.getByText(/không tìm thấy/i)).toBeInTheDocument()
+      expect(screen.getByText('tv.lookup.notFound')).toBeInTheDocument()
     );
   });
 
@@ -47,8 +48,9 @@ describe('TVRoomLookup', () => {
     );
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '5678' } });
     fireEvent.click(screen.getByRole('button'));
+    // Test i18n returns translation keys; assert the error key renders.
     await waitFor(() =>
-      expect(screen.getByText(/đã xảy ra lỗi/i)).toBeInTheDocument()
+      expect(screen.getByText('tv.lookup.error')).toBeInTheDocument()
     );
   });
 

@@ -13,7 +13,7 @@ vi.mock('firebase-admin/database', () => ({
 }));
 
 // ptDateKey must be mockable — we fix the date to "20260515" for stable paths.
-vi.mock('@/lib/ptDateKey', () => ({
+vi.mock('@bs-kara/shared', () => ({
   ptDateKey: vi.fn(() => '20260515'),
 }));
 
