@@ -43,6 +43,7 @@ const COUNTER_PATH = path.join(ACDC_DIR, 'counters.json');
 const HEARTBEAT_PATH = path.join(ACDC_DIR, 'last-heartbeat');
 const TOKEN_ENV_PATH = path.join(ACDC_DIR, 'claude-token.env');
 const FIREBASE_ENV_PATH = path.join(ACDC_DIR, 'firebase.env');
+const BOARD_ENV_PATH = path.join(ACDC_DIR, 'board.env');
 const SETTINGS_PATH = '.claude/acdc-settings.json';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -498,6 +499,11 @@ function maybeHeartbeat(now: number): void {
 // ---- main loop -------------------------------------------------------------
 async function main(): Promise<void> {
   ensureDirs();
+  // Self-load board config (ACDC_*) from ~/.acdc/board.env so the watcher works under
+  // launchd, which does not source it. Pre-existing env wins (explicit override).
+  for (const [k, v] of Object.entries(readEnvFile(BOARD_ENV_PATH))) {
+    if (process.env[k] === undefined) process.env[k] = v;
+  }
   log('ACDC watcher starting');
   for (;;) {
     const cfg = loadConfig(process.env);
