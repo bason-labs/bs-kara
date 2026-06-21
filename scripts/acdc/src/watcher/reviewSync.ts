@@ -25,13 +25,20 @@ export function itemsNeedingInReview(tickets: Ticket[], prIssues: Set<number>): 
     .map((t) => t.number);
 }
 
-/** A worker PR paired with the issue its head branch encodes. */
+/** A worker PR paired with the issue its head branch encodes, plus its author. */
 export interface OpenPr {
   pr: number;
   issue: number;
+  author: string;
 }
 
-/** Parse `gh pr list --json number,headRefName` → {pr, issue} for run/issue-<N> heads. */
+/** A merge candidate: the issue and the PR the watcher should consider. */
+export interface ReadyPr {
+  issue: number;
+  pr: number;
+}
+
+/** Parse `gh pr list --json number,headRefName,author` → {pr, issue, author} for run/issue-<N> heads. */
 export function openWorkerPrs(raw: string): OpenPr[] {
   let arr: unknown;
   try {
@@ -44,20 +51,27 @@ export function openWorkerPrs(raw: string): OpenPr[] {
   for (const p of arr) {
     const head = (p as { headRefName?: string })?.headRefName ?? '';
     const num = (p as { number?: number })?.number;
+    const author = (p as { author?: { login?: string } })?.author?.login ?? '';
     const m = /^run\/issue-(\d+)$/.exec(head);
-    if (m && typeof num === 'number') out.push({ pr: num, issue: Number(m[1]) });
+    if (m && typeof num === 'number') out.push({ pr: num, issue: Number(m[1]), author });
   }
   return out;
 }
 
 /**
- * Tickets in "In review" that are agent-ready and have an open worker PR → {issue, pr}.
- * These are the candidates the WATCHER (not the worker) considers for auto-merge.
- * One PR per issue (first wins) so a duplicate head can't double-process.
+ * Tickets in "In review" that are agent-ready and have an open WORKER-AUTHORED PR.
+ * Only PRs authored by the worker bot (`author === workerLogin`) are eligible, so a
+ * non-worker PR (e.g. an external fork) that mimics the `run/issue-N` naming cannot
+ * enter the merge path. One PR per issue (first wins). Fail-closed: an empty
+ * workerLogin matches nothing.
  */
-export function itemsReadyToMerge(tickets: Ticket[], prs: OpenPr[]): OpenPr[] {
+export function itemsReadyToMerge(tickets: Ticket[], prs: OpenPr[], workerLogin: string): ReadyPr[] {
+  const bot = workerLogin.toLowerCase();
   const byIssue = new Map<number, number>();
-  for (const p of prs) if (!byIssue.has(p.issue)) byIssue.set(p.issue, p.pr);
+  for (const p of prs) {
+    if (!bot || p.author.toLowerCase() !== bot) continue; // worker-authored PRs only
+    if (!byIssue.has(p.issue)) byIssue.set(p.issue, p.pr);
+  }
   return tickets
     .filter(
       (t) =>

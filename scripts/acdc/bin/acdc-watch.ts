@@ -301,7 +301,7 @@ function fetchOpenWorkerPrs(): OpenPr[] {
   try {
     const raw = execFileSync(
       'gh',
-      ['pr', 'list', '--state', 'open', '--json', 'number,headRefName'],
+      ['pr', 'list', '--state', 'open', '--json', 'number,headRefName,author'],
       { encoding: 'utf8' },
     );
     return openWorkerPrs(raw);
@@ -369,7 +369,9 @@ function autoMergeIsHumanAuthorized(issue: number, workerLogin: string): boolean
         `repos/{owner}/{repo}/issues/${issue}/timeline`,
         '--paginate',
         '--jq',
-        '.[] | select(.event=="labeled" and .label.name=="auto-merge") | .actor.login',
+        // Only HUMAN (User-type) actors — excludes GitHub Apps/other bots, not just
+        // the worker. appliedByHuman then excludes the worker's own (User) account.
+        '.[] | select(.event=="labeled" and .label.name=="auto-merge" and .actor.type=="User") | .actor.login',
       ],
       { encoding: 'utf8' },
     );
@@ -427,7 +429,7 @@ function runMergeStep(
     return;
   }
 
-  const ready = itemsReadyToMerge(tickets, fetchOpenWorkerPrs());
+  const ready = itemsReadyToMerge(tickets, fetchOpenWorkerPrs(), workerLogin);
   for (const { issue, pr } of ready) {
     if (inFlight.has(issue)) continue; // worker still running — never merge mid-run
     const guard: GuardState = {

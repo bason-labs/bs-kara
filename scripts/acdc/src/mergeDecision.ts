@@ -171,9 +171,11 @@ export function resolveGatingIssue(
 }
 
 /**
- * True only if SOME actor that applied the auto-merge label is NOT the worker bot —
- * i.e. a human authorized the merge. Fail-closed: an empty/unknown workerLogin (we
- * could not establish the bot identity) returns false, never authorizing a merge.
+ * True only if SOME actor that applied the auto-merge label is a human other than the
+ * worker. `actors` MUST already be filtered to human (User-type) accounts by the
+ * caller (so non-worker *bots* can't authorize); this additionally excludes the
+ * worker's own (possibly User-type) account. Fail-closed: an empty/unknown
+ * workerLogin (bot identity not established) returns false, never authorizing a merge.
  */
 export function appliedByHuman(actors: string[], workerLogin: string): boolean {
   if (!workerLogin) return false;
