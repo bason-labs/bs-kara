@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.bason.acdc-watch</string>
+
+  <!-- Runs a login shell so PATH (node/pnpm/gh/claude via nvm, homebrew, etc.)
+       is set up, then cds to the repo and launches the watcher via tsx.
+       __HOME__ and __REPO__ are substituted by install.sh. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>cd "__REPO__" &amp;&amp; exec pnpm -C scripts/acdc exec tsx bin/acdc-watch.ts</string>
+  </array>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>__HOME__/.acdc/watch.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>__HOME__/.acdc/watch.log</string>
+
+  <key>WorkingDirectory</key>
+  <string>__REPO__</string>
+</dict>
+</plist>
