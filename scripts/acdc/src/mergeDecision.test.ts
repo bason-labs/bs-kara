@@ -4,6 +4,7 @@ import {
   computeIndependentGate,
   buildMergeInput,
   resolveGatingIssue,
+  appliedByHuman,
   type MergeInput,
 } from './mergeDecision';
 
@@ -213,5 +214,27 @@ describe('resolveGatingIssue', () => {
 
   it('fails closed on a non-run head branch', () => {
     expect(resolveGatingIssue('feature/foo', [{ number: 11 }])).toBeNull();
+  });
+});
+
+describe('appliedByHuman', () => {
+  it('is true when a non-bot actor applied the auto-merge label', () => {
+    expect(appliedByHuman(['bs-kara-bot', 'thienba'], 'bs-kara-bot')).toBe(true);
+  });
+
+  it('is false when only the worker bot applied it (self-authorization attempt)', () => {
+    expect(appliedByHuman(['bs-kara-bot'], 'bs-kara-bot')).toBe(false);
+  });
+
+  it('matches the bot login case-insensitively', () => {
+    expect(appliedByHuman(['BS-Kara-Bot'], 'bs-kara-bot')).toBe(false);
+  });
+
+  it('fails closed when the worker login is unknown (empty)', () => {
+    expect(appliedByHuman(['thienba'], '')).toBe(false);
+  });
+
+  it('fails closed when there are no label-application actors', () => {
+    expect(appliedByHuman([], 'bs-kara-bot')).toBe(false);
   });
 });

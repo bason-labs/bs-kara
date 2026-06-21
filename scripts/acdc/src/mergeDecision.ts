@@ -169,3 +169,14 @@ export function resolveGatingIssue(
   if (numbers.length !== 1) return null;
   return numbers[0] === n ? n : null;
 }
+
+/**
+ * True only if SOME actor that applied the auto-merge label is NOT the worker bot —
+ * i.e. a human authorized the merge. Fail-closed: an empty/unknown workerLogin (we
+ * could not establish the bot identity) returns false, never authorizing a merge.
+ */
+export function appliedByHuman(actors: string[], workerLogin: string): boolean {
+  if (!workerLogin) return false;
+  const bot = workerLogin.toLowerCase();
+  return actors.some((a) => a.trim() !== '' && a.toLowerCase() !== bot);
+}

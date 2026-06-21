@@ -36,6 +36,7 @@ import {
   buildMergeInput,
   decideMerge,
   resolveGatingIssue,
+  appliedByHuman,
   type PrJson,
 } from '../src/mergeDecision';
 import {
@@ -353,12 +354,14 @@ function fetchIssueLabels(issue: number): string[] {
 
 // Confirm the auto-merge label was applied by a HUMAN, not the worker bot — so a
 // worker that fabricates the label on its own issue (it has Issues:write for comments)
-// cannot authorize its own merge. workerLogin is the bot identity; when unset (worker
-// shares the watcher's identity) we cannot distinguish, so this degrades to a warning
-// at the call site rather than a hard gate.
+// cannot authorize its own merge. workerLogin is the bot identity, derived from the
+// worker token itself (never trusted from hand-entered config). Fail-closed on any
+// uncertainty: empty login or a gh error returns false.
 function autoMergeIsHumanAuthorized(issue: number, workerLogin: string): boolean {
-  if (!workerLogin) return true; // no separate worker identity — cannot distinguish
+  if (!workerLogin) return false; // cannot distinguish bot from human → refuse
   try {
+    // Raw scalar `.jq` output: one actor login per line, robust across --paginate
+    // pages (no concatenated-array JSON.parse hazard).
     const raw = execFileSync(
       'gh',
       [
@@ -366,12 +369,12 @@ function autoMergeIsHumanAuthorized(issue: number, workerLogin: string): boolean
         `repos/{owner}/{repo}/issues/${issue}/timeline`,
         '--paginate',
         '--jq',
-        '[.[] | select(.event=="labeled" and .label.name=="auto-merge") | .actor.login]',
+        '.[] | select(.event=="labeled" and .label.name=="auto-merge") | .actor.login',
       ],
       { encoding: 'utf8' },
     );
-    const actors = JSON.parse(raw) as string[];
-    return actors.some((a) => a.toLowerCase() !== workerLogin.toLowerCase());
+    const actors = raw.split('\n').map((s) => s.trim()).filter(Boolean);
+    return appliedByHuman(actors, workerLogin);
   } catch (err) {
     log(`could not verify auto-merge authorship for #${issue}: ${(err as Error).message}`);
     return false; // fail closed
@@ -402,8 +405,29 @@ function runMergeStep(
   counters: Counters,
   limits: Limits,
 ): void {
+  // Auto-merge requires a SEPARATE least-privilege worker identity so we can verify a
+  // human (not the bot) authorized each merge. Without it, fail closed: do not merge.
+  const workerToken = readEnvFile(WORKER_TOKEN_ENV_PATH).GH_TOKEN ?? '';
+  if (!workerToken) {
+    log('merge step disabled: no worker-token.env (GH_TOKEN) — auto-merge needs a separate worker identity');
+    return;
+  }
+  let workerLogin: string;
+  try {
+    workerLogin = execFileSync('gh', ['api', 'user', '--jq', '.login'], {
+      encoding: 'utf8',
+      env: { ...process.env, GH_TOKEN: workerToken },
+    }).trim();
+  } catch (err) {
+    log(`merge step disabled: cannot resolve worker identity from its token: ${(err as Error).message}`);
+    return;
+  }
+  if (!workerLogin) {
+    log('merge step disabled: worker identity resolved empty');
+    return;
+  }
+
   const ready = itemsReadyToMerge(tickets, fetchOpenWorkerPrs());
-  const workerLogin = readEnvFile(WORKER_TOKEN_ENV_PATH).GH_LOGIN ?? '';
   for (const { issue, pr } of ready) {
     if (inFlight.has(issue)) continue; // worker still running — never merge mid-run
     const guard: GuardState = {
@@ -604,9 +628,12 @@ async function tick(cfg: Config): Promise<void> {
   const workerGhToken = readEnvFile(WORKER_TOKEN_ENV_PATH).GH_TOKEN ?? '';
   if (!workerGhToken) {
     log(
-      `no GH_TOKEN in ${WORKER_TOKEN_ENV_PATH} — worker will run with the watcher's GitHub identity ` +
-        `(less safe; set up the least-privilege worker token to fully enforce "worker cannot merge")`,
+      `refusing to dispatch: no GH_TOKEN in ${WORKER_TOKEN_ENV_PATH}. The worker must run as a ` +
+        `least-privilege identity (not the watcher's) so it can never merge or push to main. ` +
+        `See scripts/acdc/SECURITY.md.`,
     );
+    writeCounters(counters);
+    return;
   }
   if (!token) {
     log(`missing CLAUDE_CODE_OAUTH_TOKEN in ${TOKEN_ENV_PATH} — skipping dispatch`);
@@ -626,7 +653,7 @@ async function tick(cfg: Config): Promise<void> {
 
     const child = spawn('claude', claudeArgs(acdcRunPrompt(issue), SETTINGS_PATH), {
       cwd: REPO_ROOT,
-      env: buildDispatchEnv(process.env, token, firebase, workerGhToken || undefined),
+      env: buildDispatchEnv(process.env, token, firebase, workerGhToken),
       detached: false,
     });
 
