@@ -92,14 +92,19 @@ jobs:
           PROTECTED_RE='^(\.github/|\.claude/|scripts/acdc/|database\.rules\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|package\.json|turbo\.json|bk-web/lib/firebase|bk-shared/.*firebase|bk-web/.*firebase)'
           HITS="$(printf '%s\n' "$CHANGED" | grep -E "$PROTECTED_RE" || true)"
           if [ -n "$HITS" ]; then
+            # Override A: a CODEOWNER review approval. Override B: the 'human-approved' label
+            # (the practical signal for a solo maintainer, who cannot approve their own PR).
+            # The autonomous agent is FORBIDDEN from ever applying 'human-approved' to itself
+            # (enforced in the Phase 2/3 runbook deny-list); it is a human-only sign-off.
             DECISION="$(gh pr view "$PR" --json reviewDecision --jq '.reviewDecision')"
-            if [ "$DECISION" != "APPROVED" ]; then
-              echo "::error::scope-gate: PR modifies protected automation controls without CODEOWNER approval:"
+            HAS_LABEL="$(gh pr view "$PR" --json labels --jq 'any(.labels[]; .name=="human-approved")')"
+            if [ "$DECISION" != "APPROVED" ] && [ "$HAS_LABEL" != "true" ]; then
+              echo "::error::scope-gate: PR modifies protected automation controls without human approval:"
               printf '%s\n' "$HITS" | sed 's/^/::error::  /'
-              echo "A CODEOWNER must approve (repo must require CODEOWNER review) to override."
+              echo "Override: a CODEOWNER approves the PR, OR a maintainer adds the 'human-approved' label."
               exit 1
             fi
-            echo "Protected paths changed but PR is CODEOWNER-approved — allowed."
+            echo "Protected paths changed but human-approved (review or label) — allowed."
           fi
 
   secret-scan:
@@ -112,4 +117,5 @@ jobs:
           curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz \
             | tar -xz -C /usr/local/bin gitleaks
       - name: Scan
-        run: gitleaks git --no-banner --redact
+        # gitleaks v8.18.x uses `detect` (scans git history); `git`/`dir` are v8.19+ only.
+        run: gitleaks detect --no-banner --redact
