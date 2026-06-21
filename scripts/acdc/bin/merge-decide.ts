@@ -9,18 +9,22 @@
 import { execFileSync } from 'node:child_process';
 import { buildMergeInput, decideMerge, computeIndependentGate, type PrJson } from '../src/mergeDecision';
 
-const pr = process.argv[2] || process.env.ACDC_PR;
-if (!pr) {
-  process.stderr.write('merge-decide: pass a PR number as argv[1] or ACDC_PR.\n');
+// Control-plane input is untrusted: only ever evaluate a numeric PR number, never
+// an arbitrary selector (a branch/URL could resolve to the wrong PR).
+const prRaw = process.argv[2] ?? process.env.ACDC_PR;
+if (!prRaw || !/^\d+$/.test(prRaw)) {
+  process.stderr.write('merge-decide: pass a numeric PR number as argv[1] or ACDC_PR.\n');
   process.exit(1);
 }
+const pr = prRaw;
 
 let raw: string;
 try {
+  // timeout so a stalled gh/network call can never hang the merge-decision step.
   raw = execFileSync(
     'gh',
     ['pr', 'view', pr, '--json', 'labels,reviews,statusCheckRollup'],
-    { encoding: 'utf8' },
+    { encoding: 'utf8', timeout: 30_000 },
   );
 } catch (err) {
   process.stderr.write(`merge-decide: gh pr view failed: ${(err as Error).message}\n`);

@@ -106,6 +106,22 @@ describe('computeIndependentGate', () => {
     expect(g.independentGatePass).toBe(true);
   });
 
+  it('ignores a spoofed author that merely contains "coderabbit" (exact-identity match)', () => {
+    const g = computeIndependentGate({
+      reviews: [{ author: 'coderabbitai-evil', state: 'APPROVED' }],
+      checks: [],
+    });
+    expect(g.independentGatePass).toBe(false);
+  });
+
+  it('ignores a check whose name merely contains "sonar" (start-anchored match)', () => {
+    const g = computeIndependentGate({
+      reviews: [],
+      checks: [{ name: 'MySonarThing', conclusion: 'SUCCESS' }],
+    });
+    expect(g.independentGatePass).toBe(false);
+  });
+
   it('uses the LATEST CodeRabbit review state (changes-requested then approved = pass)', () => {
     const g = computeIndependentGate({
       reviews: [

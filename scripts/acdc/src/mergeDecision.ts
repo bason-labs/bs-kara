@@ -53,8 +53,14 @@ export interface IndependentGateResult {
   detail: string;
 }
 
-const isCodeRabbit = (author: string): boolean => /coderabbit/i.test(author);
-const isSonar = (name: string): boolean => /sonar/i.test(name);
+// Match the EXACT authoritative identities — a broad `/coderabbit/i` substring test
+// would let a spoofed login like "coderabbitai-evil" influence the gate. The
+// `coderabbitai` handle and the `[bot]` suffix are reserved by GitHub, so an exact
+// (case-insensitive) match cannot be impersonated.
+const CODERABBIT_LOGINS = new Set(['coderabbitai[bot]', 'coderabbitai']);
+const isCodeRabbit = (author: string): boolean => CODERABBIT_LOGINS.has(author.toLowerCase());
+// Anchor to the start so "MySonar"/"Sonarish" can't masquerade as a Sonar check.
+const isSonar = (name: string): boolean => /^sonar(cloud|qube)?\b/i.test(name);
 const GREEN = new Set(['SUCCESS', 'NEUTRAL', 'SKIPPED']);
 const RED = new Set(['FAILURE', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED', 'STARTUP_FAILURE', 'ERROR']);
 
