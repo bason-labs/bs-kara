@@ -89,7 +89,7 @@ jobs:
           # This list lives in the BASE workflow (pull_request runs base YAML), so a PR
           # cannot edit it to bypass the gate. Keep in sync with the canonical protected
           # list in scripts/acdc/src/scopeGateCli.ts (PROTECTED_GLOBS) and .github/CODEOWNERS.
-          PROTECTED_RE='^(\.github/|\.claude/|scripts/acdc/|database\.rules\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|package\.json|turbo\.json|bk-web/lib/firebase|bk-shared/.*firebase|bk-web/.*firebase)'
+          PROTECTED_RE='^(\.github/|\.claude/|scripts/acdc/|\.gitleaks\.toml|sonar-project\.properties|database\.rules\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|package\.json|turbo\.json|bk-web/lib/firebase|bk-shared/.*firebase|bk-web/.*firebase)'
           HITS="$(printf '%s\n' "$CHANGED" | grep -E "$PROTECTED_RE" || true)"
           if [ -n "$HITS" ]; then
             # Override A: a CODEOWNER review approval. Override B: the 'human-approved' label

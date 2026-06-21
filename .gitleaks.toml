@@ -1,0 +1,17 @@
+# gitleaks config — extends the default ruleset and allowlists KNOWN placeholder/fake
+# keys (template files, test fixtures, docs). Real (high-entropy) secrets are still detected.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholder/fake private keys in templates, tests, and docs (not real secrets)"
+# .env.example is a committed template by design.
+paths = [
+  '''\.env\.example$''',
+]
+# PEM blocks whose body is the literal placeholder "fake" or "..." — tokens a real
+# high-entropy private key never contains. (The flagged matches are one-line JS strings
+# like "-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY----".)
+regexes = [
+  '''-----BEGIN[ A-Z]*PRIVATE KEY-----.{0,40}(fake|\.\.\.)''',
+]

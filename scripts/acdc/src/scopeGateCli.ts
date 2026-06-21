@@ -10,6 +10,8 @@ export const PROTECTED_GLOBS = [
   '.github/**',
   '.claude/**',
   'scripts/acdc/**',
+  '.gitleaks.toml',
+  'sonar-project.properties',
   'package.json',
   'turbo.json',
   'pnpm-workspace.yaml',
