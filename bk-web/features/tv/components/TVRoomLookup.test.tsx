@@ -89,4 +89,28 @@ describe('TVRoomLookup', () => {
     fireEvent.click(screen.getByRole('button'));
     await waitFor(() => expect(resolveRoomCode).toHaveBeenCalledWith('ABC1'));
   });
+
+  // whitespace stripping
+  it('strips internal whitespace from displayed value as user types', () => {
+    render(<TVRoomLookup resolveRoomCode={vi.fn()} onActivate={vi.fn()} />);
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'a b 1' } });
+    expect(input).toHaveValue('AB1');
+  });
+
+  it('strips leading, trailing and internal spaces when pasting', () => {
+    render(<TVRoomLookup resolveRoomCode={vi.fn()} onActivate={vi.fn()} />);
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: '  AB 12 ' } });
+    expect(input).toHaveValue('AB12');
+  });
+
+  it('passes whitespace-free upper-cased value to resolveRoomCode on submit', async () => {
+    const resolveRoomCode = vi.fn().mockResolvedValue('ABC12');
+    const onActivate = vi.fn().mockResolvedValue(undefined);
+    render(<TVRoomLookup resolveRoomCode={resolveRoomCode} onActivate={onActivate} />);
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '  ab c1 2 ' } });
+    fireEvent.click(screen.getByRole('button'));
+    await waitFor(() => expect(resolveRoomCode).toHaveBeenCalledWith('ABC12'));
+  });
 });

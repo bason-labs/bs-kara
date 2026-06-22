@@ -23,4 +23,12 @@ test.describe('/tv display', () => {
     await input.fill('abc1');
     await expect(input).toHaveValue('ABC1');
   });
+
+  test('strips whitespace from input as user types or pastes', async ({ page }) => {
+    await page.goto('/tv');
+    const input = page.getByPlaceholder(/VD: 0912345678/i);
+    await expect(input).toBeVisible({ timeout: 10_000 });
+    await input.fill('a b 1 2');
+    await expect(input).toHaveValue('AB12');
+  });
 });

@@ -46,7 +46,7 @@ export function TVRoomLookup({ resolveRoomCode, onActivate }: TVRoomLookupProps)
         <input
           type="text"
           value={input}
-          onChange={(e) => setInput(e.target.value.toUpperCase())}
+          onChange={(e) => setInput(e.target.value.toUpperCase().replace(/\s/g, ''))}
           placeholder={t('tv.lookup.placeholder')}
           className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-fg text-center text-lg tracking-widest placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand"
           autoFocus
