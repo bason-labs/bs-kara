@@ -59,17 +59,26 @@ export function openWorkerPrs(raw: string): OpenPr[] {
 }
 
 /**
- * Tickets in "In review" that are agent-ready and have an open WORKER-AUTHORED PR.
- * Only PRs authored by the worker bot (`author === workerLogin`) are eligible, so a
- * non-worker PR (e.g. an external fork) that mimics the `run/issue-N` naming cannot
- * enter the merge path. One PR per issue (first wins). Fail-closed: an empty
- * workerLogin matches nothing.
+ * Tickets in "In review" that are agent-ready and have an open run/issue-N PR authored by a
+ * TRUSTED maintainer → {issue, pr}. These are the candidates the WATCHER (not the worker)
+ * considers for auto-merge. One PR per issue (first wins).
+ *
+ * `trustedAuthors` (lower-cased logins) is the provenance check: on a single-host setup the
+ * worker authors PRs as the maintainer's own gh identity, so trusting the maintainer login(s)
+ * admits the worker's PRs while rejecting an unrelated/external-fork PR that merely mimics the
+ * `run/issue-N` head + `Closes #N`. Combined with resolveGatingIssue (strict binding),
+ * In-review + agent-ready status, and CI + CodeRabbit. Fail-closed: empty `trustedAuthors`
+ * matches nothing.
  */
-export function itemsReadyToMerge(tickets: Ticket[], prs: OpenPr[], workerLogin: string): ReadyPr[] {
-  const bot = workerLogin.toLowerCase();
+export function itemsReadyToMerge(
+  tickets: Ticket[],
+  prs: OpenPr[],
+  trustedAuthors: string[],
+): ReadyPr[] {
+  const trusted = new Set(trustedAuthors.map((a) => a.toLowerCase()).filter(Boolean));
   const byIssue = new Map<number, number>();
   for (const p of prs) {
-    if (!bot || p.author.toLowerCase() !== bot) continue; // worker-authored PRs only
+    if (!trusted.has(p.author.toLowerCase())) continue; // provenance: trusted authors only
     if (!byIssue.has(p.issue)) byIssue.set(p.issue, p.pr);
   }
   return tickets

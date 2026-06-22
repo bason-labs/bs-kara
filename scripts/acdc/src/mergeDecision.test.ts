@@ -4,7 +4,7 @@ import {
   computeIndependentGate,
   buildMergeInput,
   resolveGatingIssue,
-  appliedByHuman,
+  autoMergeSetByHuman,
   type MergeInput,
 } from './mergeDecision';
 
@@ -217,24 +217,31 @@ describe('resolveGatingIssue', () => {
   });
 });
 
-describe('appliedByHuman', () => {
-  it('is true when a non-bot actor applied the auto-merge label', () => {
-    expect(appliedByHuman(['bs-kara-bot', 'thienba'], 'bs-kara-bot')).toBe(true);
+describe('autoMergeSetByHuman', () => {
+  it('is true when the latest transition is a human (User) labeled event', () => {
+    expect(autoMergeSetByHuman([{ event: 'labeled', actorType: 'User' }])).toBe(true);
   });
 
-  it('is false when only the worker bot applied it (self-authorization attempt)', () => {
-    expect(appliedByHuman(['bs-kara-bot'], 'bs-kara-bot')).toBe(false);
+  it('is false when the latest transition is a non-User (bot) labeled event', () => {
+    expect(
+      autoMergeSetByHuman([
+        { event: 'labeled', actorType: 'User' },
+        { event: 'unlabeled', actorType: 'User' },
+        { event: 'labeled', actorType: 'Bot' }, // human-set then removed then bot re-added
+      ]),
+    ).toBe(false);
   });
 
-  it('matches the bot login case-insensitively', () => {
-    expect(appliedByHuman(['BS-Kara-Bot'], 'bs-kara-bot')).toBe(false);
+  it('is false when the latest transition is an unlabel (not currently set)', () => {
+    expect(
+      autoMergeSetByHuman([
+        { event: 'labeled', actorType: 'User' },
+        { event: 'unlabeled', actorType: 'User' },
+      ]),
+    ).toBe(false);
   });
 
-  it('fails closed when the worker login is unknown (empty)', () => {
-    expect(appliedByHuman(['thienba'], '')).toBe(false);
-  });
-
-  it('fails closed when there are no label-application actors', () => {
-    expect(appliedByHuman([], 'bs-kara-bot')).toBe(false);
+  it('fails closed when there are no transitions', () => {
+    expect(autoMergeSetByHuman([])).toBe(false);
   });
 });

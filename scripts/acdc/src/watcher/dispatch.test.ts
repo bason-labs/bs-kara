@@ -41,14 +41,10 @@ describe('buildDispatchEnv', () => {
     expect(base.ANTHROPIC_API_KEY).toBe('sk-x');
   });
 
-  it('sets GH_TOKEN to the least-privilege worker identity when provided', () => {
-    const out = buildDispatchEnv({}, 'oauth-123', {}, 'ghp_worker');
-    expect(out.GH_TOKEN).toBe('ghp_worker');
-  });
-
-  it('leaves GH_TOKEN unset when no worker token is given', () => {
-    const out = buildDispatchEnv({}, 'oauth-123', {});
+  it('scrubs inherited GH_TOKEN / GITHUB_TOKEN so the worker never gets the watcher token', () => {
+    const out = buildDispatchEnv({ GH_TOKEN: 'ghp_watcher', GITHUB_TOKEN: 'ghs_x' }, 'oauth-123', {});
     expect(out.GH_TOKEN).toBeUndefined();
+    expect(out.GITHUB_TOKEN).toBeUndefined();
   });
 });
 
