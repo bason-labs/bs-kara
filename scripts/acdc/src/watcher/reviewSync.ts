@@ -59,19 +59,16 @@ export function openWorkerPrs(raw: string): OpenPr[] {
 }
 
 /**
- * Tickets in "In review" that are agent-ready and have an open WORKER-AUTHORED PR.
- * Only PRs authored by the worker bot (`author === workerLogin`) are eligible, so a
- * non-worker PR (e.g. an external fork) that mimics the `run/issue-N` naming cannot
- * enter the merge path. One PR per issue (first wins). Fail-closed: an empty
- * workerLogin matches nothing.
+ * Tickets in "In review" that are agent-ready and have an open run/issue-N PR → {issue, pr}.
+ * These are the candidates the WATCHER (not the worker) considers for auto-merge. One PR per
+ * issue (first wins). Note: PR authorship is NOT filtered here — on a single-host setup the
+ * worker authors PRs as the maintainer's own gh identity, so the cross-binding defense is the
+ * strict run/issue-N ↔ Closes #N check in resolveGatingIssue, plus In-review + agent-ready
+ * status and CI + CodeRabbit, not the PR author.
  */
-export function itemsReadyToMerge(tickets: Ticket[], prs: OpenPr[], workerLogin: string): ReadyPr[] {
-  const bot = workerLogin.toLowerCase();
+export function itemsReadyToMerge(tickets: Ticket[], prs: OpenPr[]): ReadyPr[] {
   const byIssue = new Map<number, number>();
-  for (const p of prs) {
-    if (!bot || p.author.toLowerCase() !== bot) continue; // worker-authored PRs only
-    if (!byIssue.has(p.issue)) byIssue.set(p.issue, p.pr);
-  }
+  for (const p of prs) if (!byIssue.has(p.issue)) byIssue.set(p.issue, p.pr);
   return tickets
     .filter(
       (t) =>

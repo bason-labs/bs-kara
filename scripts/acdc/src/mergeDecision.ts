@@ -171,14 +171,10 @@ export function resolveGatingIssue(
 }
 
 /**
- * True only if SOME actor that applied the auto-merge label is a human other than the
- * worker. `actors` MUST already be filtered to human (User-type) accounts by the
- * caller (so non-worker *bots* can't authorize); this additionally excludes the
- * worker's own (possibly User-type) account. Fail-closed: an empty/unknown
- * workerLogin (bot identity not established) returns false, never authorizing a merge.
+ * True if a human applied the auto-merge label. `actors` MUST already be filtered to
+ * human (User-type) accounts by the caller, so a non-User bot (a GitHub App / Action)
+ * cannot authorize a merge. Returns false when no human applied it (fail-closed).
  */
-export function appliedByHuman(actors: string[], workerLogin: string): boolean {
-  if (!workerLogin) return false;
-  const bot = workerLogin.toLowerCase();
-  return actors.some((a) => a.trim() !== '' && a.toLowerCase() !== bot);
+export function appliedByHuman(actors: string[]): boolean {
+  return actors.some((a) => a.trim() !== '');
 }

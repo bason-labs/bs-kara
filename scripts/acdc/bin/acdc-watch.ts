@@ -55,10 +55,6 @@ const PAUSED_PATH = path.join(ACDC_DIR, 'paused');
 const COUNTER_PATH = path.join(ACDC_DIR, 'counters.json');
 const HEARTBEAT_PATH = path.join(ACDC_DIR, 'last-heartbeat');
 const TOKEN_ENV_PATH = path.join(ACDC_DIR, 'claude-token.env');
-// Least-privilege GitHub identity for the worker (GH_TOKEN=...). When present the
-// worker's gh acts as a non-admin that cannot merge or push to main; the watcher
-// keeps using its own (privileged) gh identity to perform merges.
-const WORKER_TOKEN_ENV_PATH = path.join(ACDC_DIR, 'worker-token.env');
 const FIREBASE_ENV_PATH = path.join(ACDC_DIR, 'firebase.env');
 const BOARD_ENV_PATH = path.join(ACDC_DIR, 'board.env');
 const SETTINGS_PATH = '.claude/acdc-settings.json';
@@ -357,11 +353,16 @@ function fetchIssueLabels(issue: number): string[] {
 // cannot authorize its own merge. workerLogin is the bot identity, derived from the
 // worker token itself (never trusted from hand-entered config). Fail-closed on any
 // uncertainty: empty login or a gh error returns false.
-function autoMergeIsHumanAuthorized(issue: number, workerLogin: string): boolean {
-  if (!workerLogin) return false; // cannot distinguish bot from human → refuse
+// Require the auto-merge label to have been applied by a HUMAN (User-type) actor, so a
+// non-User bot (a GitHub App / Action) cannot authorize a merge. NOTE: on a single-host
+// setup the worker runs as the maintainer's own gh identity (Claude Code uses the machine
+// login and ignores GH_TOKEN), so this cannot distinguish "the maintainer applied it" from
+// "the worker, running as the maintainer, applied it" — that boundary is held by the runbook
+// (the worker opens a PR and never labels/merges) + CodeRabbit, not by the credential.
+function autoMergeIsHumanAuthorized(issue: number): boolean {
   try {
-    // Raw scalar `.jq` output: one actor login per line, robust across --paginate
-    // pages (no concatenated-array JSON.parse hazard).
+    // Raw scalar `.jq` output: one actor login per line, robust across --paginate pages
+    // (no concatenated-array JSON.parse hazard). Filter to User-type actors only.
     const raw = execFileSync(
       'gh',
       [
@@ -369,14 +370,12 @@ function autoMergeIsHumanAuthorized(issue: number, workerLogin: string): boolean
         `repos/{owner}/{repo}/issues/${issue}/timeline`,
         '--paginate',
         '--jq',
-        // Only HUMAN (User-type) actors — excludes GitHub Apps/other bots, not just
-        // the worker. appliedByHuman then excludes the worker's own (User) account.
         '.[] | select(.event=="labeled" and .label.name=="auto-merge" and .actor.type=="User") | .actor.login',
       ],
       { encoding: 'utf8' },
     );
     const actors = raw.split('\n').map((s) => s.trim()).filter(Boolean);
-    return appliedByHuman(actors, workerLogin);
+    return appliedByHuman(actors);
   } catch (err) {
     log(`could not verify auto-merge authorship for #${issue}: ${(err as Error).message}`);
     return false; // fail closed
@@ -407,29 +406,7 @@ function runMergeStep(
   counters: Counters,
   limits: Limits,
 ): void {
-  // Auto-merge requires a SEPARATE least-privilege worker identity so we can verify a
-  // human (not the bot) authorized each merge. Without it, fail closed: do not merge.
-  const workerToken = readEnvFile(WORKER_TOKEN_ENV_PATH).GH_TOKEN ?? '';
-  if (!workerToken) {
-    log('merge step disabled: no worker-token.env (GH_TOKEN) — auto-merge needs a separate worker identity');
-    return;
-  }
-  let workerLogin: string;
-  try {
-    workerLogin = execFileSync('gh', ['api', 'user', '--jq', '.login'], {
-      encoding: 'utf8',
-      env: { ...process.env, GH_TOKEN: workerToken },
-    }).trim();
-  } catch (err) {
-    log(`merge step disabled: cannot resolve worker identity from its token: ${(err as Error).message}`);
-    return;
-  }
-  if (!workerLogin) {
-    log('merge step disabled: worker identity resolved empty');
-    return;
-  }
-
-  const ready = itemsReadyToMerge(tickets, fetchOpenWorkerPrs(), workerLogin);
+  const ready = itemsReadyToMerge(tickets, fetchOpenWorkerPrs());
   for (const { issue, pr } of ready) {
     if (inFlight.has(issue)) continue; // worker still running — never merge mid-run
     const guard: GuardState = {
@@ -455,8 +432,8 @@ function runMergeStep(
         log(`PR #${pr} (issue #${gIssue}) not merging: ${decision.reason}`);
         continue;
       }
-      // The auto-merge authorization must come from a human, not the worker bot.
-      if (!autoMergeIsHumanAuthorized(gIssue, workerLogin)) {
+      // The auto-merge authorization must have been applied by a human (User), not a bot.
+      if (!autoMergeIsHumanAuthorized(gIssue)) {
         log(`PR #${pr} (issue #${gIssue}): auto-merge not human-authorized — leaving open`);
         continue;
       }
@@ -627,16 +604,6 @@ async function tick(cfg: Config): Promise<void> {
   // 6. dispatch — guarded on credentials being present
   const token = readEnvFile(TOKEN_ENV_PATH).CLAUDE_CODE_OAUTH_TOKEN ?? '';
   const firebase = readEnvFile(FIREBASE_ENV_PATH);
-  const workerGhToken = readEnvFile(WORKER_TOKEN_ENV_PATH).GH_TOKEN ?? '';
-  if (!workerGhToken) {
-    log(
-      `refusing to dispatch: no GH_TOKEN in ${WORKER_TOKEN_ENV_PATH}. The worker must run as a ` +
-        `least-privilege identity (not the watcher's) so it can never merge or push to main. ` +
-        `See scripts/acdc/SECURITY.md.`,
-    );
-    writeCounters(counters);
-    return;
-  }
   if (!token) {
     log(`missing CLAUDE_CODE_OAUTH_TOKEN in ${TOKEN_ENV_PATH} — skipping dispatch`);
     writeCounters(counters);
@@ -655,7 +622,7 @@ async function tick(cfg: Config): Promise<void> {
 
     const child = spawn('claude', claudeArgs(acdcRunPrompt(issue), SETTINGS_PATH), {
       cwd: REPO_ROOT,
-      env: buildDispatchEnv(process.env, token, firebase, workerGhToken),
+      env: buildDispatchEnv(process.env, token, firebase),
       detached: false,
     });
 

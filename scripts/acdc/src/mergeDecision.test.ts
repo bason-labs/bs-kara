@@ -218,23 +218,15 @@ describe('resolveGatingIssue', () => {
 });
 
 describe('appliedByHuman', () => {
-  it('is true when a non-bot actor applied the auto-merge label', () => {
-    expect(appliedByHuman(['bs-kara-bot', 'thienba'], 'bs-kara-bot')).toBe(true);
+  it('is true when a human (User) actor applied the auto-merge label', () => {
+    expect(appliedByHuman(['thienba'])).toBe(true);
   });
 
-  it('is false when only the worker bot applied it (self-authorization attempt)', () => {
-    expect(appliedByHuman(['bs-kara-bot'], 'bs-kara-bot')).toBe(false);
+  it('fails closed when no human applied it (empty after the User-type filter)', () => {
+    expect(appliedByHuman([])).toBe(false);
   });
 
-  it('matches the bot login case-insensitively', () => {
-    expect(appliedByHuman(['BS-Kara-Bot'], 'bs-kara-bot')).toBe(false);
-  });
-
-  it('fails closed when the worker login is unknown (empty)', () => {
-    expect(appliedByHuman(['thienba'], '')).toBe(false);
-  });
-
-  it('fails closed when there are no label-application actors', () => {
-    expect(appliedByHuman([], 'bs-kara-bot')).toBe(false);
+  it('ignores blank entries', () => {
+    expect(appliedByHuman(['', '  '])).toBe(false);
   });
 });
