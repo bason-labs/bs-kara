@@ -49,8 +49,30 @@ describe('AddedToast', () => {
     render(
       <AddedToast song={baseSong} onUndo={onUndo} onViewQueue={onViewQueue} />,
     );
-    await user.click(screen.getByRole('button', { name: /toast\.viewQueue/i }));
+    // Desktop layout adds a second View button — both trigger the same handler.
+    const viewBtns = screen.getAllByRole('button', { name: /toast\.viewQueue/i });
+    await user.click(viewBtns[0]);
     expect(onViewQueue).toHaveBeenCalledTimes(1);
     expect(onUndo).not.toHaveBeenCalled();
+  });
+
+  // Desktop-specific behaviour
+  it('renders the desktop songAddedToQueue i18n key with song title when song is set', () => {
+    render(
+      <AddedToast song={baseSong} onUndo={() => {}} onViewQueue={() => {}} />,
+    );
+    // t('toast.songAddedToQueue', { title }) → key string in jsdom; in production
+    // this resolves to "Song 'TITLE' added to the queue".
+    expect(screen.getByText('toast.songAddedToQueue')).toBeInTheDocument();
+  });
+
+  it('desktop toast container has top-right lg: positioning classes', () => {
+    render(
+      <AddedToast song={baseSong} onUndo={() => {}} onViewQueue={() => {}} />,
+    );
+    const region = document.querySelector('[aria-live="polite"]') as HTMLElement;
+    expect(region.className).toContain('lg:top-4');
+    expect(region.className).toContain('lg:right-4');
+    expect(region.className).toContain('lg:left-auto');
   });
 });
