@@ -157,7 +157,8 @@
     "viewQueue": "View",
     "undo": "Undo",
     "queuePosition": "Position #{{pos}}",
-    "queuePositionEta": "Position {{pos}} · ~{{eta}} min"
+    "queuePositionEta": "Position {{pos}} · ~{{eta}} min",
+    "songAddedToQueue": "Song '{{title}}' added to the queue"
   },
   "row": {
     "stateAdded": "Just added"

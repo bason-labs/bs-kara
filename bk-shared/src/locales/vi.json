@@ -157,7 +157,8 @@
     "viewQueue": "Xem",
     "undo": "Hoàn tác",
     "queuePosition": "Vị trí thứ {{pos}}",
-    "queuePositionEta": "Vị trí thứ {{pos}} · ~{{eta}} phút nữa"
+    "queuePositionEta": "Vị trí thứ {{pos}} · ~{{eta}} phút nữa",
+    "songAddedToQueue": "Bài '{{title}}' đã thêm vào hàng chờ"
   },
   "row": {
     "stateAdded": "Vừa thêm"
