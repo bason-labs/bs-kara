@@ -48,6 +48,7 @@ describe('openWorkerPrs', () => {
 });
 
 describe('itemsReadyToMerge', () => {
+  const TRUSTED = ['thienba'];
   const t = (number: number, status: string, labels: string[] = ['agent-ready']): Ticket => ({
     number,
     labels,
@@ -55,7 +56,7 @@ describe('itemsReadyToMerge', () => {
   });
   const pr = (prNum: number, issue: number, author = 'thienba') => ({ pr: prNum, issue, author });
 
-  it('returns In-review, agent-ready tickets that have an open PR', () => {
+  it('returns In-review, agent-ready tickets with a trusted-authored open PR', () => {
     const tickets = [
       t(7, 'In review'),
       t(8, 'In Progress'), // not yet In review
@@ -63,11 +64,26 @@ describe('itemsReadyToMerge', () => {
       t(10, 'In review'), // In review but no PR
     ];
     const prs = [pr(100, 7), pr(101, 8), pr(102, 9)];
-    expect(itemsReadyToMerge(tickets, prs)).toEqual([{ issue: 7, pr: 100 }]);
+    expect(itemsReadyToMerge(tickets, prs, TRUSTED)).toEqual([{ issue: 7, pr: 100 }]);
   });
 
-  it('picks one PR per issue (first wins)', () => {
+  it('rejects a PR from an untrusted author (e.g. an external fork mimic)', () => {
     const tickets = [t(7, 'In review')];
-    expect(itemsReadyToMerge(tickets, [pr(100, 7), pr(200, 7)])).toEqual([{ issue: 7, pr: 100 }]);
+    expect(itemsReadyToMerge(tickets, [pr(100, 7, 'random-forker')], TRUSTED)).toEqual([]);
+  });
+
+  it('matches trusted authors case-insensitively', () => {
+    const tickets = [t(7, 'In review')];
+    expect(itemsReadyToMerge(tickets, [pr(100, 7, 'ThienBa')], TRUSTED)).toEqual([{ issue: 7, pr: 100 }]);
+  });
+
+  it('fails closed when there are no trusted authors', () => {
+    const tickets = [t(7, 'In review')];
+    expect(itemsReadyToMerge(tickets, [pr(100, 7)], [])).toEqual([]);
+  });
+
+  it('picks one trusted PR per issue (first wins)', () => {
+    const tickets = [t(7, 'In review')];
+    expect(itemsReadyToMerge(tickets, [pr(100, 7), pr(200, 7)], TRUSTED)).toEqual([{ issue: 7, pr: 100 }]);
   });
 });

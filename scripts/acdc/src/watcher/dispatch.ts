@@ -16,23 +16,23 @@ export function acdcRunPrompt(issue: number): string {
 // Build the child env for the worker:
 // - strip ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN so the worker authenticates
 //   only via the OAuth token (subscription auth), never an API key,
+// - scrub GH_TOKEN / GITHUB_TOKEN so the worker never inherits the watcher/operator
+//   GitHub token. The worker's gh uses the machine keyring login regardless (Claude
+//   Code's headless gh ignores GH_TOKEN), so passing one would only leak it,
 // - set CLAUDE_CODE_OAUTH_TOKEN to the supplied token,
-// - set GH_TOKEN to the least-privilege WORKER GitHub identity (when provided) so
-//   the worker's gh acts as a non-admin that cannot merge or push to main — gh
-//   prefers GH_TOKEN over the keyring, overriding the watcher's identity,
 // - merge in the firebase env vars.
 // The base object is not mutated.
 export function buildDispatchEnv(
   base: NodeJS.ProcessEnv,
   token: string,
   firebase: Record<string, string>,
-  ghToken?: string,
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...base };
   delete env.ANTHROPIC_API_KEY;
   delete env.ANTHROPIC_AUTH_TOKEN;
+  delete env.GH_TOKEN;
+  delete env.GITHUB_TOKEN;
   env.CLAUDE_CODE_OAUTH_TOKEN = token;
-  if (ghToken) env.GH_TOKEN = ghToken;
   for (const [k, v] of Object.entries(firebase)) env[k] = v;
   return env;
 }

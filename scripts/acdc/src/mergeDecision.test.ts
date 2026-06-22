@@ -4,7 +4,7 @@ import {
   computeIndependentGate,
   buildMergeInput,
   resolveGatingIssue,
-  appliedByHuman,
+  autoMergeSetByHuman,
   type MergeInput,
 } from './mergeDecision';
 
@@ -217,16 +217,31 @@ describe('resolveGatingIssue', () => {
   });
 });
 
-describe('appliedByHuman', () => {
-  it('is true when a human (User) actor applied the auto-merge label', () => {
-    expect(appliedByHuman(['thienba'])).toBe(true);
+describe('autoMergeSetByHuman', () => {
+  it('is true when the latest transition is a human (User) labeled event', () => {
+    expect(autoMergeSetByHuman([{ event: 'labeled', actorType: 'User' }])).toBe(true);
   });
 
-  it('fails closed when no human applied it (empty after the User-type filter)', () => {
-    expect(appliedByHuman([])).toBe(false);
+  it('is false when the latest transition is a non-User (bot) labeled event', () => {
+    expect(
+      autoMergeSetByHuman([
+        { event: 'labeled', actorType: 'User' },
+        { event: 'unlabeled', actorType: 'User' },
+        { event: 'labeled', actorType: 'Bot' }, // human-set then removed then bot re-added
+      ]),
+    ).toBe(false);
   });
 
-  it('ignores blank entries', () => {
-    expect(appliedByHuman(['', '  '])).toBe(false);
+  it('is false when the latest transition is an unlabel (not currently set)', () => {
+    expect(
+      autoMergeSetByHuman([
+        { event: 'labeled', actorType: 'User' },
+        { event: 'unlabeled', actorType: 'User' },
+      ]),
+    ).toBe(false);
+  });
+
+  it('fails closed when there are no transitions', () => {
+    expect(autoMergeSetByHuman([])).toBe(false);
   });
 });

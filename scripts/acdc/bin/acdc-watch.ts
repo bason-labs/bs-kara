@@ -36,7 +36,8 @@ import {
   buildMergeInput,
   decideMerge,
   resolveGatingIssue,
-  appliedByHuman,
+  autoMergeSetByHuman,
+  type LabelTransition,
   type PrJson,
 } from '../src/mergeDecision';
 import {
@@ -361,8 +362,9 @@ function fetchIssueLabels(issue: number): string[] {
 // (the worker opens a PR and never labels/merges) + CodeRabbit, not by the credential.
 function autoMergeIsHumanAuthorized(issue: number): boolean {
   try {
-    // Raw scalar `.jq` output: one actor login per line, robust across --paginate pages
-    // (no concatenated-array JSON.parse hazard). Filter to User-type actors only.
+    // All auto-merge label/unlabel transitions in order, "event|actorType" per line
+    // (raw scalar output is robust across --paginate pages). autoMergeSetByHuman then
+    // checks the CURRENT state was set by a human, not a stale historical application.
     const raw = execFileSync(
       'gh',
       [
@@ -370,12 +372,19 @@ function autoMergeIsHumanAuthorized(issue: number): boolean {
         `repos/{owner}/{repo}/issues/${issue}/timeline`,
         '--paginate',
         '--jq',
-        '.[] | select(.event=="labeled" and .label.name=="auto-merge" and .actor.type=="User") | .actor.login',
+        '.[] | select((.event=="labeled" or .event=="unlabeled") and .label.name=="auto-merge") | "\\(.event)|\\(.actor.type)"',
       ],
       { encoding: 'utf8' },
     );
-    const actors = raw.split('\n').map((s) => s.trim()).filter(Boolean);
-    return appliedByHuman(actors);
+    const transitions: LabelTransition[] = raw
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [event, actorType] = line.split('|');
+        return { event, actorType: actorType ?? '' };
+      });
+    return autoMergeSetByHuman(transitions);
   } catch (err) {
     log(`could not verify auto-merge authorship for #${issue}: ${(err as Error).message}`);
     return false; // fail closed
@@ -406,7 +415,25 @@ function runMergeStep(
   counters: Counters,
   limits: Limits,
 ): void {
-  const ready = itemsReadyToMerge(tickets, fetchOpenWorkerPrs());
+  // Trusted PR authors (provenance): the maintainer login(s). The worker authors PRs as
+  // the watcher's own gh identity, so deriving that login admits worker PRs while rejecting
+  // external-fork PRs that mimic the run/issue-N head. Optionally extended via ACDC_MERGE_AUTHORS.
+  const trustedAuthors = new Set<string>();
+  for (const a of (process.env.ACDC_MERGE_AUTHORS ?? '').split(',').map((s) => s.trim()).filter(Boolean)) {
+    trustedAuthors.add(a);
+  }
+  try {
+    const me = execFileSync('gh', ['api', 'user', '--jq', '.login'], { encoding: 'utf8' }).trim();
+    if (me) trustedAuthors.add(me);
+  } catch (err) {
+    log(`merge step: could not resolve the watcher's gh login: ${(err as Error).message}`);
+  }
+  if (trustedAuthors.size === 0) {
+    log('merge step: no trusted PR authors resolved — skipping (fail-closed)');
+    return;
+  }
+
+  const ready = itemsReadyToMerge(tickets, fetchOpenWorkerPrs(), [...trustedAuthors]);
   for (const { issue, pr } of ready) {
     if (inFlight.has(issue)) continue; // worker still running — never merge mid-run
     const guard: GuardState = {

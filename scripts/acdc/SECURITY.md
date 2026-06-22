@@ -10,10 +10,13 @@ a script run via the allowed `node`/`tsx` could call `gh`/`git` directly and ski
 
 We tried to run the worker as a separate least-privilege **bot** (via `GH_TOKEN` /
 `GH_CONFIG_DIR`), but **Claude Code's headless worker uses the machine's gh keyring login
-and ignores those env vars** — verified empirically (`gh api user` inside `claude -p`
-returns the keyring account even with `GH_TOKEN=<bot>` set). On a single host where you're
-logged into `gh` as yourself, **the worker therefore runs as you (admin)**, and there is no
-env knob to change that.
+and ignores those env vars** — verified empirically: in a clean env, `gh api user` inside
+`claude -p` returns the keyring account (`thienba`) even with `GH_TOKEN=<bot>` set, while the
+*same* `GH_TOKEN` in a plain shell returns the bot. (A plain `gh` honors `GH_TOKEN` per its
+documented precedence; the Claude Code headless worker does not — so this is specific to how
+Claude Code invokes `gh`, not gh in general.) On a single host where you're logged into `gh`
+as yourself, **the worker therefore runs as you (admin)**, and there is no env knob to change
+that.
 
 Consequences:
 - The worker authors PRs as **you**, not a bot.
@@ -57,10 +60,12 @@ below is the realistic posture.
 
 The `protect-main` ruleset requires a PR, the checks `build-test` + `scope-gate` +
 `secret-scan` + **CodeRabbit**, and **1 approving review**, with the admin
-(`RepositoryRole`) bypass **kept**. The 1-approval rule binds any non-bypass actor; the
-admin bypass lets you (and the watcher, running as you) merge your own and the agent's PRs —
-without it a solo maintainer couldn't merge their own PRs (you can't self-approve). On a
-single host this is the maintainer's convenience, not a worker boundary (the worker shares
+(`RepositoryRole`) bypass **kept**. The security boundary here is the *merge-rights
+restriction* — a non-bypass actor cannot merge without an approval (which it can't
+self-give) and the required checks — not role status by itself. The admin bypass lets you
+(and the watcher, running as you) merge your own and the agent's PRs; without it a solo
+maintainer couldn't merge their own PRs (you can't self-approve). On a single host the
+bypass is therefore the maintainer's convenience, not a worker boundary (the worker shares
 your admin identity); the worker boundary is the runbook + CodeRabbit gate above.
 
 ## To make it truly airtight (optional, future)

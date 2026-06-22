@@ -170,11 +170,19 @@ export function resolveGatingIssue(
   return numbers[0] === n ? n : null;
 }
 
+/** One `labeled`/`unlabeled` transition of the auto-merge label, in chronological order. */
+export interface LabelTransition {
+  event: string; // 'labeled' | 'unlabeled'
+  actorType: string; // GitHub actor type: 'User' | 'Bot' | 'Organization' | ...
+}
+
 /**
- * True if a human applied the auto-merge label. `actors` MUST already be filtered to
- * human (User-type) accounts by the caller, so a non-User bot (a GitHub App / Action)
- * cannot authorize a merge. Returns false when no human applied it (fail-closed).
+ * True iff the auto-merge label is CURRENTLY set by a human — i.e. the most recent
+ * auto-merge transition is a `labeled` event by a User. This rejects a stale historical
+ * human application that was later removed and re-added by a non-User bot (the label
+ * would be present, but not human-set). Fail-closed on no transitions.
  */
-export function appliedByHuman(actors: string[]): boolean {
-  return actors.some((a) => a.trim() !== '');
+export function autoMergeSetByHuman(transitions: LabelTransition[]): boolean {
+  const last = transitions[transitions.length - 1];
+  return !!last && last.event === 'labeled' && last.actorType === 'User';
 }
