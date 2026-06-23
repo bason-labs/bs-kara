@@ -403,6 +403,21 @@ function removeWorktree(issue: number): void {
   }
 }
 
+// Best-effort delete of the merged worker branch's remote ref. Kept separate from the
+// merge so a delete failure (e.g. the branch is checked out in a worktree, or already
+// gone) can never roll back the board → Done move.
+function deleteRemoteBranch(issue: number): void {
+  try {
+    execFileSync(
+      'gh',
+      ['api', '-X', 'DELETE', `repos/{owner}/{repo}/git/refs/heads/run/issue-${issue}`],
+      { stdio: 'ignore' },
+    );
+  } catch {
+    /* branch may already be deleted / protected — ignore */
+  }
+}
+
 // The merge gate. For each In-review, agent-ready PR whose worker has FINISHED:
 // bind it strictly to its gating issue, read the auto-merge label from that ISSUE
 // (never the PR), and merge only if our gates pass AND the per-window cap allows.
@@ -471,15 +486,18 @@ function runMergeStep(
       } catch {
         /* approval may be unnecessary or blocked — merge fails closed if it was required */
       }
-      execFileSync('gh', ['pr', 'merge', String(pr), '--merge', '--delete-branch'], {
-        stdio: 'ignore',
-      });
+      // Merge WITHOUT --delete-branch: deleting a branch that is checked out in a
+      // worktree fails (non-zero exit) and would otherwise abort the post-merge
+      // bookkeeping (board → Done, cleanup) even though the merge itself succeeded.
+      // The branch is cleaned up separately, best-effort, after the bookkeeping.
+      execFileSync('gh', ['pr', 'merge', String(pr), '--merge'], { stdio: 'ignore' });
       log(`PR #${pr} (issue #${gIssue}) auto-merged by the watcher`);
       moveBoard(boardCfg, gIssue, 'Done');
       deleteInflight(gIssue);
       removeWorktree(gIssue);
       counters.autoMergesThisWindow += 1;
       writeCounters(counters); // persist per-merge so the cap holds within a tick
+      deleteRemoteBranch(gIssue); // best-effort; never aborts the success path
     } catch (err) {
       log(`PR #${pr}: merge attempt failed (left open): ${(err as Error).message}`);
     }
