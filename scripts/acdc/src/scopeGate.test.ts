@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { evaluateScopeGate } from './scopeGate';
+import { evaluateScopeGate, isAgentBranch } from './scopeGate';
 
 const PROTECTED = [
   '.github/**',
@@ -95,5 +95,52 @@ describe('evaluateScopeGate', () => {
       areaGlobs: { 'area:web': ['bk-web/**'] },
     });
     expect(r.unknownArea).toBe(false);
+  });
+
+  // The hard gate exists to stop the AUTONOMOUS worker (run/issue-* branches) from
+  // changing the control plane unsupervised. A human-authored branch is the
+  // maintainer's own change and should pass — modelled by `enforced: false`.
+  it('does not hard-fail a protected change when enforced is false (human-authored branch)', () => {
+    const r = evaluateScopeGate({
+      changedPaths: ['.github/workflows/ci.yml', 'scripts/acdc/src/watcher.ts'],
+      protectedGlobs: PROTECTED,
+      humanApproved: false,
+      enforced: false,
+    });
+    expect(r.pass).toBe(true);
+    expect(r.hardViolations).toEqual([]);
+  });
+
+  it('still hard-fails a protected change when enforced is true with no human approval (agent branch)', () => {
+    const r = evaluateScopeGate({
+      changedPaths: ['scripts/acdc/src/watcher.ts'],
+      protectedGlobs: PROTECTED,
+      humanApproved: false,
+      enforced: true,
+    });
+    expect(r.pass).toBe(false);
+    expect(r.hardViolations).toContain('scripts/acdc/src/watcher.ts');
+  });
+
+  it('defaults enforced to true when omitted (unchanged behavior)', () => {
+    const r = evaluateScopeGate({
+      changedPaths: ['scripts/acdc/src/watcher.ts'],
+      protectedGlobs: PROTECTED,
+      humanApproved: false,
+    });
+    expect(r.pass).toBe(false);
+  });
+});
+
+describe('isAgentBranch', () => {
+  it('recognizes the autonomous worker run/issue-N branch', () => {
+    expect(isAgentBranch('run/issue-42')).toBe(true);
+    expect(isAgentBranch('  run/issue-7  ')).toBe(true);
+  });
+
+  it('treats human-authored branches as non-agent', () => {
+    for (const b of ['feat/x', 'fix/y', 'chore/z', 'main', 'run/issue-', 'run/issuexyz', 'xrun/issue-1', '']) {
+      expect(isAgentBranch(b)).toBe(false);
+    }
   });
 });
