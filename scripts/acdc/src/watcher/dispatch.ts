@@ -37,10 +37,12 @@ export function buildDispatchEnv(
   return env;
 }
 
-// Args for spawning the headless `claude` worker.
-// `--setting-sources user` drops project `.claude/settings.json` and the unguarded
-// `.claude/settings.local.json` (which grants git push */curl */node *); only the
-// user base plus the explicit scoped `--settings` file apply.
-export function claudeArgs(prompt: string, settingsPath: string): string[] {
-  return ['-p', prompt, '--setting-sources', 'user', '--settings', settingsPath, '--output-format', 'json'];
+// Args for spawning the headless `claude` worker. `--setting-sources user` drops
+// project/local `.claude` settings; only the explicit scoped `--settings` applies.
+// `model` (optional, a tier-resolved `--model` value) is appended only when set so the
+// no-model call is byte-identical to the prior behavior.
+export function claudeArgs(prompt: string, settingsPath: string, model?: string): string[] {
+  const args = ['-p', prompt, '--setting-sources', 'user', '--settings', settingsPath, '--output-format', 'json'];
+  if (model) args.push('--model', model);
+  return args;
 }
