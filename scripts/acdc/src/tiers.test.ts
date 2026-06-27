@@ -14,6 +14,17 @@ describe('resolveTier', () => {
   it('ignores unknown inline and label values (no throw)', () => {
     expect(resolveTier('bogus', ['tier:bogus'], 'medium')).toBe('medium');
   });
+  // Regression: conflicting tier labels must not route on array order (CodeRabbit, PR #23).
+  it('falls back to the default on conflicting distinct tier labels', () => {
+    expect(resolveTier(undefined, ['tier:high', 'tier:low'], 'medium')).toBe('medium');
+    expect(resolveTier(undefined, ['tier:low', 'tier:high'], 'medium')).toBe('medium');
+  });
+  it('still resolves when the same tier is duplicated', () => {
+    expect(resolveTier(undefined, ['tier:high', 'tier:high'], 'medium')).toBe('high');
+  });
+  it('still lets an inline tier win over conflicting labels', () => {
+    expect(resolveTier('low', ['tier:high', 'tier:medium'], 'medium')).toBe('low');
+  });
 });
 
 describe('modelForTier', () => {

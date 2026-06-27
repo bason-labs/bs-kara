@@ -156,7 +156,7 @@ tier, it shells out to `bin/dispatch-one.ts 42 <tier>`.
 ## Data flow
 
 **Watcher path (unchanged except the two hooks):**
-```
+```text
 poll board → reconcile inflight → merge step → withinLimits gate
   → selectDispatchable(cap) → slots = cap - inFlight
   → n = dispatchBudget(counters, limits, slots)          # NEW: clamp to window/day budget
@@ -168,7 +168,7 @@ poll board → reconcile inflight → merge step → withinLimits gate
 ```
 
 **Direct path (new):**
-```
+```text
 you (chat) → tsx bin/dispatch-one.ts 42 high
   → tier=high (inline) → model=opus
   → same spawn + worktree + inflight as the watcher

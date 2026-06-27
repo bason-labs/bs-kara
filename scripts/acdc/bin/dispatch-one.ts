@@ -57,6 +57,17 @@ if (Object.keys(firebase).length === 0) {
 }
 
 fs.mkdirSync(INFLIGHT_DIR, { recursive: true });
+// Refuse to clobber an existing inflight record (the watcher or a prior dispatch-one may
+// already have an active worker for this issue). Overwriting it would spawn a second worker
+// and orphan the first — the watcher could no longer reconcile/kill it. Check BEFORE spawning.
+const inflightTarget = path.join(INFLIGHT_DIR, inflightFilename(issue));
+if (fs.existsSync(inflightTarget)) {
+  console.error(
+    `issue #${issue} already has an active inflight record (${inflightTarget}) — refusing to ` +
+      'double-dispatch; wait for it to finish or remove the record first',
+  );
+  process.exit(1);
+}
 const child = spawn('claude', claudeArgs(acdcRunPrompt(issue), SETTINGS_PATH, model), {
   cwd: REPO_ROOT,
   env: buildDispatchEnv(process.env, token, firebase),
@@ -78,9 +89,6 @@ child.unref();
 // Unlike the watcher loop, a manual dispatch intentionally skips the board "In Progress"
 // move + heartbeat comment; the inflight record still prevents a double-dispatch and the
 // watcher's in-review sync / reconcile pick the run up.
-fs.writeFileSync(
-  path.join(INFLIGHT_DIR, inflightFilename(issue)),
-  JSON.stringify(buildInflight(issue, child.pid, Date.now())),
-);
+fs.writeFileSync(inflightTarget, JSON.stringify(buildInflight(issue, child.pid, Date.now())));
 console.log(`dispatched issue #${issue} at tier ${tier} (model ${model}), pid ${child.pid}`);
 console.log('the watcher will reconcile + (if auto-merge) merge this run; follow it via `gh pr list`');

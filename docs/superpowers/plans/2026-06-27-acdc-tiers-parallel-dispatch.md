@@ -32,7 +32,7 @@
 | `scripts/acdc/src/watcher/config.test.ts` | Updated defaults + `defaultTier` parsing | Mod |
 | `scripts/acdc/src/labels.ts` | `TIER_LABEL_NAMES` | Mod |
 | `scripts/acdc/src/labels.test.ts` | tier labels present | Mod |
-| `.github/labels.json` | `tier:low|medium|high` entries | Mod |
+| `.github/labels.json` | `tier:low\|medium\|high` entries | Mod |
 | `scripts/acdc/src/watcher/envFile.ts` | `parseEnvFile` (pure) extracted from the watcher | New |
 | `scripts/acdc/src/watcher/envFile.test.ts` | env-file parsing | New |
 | `scripts/acdc/src/watcher/inflight.ts` | `InflightFile`, `inflightFilename`, `buildInflight` (pure) | New |

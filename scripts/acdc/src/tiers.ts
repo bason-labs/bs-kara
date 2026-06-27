@@ -19,7 +19,10 @@ export function coerceTier(v: string | undefined, def: Tier): Tier {
   return asTier(v) ?? def;
 }
 
-// Precedence: inline override → first `tier:*` label → default.
+// Precedence: inline override → a single `tier:*` label → default.
+// Conflicting labels (more than one DISTINCT valid tier, e.g. tier:low + tier:high) are
+// ambiguous capability/cost signals in the control plane, so we fall back to the default
+// deterministically rather than routing on label-array order. Duplicates of one tier are fine.
 export function resolveTier(
   inline: string | undefined,
   labels: string[] | undefined,
@@ -27,13 +30,14 @@ export function resolveTier(
 ): Tier {
   const fromInline = asTier(inline);
   if (fromInline) return fromInline;
+  const fromLabels = new Set<Tier>();
   for (const l of labels ?? []) {
     if (l.startsWith('tier:')) {
       const t = asTier(l.slice('tier:'.length));
-      if (t) return t;
+      if (t) fromLabels.add(t);
     }
   }
-  return def;
+  return fromLabels.size === 1 ? [...fromLabels][0] : def;
 }
 
 export function modelForTier(tier: Tier, env: NodeJS.ProcessEnv = process.env): string {
