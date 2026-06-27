@@ -1,5 +1,8 @@
 export interface MergeInput {
   hasAutoMergeLabel: boolean;
+  // Opt-in autonomous merge: when true, the human auto-merge label is no longer required
+  // (every OTHER gate below still applies). Default/omitted = false = today's behavior.
+  autonomousMerge?: boolean;
   requiredChecksPass: boolean;
   independentGatePass: boolean;
   blockingFindings: number;
@@ -12,7 +15,8 @@ export interface MergeResult {
 }
 
 export function decideMerge(i: MergeInput): MergeResult {
-  if (!i.hasAutoMergeLabel) return { merge: false, reason: 'no auto-merge label — open PR and stop' };
+  if (!i.hasAutoMergeLabel && !i.autonomousMerge)
+    return { merge: false, reason: 'no auto-merge label — open PR and stop' };
   if (!i.requiredChecksPass) return { merge: false, reason: 'required CI checks not all green' };
   if (!i.independentGatePass)
     return { merge: false, reason: 'no independent (non-Claude) gate passed — refuse merge-by-absence' };
@@ -119,8 +123,10 @@ const AUTO_MERGE_LABEL = 'auto-merge';
  * IMPORTANT: hasAutoMergeLabel comes from the ISSUE (the human's board ticket), NOT
  * the PR. The worker can label its own PR, so the PR's labels must never authorize a
  * merge; the issue's auto-merge label is the human's per-ticket authorization.
+ * `autonomousMerge` (opt-in, default false) drops the label requirement only — the CI,
+ * independent-gate, and blocking-finding gates still apply.
  */
-export function buildMergeInput(pr: PrJson, issueLabels: string[]): MergeInput {
+export function buildMergeInput(pr: PrJson, issueLabels: string[], autonomousMerge = false): MergeInput {
   const hasAutoMergeLabel = issueLabels.includes(AUTO_MERGE_LABEL);
 
   const rollup = (pr.statusCheckRollup ?? []).map((e) => ({
@@ -140,6 +146,7 @@ export function buildMergeInput(pr: PrJson, issueLabels: string[]): MergeInput {
 
   return {
     hasAutoMergeLabel,
+    autonomousMerge,
     requiredChecksPass,
     independentGatePass: gate.independentGatePass,
     blockingFindings: gate.blockingFindings,

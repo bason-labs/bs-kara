@@ -411,6 +411,7 @@ function runMergeStep(
   inFlight: Set<number>,
   counters: Counters,
   limits: Limits,
+  autoMergeWithoutLabel: boolean,
 ): void {
   // Trusted PR authors (provenance): the maintainer login(s). The worker authors PRs as
   // the watcher's own gh identity, so deriving that login admits worker PRs while rejecting
@@ -451,13 +452,15 @@ function runMergeStep(
         log(`PR #${pr}: cannot bind to run/issue-${issue} gating issue — leaving open (fail-closed)`);
         continue;
       }
-      const decision = decideMerge(buildMergeInput(view, fetchIssueLabels(gIssue)));
+      const decision = decideMerge(buildMergeInput(view, fetchIssueLabels(gIssue), autoMergeWithoutLabel));
       if (!decision.merge) {
         log(`PR #${pr} (issue #${gIssue}) not merging: ${decision.reason}`);
         continue;
       }
-      // The auto-merge authorization must have been applied by a human (User), not a bot.
-      if (!autoMergeIsHumanAuthorized(gIssue)) {
+      // In label-gated mode the auto-merge authorization must have been applied by a human
+      // (User), not a bot. In autonomous mode there is no label to verify — the CI +
+      // independent (CodeRabbit/Sonar) + scope gates above ARE the authorization.
+      if (!autoMergeWithoutLabel && !autoMergeIsHumanAuthorized(gIssue)) {
         log(`PR #${pr} (issue #${gIssue}): auto-merge not human-authorized — leaving open`);
         continue;
       }
@@ -473,7 +476,10 @@ function runMergeStep(
       // bookkeeping (board → Done, cleanup) even though the merge itself succeeded.
       // The branch is cleaned up separately, best-effort, after the bookkeeping.
       execFileSync('gh', ['pr', 'merge', String(pr), '--merge'], { stdio: 'ignore' });
-      log(`PR #${pr} (issue #${gIssue}) auto-merged by the watcher`);
+      log(
+        `PR #${pr} (issue #${gIssue}) auto-merged by the watcher` +
+          (autoMergeWithoutLabel ? ' (autonomous mode, no human label)' : ''),
+      );
       moveBoard(boardCfg, gIssue, 'Done');
       deleteInflight(gIssue);
       removeWorktree(gIssue);
@@ -602,7 +608,7 @@ async function tick(cfg: Config): Promise<void> {
   // whose worker has finished. PRs whose worker is still inflight are skipped.
   if (boardCfg) {
     try {
-      runMergeStep(boardCfg, tickets, inFlight, counters, limits);
+      runMergeStep(boardCfg, tickets, inFlight, counters, limits, cfg.autoMergeWithoutLabel);
     } catch (err) {
       log(`merge step failed: ${(err as Error).message}`);
     }
@@ -726,6 +732,12 @@ async function main(): Promise<void> {
     if (process.env[k] === undefined) process.env[k] = v;
   }
   log('ACDC watcher starting');
+  if (loadConfig(process.env).autoMergeWithoutLabel) {
+    log(
+      '⚠️  AUTONOMOUS MERGE ENABLED (ACDC_AUTO_MERGE_WITHOUT_LABEL=on): the watcher will ' +
+        'merge green PRs WITHOUT a human auto-merge label. Unset the env var to restore the gate.',
+    );
+  }
   for (;;) {
     const cfg = loadConfig(process.env);
     maybeHeartbeat(Date.now());
