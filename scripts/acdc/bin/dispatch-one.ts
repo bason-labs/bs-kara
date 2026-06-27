@@ -63,10 +63,24 @@ const child = spawn('claude', claudeArgs(acdcRunPrompt(issue), SETTINGS_PATH, mo
   detached: true,
   stdio: 'ignore',
 });
+// Guard the pid: a failed spawn yields pid === undefined; recording -1 would later make
+// the watcher treat the run as alive and, on timeout, call process.kill(-1) — signalling
+// every process this user owns. Fail closed instead of writing a poisoned inflight record.
+child.on('error', (err) => {
+  console.error(`failed to spawn claude worker: ${err.message}`);
+  process.exit(1);
+});
+if (child.pid === undefined) {
+  console.error('claude worker did not start (no pid) — not recording an inflight run');
+  process.exit(1);
+}
 child.unref();
+// Unlike the watcher loop, a manual dispatch intentionally skips the board "In Progress"
+// move + heartbeat comment; the inflight record still prevents a double-dispatch and the
+// watcher's in-review sync / reconcile pick the run up.
 fs.writeFileSync(
   path.join(INFLIGHT_DIR, inflightFilename(issue)),
-  JSON.stringify(buildInflight(issue, child.pid ?? -1, Date.now())),
+  JSON.stringify(buildInflight(issue, child.pid, Date.now())),
 );
-console.log(`dispatched issue #${issue} at tier ${tier} (model ${model}), pid ${child.pid ?? '?'}`);
+console.log(`dispatched issue #${issue} at tier ${tier} (model ${model}), pid ${child.pid}`);
 console.log('the watcher will reconcile + (if auto-merge) merge this run; follow it via `gh pr list`');
