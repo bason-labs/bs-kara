@@ -56,6 +56,32 @@ below is the realistic posture.
 6. **In-review + agent-ready** — only board tickets in *In review* and labelled `agent-ready`.
 7. **Per-window cap** — at most `maxAutoMergesPerWindow`, re-checked and persisted per merge.
 
+## Autonomous merge (opt-in — `ACDC_AUTO_MERGE_WITHOUT_LABEL`)
+
+By default the watcher requires gate **1** (the issue's human-applied `auto-merge` label) and
+gate **3** (that label being applied by a User actor). Setting
+`ACDC_AUTO_MERGE_WITHOUT_LABEL=1` (in `~/.acdc/board.env` or the launchd env) **drops gates 1
+and 3 only** — every other gate stays hard: strict PR↔issue binding (2), CI green +
+CodeRabbit `APPROVED`/Sonar (4), no worker mid-run (5), *In review* + `agent-ready` (6), the
+per-window cap (7), and the server-side `protect-main` ruleset.
+
+What this changes in the trust model:
+
+- **Authorization moves entirely to intake.** `agent-ready` is a human-only label (an
+  external user cannot self-assign agent work on the public repo), so a human still decides
+  *which* tickets the agent works on. Autonomous merge removes only the *second* human
+  checkpoint, not the first.
+- **No human reviews the diff before it lands on `main`.** CodeRabbit + CI + the
+  `protect-main` required checks become the only result-level review. They catch
+  implementation defects but can miss *spec-level* bugs (a faithfully-built wrong
+  requirement), so an in-scope, green, CodeRabbit-approved-but-wrong change can reach `main`.
+- The `auto-merge` label still works when present; the flag only removes the *requirement*,
+  and `maxAutoMergesPerWindow` still rate-limits autonomous merges.
+
+Default is **off** — the flag must be set explicitly and can be unset at any time to restore
+the human gate. Recommended only when you trust your `agent-ready` intake discipline and the
+CodeRabbit gate for the classes of ticket you let the agent take.
+
 ## Branch protection on `main` (server-side)
 
 The `protect-main` ruleset requires a PR, the checks `build-test` + `scope-gate` +
