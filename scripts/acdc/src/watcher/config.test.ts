@@ -6,12 +6,13 @@ describe('loadConfig', () => {
     const c = loadConfig({});
     expect(c).toEqual({
       pollSeconds: 300,
-      maxConcurrent: 1,
+      maxConcurrent: 2,
       workerTimeoutMin: 45,
       maxTicketsPerWindow: 4,
       maxDispatchesPerDay: 12,
       maxAutoMergesPerWindow: 3,
       maxAttempts: 2,
+      defaultTier: 'medium',
       autoMergeWithoutLabel: false,
     });
   });
@@ -31,6 +32,13 @@ describe('loadConfig', () => {
       expect(loadConfig({ ACDC_AUTO_MERGE_WITHOUT_LABEL: v }).autoMergeWithoutLabel).toBe(false);
     }
     expect(loadConfig({}).autoMergeWithoutLabel).toBe(false);
+  });
+
+  it('reads ACDC_DEFAULT_TIER from env', () => {
+    expect(loadConfig({ ACDC_DEFAULT_TIER: 'high' }).defaultTier).toBe('high');
+  });
+  it('falls back to medium for an invalid ACDC_DEFAULT_TIER', () => {
+    expect(loadConfig({ ACDC_DEFAULT_TIER: 'turbo' }).defaultTier).toBe('medium');
   });
 
   it('clamps ACDC_POLL_SECONDS to a minimum of 60', () => {

@@ -17,4 +17,8 @@
   { "name": "area:e2e", "color": "fbca04", "description": "Playwright end-to-end tests" },
   { "name": "area:infra", "color": "c5def5", "description": "CI / tooling / automation" },
   { "name": "area:multiple", "color": "bfdadc", "description": "Spans multiple areas" }
+  ,
+  { "name": "tier:low", "color": "c2e0c6", "description": "Mechanical change — dispatch on the haiku tier" },
+  { "name": "tier:medium", "color": "fef2c0", "description": "Standard judgment — dispatch on the sonnet tier" },
+  { "name": "tier:high", "color": "d4c5f9", "description": "Hard design — dispatch on the opus tier" }
 ]

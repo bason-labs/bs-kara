@@ -13,6 +13,12 @@ export const AREA_LABEL_NAMES = [
   'area:multiple',
 ] as const;
 
+export const TIER_LABEL_NAMES = [
+  'tier:low',
+  'tier:medium',
+  'tier:high',
+] as const;
+
 export function parseLabels(raw: string): Label[] {
   const data: unknown = JSON.parse(raw);
   if (!Array.isArray(data)) throw new Error('labels.json must be an array');

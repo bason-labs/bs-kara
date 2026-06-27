@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { parseLabels, AREA_LABEL_NAMES } from './labels';
+import { parseLabels, AREA_LABEL_NAMES, TIER_LABEL_NAMES } from './labels';
 
 const raw = readFileSync(new URL('../../../.github/labels.json', import.meta.url), 'utf8');
 
@@ -27,6 +27,13 @@ describe('labels.json', () => {
     const names = parseLabels(raw).map((l) => l.name);
     for (const n of ['agent-ready', 'needs-human', 'blocked', 'auto-merge', 'human-approved']) {
       expect(names).toContain(n);
+    }
+  });
+
+  it('contains every tier label exactly once', () => {
+    const names = parseLabels(raw).map((l) => l.name);
+    for (const t of TIER_LABEL_NAMES) {
+      expect(names.filter((n) => n === t)).toHaveLength(1);
     }
   });
 });
