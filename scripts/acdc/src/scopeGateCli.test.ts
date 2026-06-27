@@ -29,6 +29,30 @@ describe('runScopeGate', () => {
     expect(code).toBe(0);
   });
 
+  it('returns 0 for a protected path on a human-authored branch (not run/issue-*)', () => {
+    const code = runScopeGate(
+      { changedPaths: ['.github/workflows/ci.yml'], humanApproved: false, headRef: 'feat/x' },
+      () => {},
+    );
+    expect(code).toBe(0);
+  });
+
+  it('returns 1 for a protected path on an agent run/issue-* branch without approval', () => {
+    const code = runScopeGate(
+      { changedPaths: ['.github/workflows/ci.yml'], humanApproved: false, headRef: 'run/issue-9' },
+      () => {},
+    );
+    expect(code).toBe(1);
+  });
+
+  it('enforces by default when no headRef is given (safe default)', () => {
+    const code = runScopeGate(
+      { changedPaths: ['scripts/acdc/src/watcher.ts'], humanApproved: false },
+      () => {},
+    );
+    expect(code).toBe(1);
+  });
+
   it('warns on an out-of-area change through the real AREA_GLOBS but still passes', () => {
     const lines: string[] = [];
     const code = runScopeGate(

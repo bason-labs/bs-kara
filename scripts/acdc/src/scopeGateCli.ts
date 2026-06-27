@@ -1,10 +1,10 @@
-// NOTE: The ENFORCED scope gate is the inline, base-controlled bash check in
-// .github/workflows/ci.yml (the `scope-gate` job). On a pull_request event GitHub
-// runs the BASE branch's workflow YAML, so a PR cannot tamper with the gate that
-// judges it. This module is the canonical protected list for local/runbook use and
-// is kept in sync with that inline check (and .github/CODEOWNERS); it is not what
-// gates CI.
-import { evaluateScopeGate } from './scopeGate';
+// NOTE: The ENFORCED scope gate is the inline bash check in .github/workflows/ci.yml
+// (the `scope-gate` job). It HARD-BLOCKS protected control-path changes ONLY on the
+// autonomous worker's own run/issue-* branches; human-authored branches (the
+// maintainer's own changes) pass without a human-approved label. This module is the
+// canonical protected list + the `isAgentBranch` classifier for local/runbook use, kept
+// in sync with that inline check and .github/CODEOWNERS; it is not what gates CI.
+import { evaluateScopeGate, isAgentBranch } from './scopeGate';
 
 export const PROTECTED_GLOBS = [
   '.github/**',
@@ -34,6 +34,9 @@ export interface RunScopeGateOptions {
   changedPaths: string[];
   humanApproved: boolean;
   areaLabel?: string;
+  /** The PR head branch. When given, the hard gate enforces only on agent (run/issue-*)
+   * branches; human-authored branches pass. Omitted → enforce (safe default). */
+  headRef?: string;
 }
 
 /** Splits `git diff --name-only` output into trimmed, non-empty paths. */
@@ -43,10 +46,13 @@ export function parseChangedPaths(gitOutput: string): string[] {
 
 /** Returns a process exit code (0 = pass, 1 = hard violation). */
 export function runScopeGate(opts: RunScopeGateOptions, log: (msg: string) => void): number {
+  // No headRef → enforce (safe default). With a headRef, enforce only on agent branches.
+  const enforced = opts.headRef === undefined ? true : isAgentBranch(opts.headRef);
   const result = evaluateScopeGate({
     changedPaths: opts.changedPaths,
     protectedGlobs: PROTECTED_GLOBS,
     humanApproved: opts.humanApproved,
+    enforced,
     areaLabel: opts.areaLabel,
     areaGlobs: AREA_GLOBS,
   });
