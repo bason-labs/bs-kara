@@ -6,17 +6,25 @@ describe('loadConfig', () => {
     const c = loadConfig({});
     expect(c).toEqual({
       pollSeconds: 300,
-      maxConcurrent: 1,
+      maxConcurrent: 2,
       workerTimeoutMin: 45,
       maxTicketsPerWindow: 4,
       maxDispatchesPerDay: 12,
       maxAutoMergesPerWindow: 3,
       maxAttempts: 2,
+      defaultTier: 'medium',
     });
   });
 
   it('reads ACDC_MAX_CONCURRENT from env', () => {
     expect(loadConfig({ ACDC_MAX_CONCURRENT: '3' }).maxConcurrent).toBe(3);
+  });
+
+  it('reads ACDC_DEFAULT_TIER from env', () => {
+    expect(loadConfig({ ACDC_DEFAULT_TIER: 'high' }).defaultTier).toBe('high');
+  });
+  it('falls back to medium for an invalid ACDC_DEFAULT_TIER', () => {
+    expect(loadConfig({ ACDC_DEFAULT_TIER: 'turbo' }).defaultTier).toBe('medium');
   });
 
   it('clamps ACDC_POLL_SECONDS to a minimum of 60', () => {

@@ -61,4 +61,15 @@ describe('claudeArgs', () => {
       'json',
     ]);
   });
+
+  it('appends --model only when a model is given', () => {
+    expect(claudeArgs('do the thing', '.claude/acdc-settings.json', 'opus')).toEqual([
+      '-p', 'do the thing',
+      '--setting-sources', 'user',
+      '--settings', '.claude/acdc-settings.json',
+      '--output-format', 'json',
+      '--model', 'opus',
+    ]);
+    expect(claudeArgs('x', 's')).not.toContain('--model');
+  });
 });

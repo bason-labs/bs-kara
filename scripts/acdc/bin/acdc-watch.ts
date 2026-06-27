@@ -32,6 +32,10 @@ import {
   type OpenPr,
 } from '../src/watcher/reviewSync';
 import { acdcRunPrompt, buildDispatchEnv, claudeArgs } from '../src/watcher/dispatch';
+import { parseEnvFile } from '../src/watcher/envFile';
+import { InflightFile, inflightFilename, buildInflight } from '../src/watcher/inflight';
+import { dispatchBudget } from '../src/watcher/budget';
+import { resolveTier, modelForTier } from '../src/tiers';
 import {
   buildMergeInput,
   decideMerge,
@@ -61,10 +65,6 @@ const BOARD_ENV_PATH = path.join(ACDC_DIR, 'board.env');
 const SETTINGS_PATH = '.claude/acdc-settings.json';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-// Each inflight record carries the dispatch attempt count alongside the
-// reconcile-relevant fields, so crash recovery can escalate to needs-human.
-type InflightFile = InFlightRecord & { attempt: number; itemId?: string };
-
 interface Counters {
   windowStart: number;
   dayStart: number;
@@ -88,29 +88,11 @@ function ensureDirs(): void {
 
 // ---- small env-file reader (KEY=VALUE lines) ------------------------------
 function readEnvFile(p: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  let text: string;
   try {
-    text = fs.readFileSync(p, 'utf8');
+    return parseEnvFile(fs.readFileSync(p, 'utf8'));
   } catch {
-    return out;
+    return {};
   }
-  for (const line of text.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let val = trimmed.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    if (key) out[key] = val;
-  }
-  return out;
 }
 
 // ---- inflight record files -------------------------------------------------
@@ -137,7 +119,7 @@ function readInflight(): InflightFile[] {
 }
 
 function inflightPath(issue: number): string {
-  return path.join(INFLIGHT_DIR, `issue-${issue}.json`);
+  return path.join(INFLIGHT_DIR, inflightFilename(issue));
 }
 
 function writeInflight(rec: InflightFile): void {
@@ -646,6 +628,16 @@ async function tick(cfg: Config): Promise<void> {
     return;
   }
 
+  // Clamp this tick's dispatches to the remaining window/day budget so a cap > 1 can
+  // never overshoot the per-window/day limits (withinLimits only gates "dispatch at all").
+  const budget = dispatchBudget(guard, limits, picks.length);
+  const toDispatch = picks.slice(0, budget);
+  if (toDispatch.length === 0) {
+    log('window/day budget exhausted for this tick — deferring remaining picks');
+    writeCounters(counters);
+    return;
+  }
+
   // 6. dispatch — guarded on credentials being present
   const token = readEnvFile(TOKEN_ENV_PATH).CLAUDE_CODE_OAUTH_TOKEN ?? '';
   const firebase = readEnvFile(FIREBASE_ENV_PATH);
@@ -660,23 +652,20 @@ async function tick(cfg: Config): Promise<void> {
     return;
   }
 
-  for (const ticket of picks) {
+  for (const ticket of toDispatch) {
     const issue = ticket.number;
-    log(`dispatching issue #${issue}`);
+    const tier = resolveTier(undefined, ticket.labels, cfg.defaultTier);
+    const model = modelForTier(tier);
+    log(`dispatching issue #${issue} at tier ${tier} (${model})`);
     if (boardCfg) moveBoard(boardCfg, issue, 'In Progress');
 
-    const child = spawn('claude', claudeArgs(acdcRunPrompt(issue), SETTINGS_PATH), {
+    const child = spawn('claude', claudeArgs(acdcRunPrompt(issue), SETTINGS_PATH, model), {
       cwd: REPO_ROOT,
       env: buildDispatchEnv(process.env, token, firebase),
       detached: false,
     });
 
-    const rec: InflightFile = {
-      issue,
-      pid: child.pid ?? -1,
-      startedAt: Date.now(),
-      attempt: 0,
-    };
+    const rec: InflightFile = buildInflight(issue, child.pid ?? -1, Date.now());
     writeInflight(rec);
     postHeartbeatComment(issue);
 

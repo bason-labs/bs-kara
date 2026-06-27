@@ -1,8 +1,11 @@
+import { coerceTier, type Tier } from '../tiers';
+
 export interface Config {
   pollSeconds: number; maxConcurrent: number; workerTimeoutMin: number;
   maxTicketsPerWindow: number; maxDispatchesPerDay: number; maxAutoMergesPerWindow: number; maxAttempts: number;
+  defaultTier: Tier;
 }
-const DEFAULTS: Config = { pollSeconds: 300, maxConcurrent: 1, workerTimeoutMin: 45, maxTicketsPerWindow: 4, maxDispatchesPerDay: 12, maxAutoMergesPerWindow: 3, maxAttempts: 2 };
+const DEFAULTS: Config = { pollSeconds: 300, maxConcurrent: 2, workerTimeoutMin: 45, maxTicketsPerWindow: 4, maxDispatchesPerDay: 12, maxAutoMergesPerWindow: 3, maxAttempts: 2, defaultTier: 'medium' };
 function intEnv(env: NodeJS.ProcessEnv, key: string, def: number): number {
   const v = env[key]; const n = v ? parseInt(v, 10) : NaN; return Number.isFinite(n) ? n : def;
 }
@@ -15,6 +18,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     maxDispatchesPerDay: intEnv(env, 'ACDC_MAX_DISPATCHES_PER_DAY', DEFAULTS.maxDispatchesPerDay),
     maxAutoMergesPerWindow: intEnv(env, 'ACDC_MAX_AUTOMERGES_PER_WINDOW', DEFAULTS.maxAutoMergesPerWindow),
     maxAttempts: intEnv(env, 'ACDC_MAX_ATTEMPTS', DEFAULTS.maxAttempts),
+    defaultTier: coerceTier(env.ACDC_DEFAULT_TIER, DEFAULTS.defaultTier),
   };
 }
 export function isPaused(exists: (p: string) => boolean, pausedPath: string): boolean { return exists(pausedPath); }
