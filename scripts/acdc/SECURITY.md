@@ -47,7 +47,7 @@ autonomous worker's own `run/issue-*` branches** — a human-authored branch (`f
 `fix/*`, …) is the maintainer's own change and passes without a `human-approved` label.
 
 The signal is the **branch name** (`isAgentBranch` in `scripts/acdc/src/scopeGate.ts`,
-mirrored by the `case run/issue-[0-9]*` in the `ci.yml` scope-gate). On a single host the
+mirrored exactly by `^run/issue-[0-9]+$` in the `ci.yml` scope-gate). On a single host the
 worker authors PRs as the maintainer's gh identity, so author/review can't distinguish
 agent from human — the branch name is the only signal, and it matches the worker's runbook
 (which always uses `run/issue-N`). This is the same honor-system posture as the rest of this

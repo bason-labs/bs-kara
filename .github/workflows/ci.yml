@@ -94,31 +94,27 @@ jobs:
           HITS="$(printf '%s\n' "$CHANGED" | grep -E "$PROTECTED_RE" || true)"
           if [ -n "$HITS" ]; then
             # Carve-out: the hard gate applies ONLY to the autonomous worker's own
-            # run/issue-* branches. Human-authored branches (feat/*, fix/*, ...) are the
+            # run/issue-N branches. Human-authored branches (feat/*, fix/*, ...) are the
             # maintainer's own control-plane changes and pass without a human-approved
-            # label. Mirrors isAgentBranch() in scripts/acdc/src/scopeGate.ts. The glob is
-            # intentionally broad (anything under run/issue-) so it fails safe — toward
-            # requiring approval. See scripts/acdc/SECURITY.md ("Who may change the
-            # control plane").
-            case "$HEAD_REF" in
-              run/issue-[0-9]*)
-                # Override A: a CODEOWNER review approval. Override B: the 'human-approved'
-                # label (a human-only sign-off; the agent is FORBIDDEN from applying it to
-                # itself, per the runbook deny-list).
-                DECISION="$(gh pr view "$PR" --json reviewDecision --jq '.reviewDecision')"
-                HAS_LABEL="$(gh pr view "$PR" --json labels --jq 'any(.labels[]; .name=="human-approved")')"
-                if [ "$DECISION" != "APPROVED" ] && [ "$HAS_LABEL" != "true" ]; then
-                  echo "::error::scope-gate: agent PR ($HEAD_REF) modifies protected automation controls without human approval:"
-                  printf '%s\n' "$HITS" | sed 's/^/::error::  /'
-                  echo "Override: a CODEOWNER approves the PR, OR a maintainer adds the 'human-approved' label."
-                  exit 1
-                fi
-                echo "Protected paths changed on an agent branch but human-approved — allowed."
-                ;;
-              *)
-                echo "Protected paths changed on a human-authored branch (${HEAD_REF:-unknown}) — allowed (maintainer change)."
-                ;;
-            esac
+            # label. The matcher is EXACT (^run/issue-[0-9]+$), mirroring isAgentBranch()
+            # in scripts/acdc/src/scopeGate.ts. See scripts/acdc/SECURITY.md ("Who may
+            # change the control plane").
+            if printf '%s' "$HEAD_REF" | grep -Eq '^run/issue-[0-9]+$'; then
+              # Override A: a CODEOWNER review approval. Override B: the 'human-approved'
+              # label (a human-only sign-off; the agent is FORBIDDEN from applying it to
+              # itself, per the runbook deny-list).
+              DECISION="$(gh pr view "$PR" --json reviewDecision --jq '.reviewDecision')"
+              HAS_LABEL="$(gh pr view "$PR" --json labels --jq 'any(.labels[]; .name=="human-approved")')"
+              if [ "$DECISION" != "APPROVED" ] && [ "$HAS_LABEL" != "true" ]; then
+                echo "::error::scope-gate: agent PR ($HEAD_REF) modifies protected automation controls without human approval:"
+                printf '%s\n' "$HITS" | sed 's/^/::error::  /'
+                echo "Override: a CODEOWNER approves the PR, OR a maintainer adds the 'human-approved' label."
+                exit 1
+              fi
+              echo "Protected paths changed on an agent branch but human-approved — allowed."
+            else
+              echo "Protected paths changed on a human-authored branch (${HEAD_REF:-unknown}) — allowed (maintainer change)."
+            fi
           fi
 
   secret-scan:
