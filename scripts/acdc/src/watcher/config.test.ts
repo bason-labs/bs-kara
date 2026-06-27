@@ -12,11 +12,25 @@ describe('loadConfig', () => {
       maxDispatchesPerDay: 12,
       maxAutoMergesPerWindow: 3,
       maxAttempts: 2,
+      autoMergeWithoutLabel: false,
     });
   });
 
   it('reads ACDC_MAX_CONCURRENT from env', () => {
     expect(loadConfig({ ACDC_MAX_CONCURRENT: '3' }).maxConcurrent).toBe(3);
+  });
+
+  it('enables autonomous merge for truthy ACDC_AUTO_MERGE_WITHOUT_LABEL values', () => {
+    for (const v of ['1', 'true', 'TRUE', 'yes', 'on']) {
+      expect(loadConfig({ ACDC_AUTO_MERGE_WITHOUT_LABEL: v }).autoMergeWithoutLabel).toBe(true);
+    }
+  });
+
+  it('keeps autonomous merge off for unset, falsy, or unrecognized values', () => {
+    for (const v of ['0', 'false', 'no', 'off', 'maybe', '']) {
+      expect(loadConfig({ ACDC_AUTO_MERGE_WITHOUT_LABEL: v }).autoMergeWithoutLabel).toBe(false);
+    }
+    expect(loadConfig({}).autoMergeWithoutLabel).toBe(false);
   });
 
   it('clamps ACDC_POLL_SECONDS to a minimum of 60', () => {
