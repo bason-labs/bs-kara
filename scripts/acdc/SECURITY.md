@@ -38,6 +38,26 @@ below is the realistic posture.
 - **Watcher = the only thing that performs a merge.** Each poll it merges PRs that pass every
   gate below.
 
+## Who may change the control plane (scope-gate carve-out)
+
+The CI `scope-gate` job hard-blocks changes to the automation's own control plane
+(`.github/`, `.claude/`, `scripts/acdc/`, `.coderabbit.yaml`, `.gitleaks.toml`,
+`database.rules.json`, lockfiles, firebase). That gate now applies **only to the
+autonomous worker's own `run/issue-*` branches** — a human-authored branch (`feat/*`,
+`fix/*`, …) is the maintainer's own change and passes without a `human-approved` label.
+
+The signal is the **branch name** (`isAgentBranch` in `scripts/acdc/src/scopeGate.ts`,
+mirrored by the `case run/issue-[0-9]*` in the `ci.yml` scope-gate). On a single host the
+worker authors PRs as the maintainer's gh identity, so author/review can't distinguish
+agent from human — the branch name is the only signal, and it matches the worker's runbook
+(which always uses `run/issue-N`). This is the same honor-system posture as the rest of this
+document: it keeps the worker on its rails (the runbook never pushes a `feat/*` branch) and
+removes the maintainer's self-approval friction, but it is **not a hard cryptographic
+boundary** — a worker that deviated from its runbook to push a non-`run/issue-*` branch would
+also fall outside the watcher's auto-merge path (`resolveGatingIssue` requires `run/issue-N`),
+so it could not auto-merge regardless. For a hard boundary, run the worker as a non-admin bot
+(see the end of this file) or enforce via `pull_request_target` + base-branch YAML.
+
 ## What the watcher enforces (code — `runMergeStep`)
 
 1. **Issue-anchored authorization** — `auto-merge` is read from the **issue** (the human's
