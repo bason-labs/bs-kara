@@ -55,6 +55,41 @@ describe('decideMerge', () => {
   });
 });
 
+describe('decideMerge — autonomous mode (no human auto-merge label required)', () => {
+  const NO_LABEL_GREEN: MergeInput = {
+    hasAutoMergeLabel: false,
+    autonomousMerge: true,
+    requiredChecksPass: true,
+    independentGatePass: true,
+    blockingFindings: 0,
+    dismissedBlockingFindings: 0,
+  };
+
+  it('merges a fully-green, no-label PR when autonomousMerge is on', () => {
+    expect(decideMerge(NO_LABEL_GREEN)).toEqual({ merge: true, reason: 'all positive gate signals present' });
+  });
+
+  it('still blocks when required checks are red', () => {
+    expect(decideMerge({ ...NO_LABEL_GREEN, requiredChecksPass: false }).merge).toBe(false);
+  });
+
+  it('still requires the independent gate (no merge-by-absence without a human)', () => {
+    const r = decideMerge({ ...NO_LABEL_GREEN, independentGatePass: false });
+    expect(r.merge).toBe(false);
+    expect(r.reason).toMatch(/independent/i);
+  });
+
+  it('still blocks on unresolved blocking findings', () => {
+    expect(decideMerge({ ...NO_LABEL_GREEN, blockingFindings: 1 }).merge).toBe(false);
+  });
+
+  it('does not change the default: a no-label PR with autonomousMerge off still does not merge', () => {
+    const r = decideMerge({ ...NO_LABEL_GREEN, autonomousMerge: false });
+    expect(r.merge).toBe(false);
+    expect(r.reason).toMatch(/auto-merge label/i);
+  });
+});
+
 describe('computeIndependentGate', () => {
   it('passes when CodeRabbit APPROVED and there are no blocking findings', () => {
     const g = computeIndependentGate({
@@ -159,6 +194,19 @@ describe('buildMergeInput', () => {
     const input = buildMergeInput(GREEN_PR, ['agent-ready']);
     expect(input.hasAutoMergeLabel).toBe(false);
     expect(decideMerge(input).merge).toBe(false);
+  });
+
+  it('defaults autonomousMerge to false (label still required)', () => {
+    const input = buildMergeInput(GREEN_PR, ['agent-ready']);
+    expect(input.autonomousMerge).toBe(false);
+    expect(decideMerge(input).merge).toBe(false);
+  });
+
+  it('sets autonomousMerge so a no-label green PR merges when the flag is on', () => {
+    const input = buildMergeInput(GREEN_PR, ['agent-ready'], true);
+    expect(input.hasAutoMergeLabel).toBe(false);
+    expect(input.autonomousMerge).toBe(true);
+    expect(decideMerge(input)).toEqual({ merge: true, reason: 'all positive gate signals present' });
   });
 
   it('treats a red required check as not-passing', () => {
