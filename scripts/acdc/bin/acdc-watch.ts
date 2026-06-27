@@ -743,6 +743,12 @@ async function main(): Promise<void> {
     if (process.env[k] === undefined) process.env[k] = v;
   }
   log('ACDC watcher starting');
+  if (loadConfig(process.env).autoMergeWithoutLabel) {
+    log(
+      '⚠️  AUTONOMOUS MERGE ENABLED (ACDC_AUTO_MERGE_WITHOUT_LABEL=on): the watcher will ' +
+        'merge green PRs WITHOUT a human auto-merge label. Unset the env var to restore the gate.',
+    );
+  }
   for (;;) {
     const cfg = loadConfig(process.env);
     maybeHeartbeat(Date.now());
