@@ -34,6 +34,8 @@ import {
 import { acdcRunPrompt, buildDispatchEnv, claudeArgs } from '../src/watcher/dispatch';
 import { parseEnvFile } from '../src/watcher/envFile';
 import { InflightFile, inflightFilename, buildInflight } from '../src/watcher/inflight';
+import { dispatchBudget } from '../src/watcher/budget';
+import { resolveTier, modelForTier } from '../src/tiers';
 import {
   buildMergeInput,
   decideMerge,
@@ -626,6 +628,16 @@ async function tick(cfg: Config): Promise<void> {
     return;
   }
 
+  // Clamp this tick's dispatches to the remaining window/day budget so a cap > 1 can
+  // never overshoot the per-window/day limits (withinLimits only gates "dispatch at all").
+  const budget = dispatchBudget(guard, limits, picks.length);
+  const toDispatch = picks.slice(0, budget);
+  if (toDispatch.length === 0) {
+    log('window/day budget exhausted for this tick — deferring remaining picks');
+    writeCounters(counters);
+    return;
+  }
+
   // 6. dispatch — guarded on credentials being present
   const token = readEnvFile(TOKEN_ENV_PATH).CLAUDE_CODE_OAUTH_TOKEN ?? '';
   const firebase = readEnvFile(FIREBASE_ENV_PATH);
@@ -640,12 +652,14 @@ async function tick(cfg: Config): Promise<void> {
     return;
   }
 
-  for (const ticket of picks) {
+  for (const ticket of toDispatch) {
     const issue = ticket.number;
-    log(`dispatching issue #${issue}`);
+    const tier = resolveTier(undefined, ticket.labels, cfg.defaultTier);
+    const model = modelForTier(tier);
+    log(`dispatching issue #${issue} at tier ${tier} (${model})`);
     if (boardCfg) moveBoard(boardCfg, issue, 'In Progress');
 
-    const child = spawn('claude', claudeArgs(acdcRunPrompt(issue), SETTINGS_PATH), {
+    const child = spawn('claude', claudeArgs(acdcRunPrompt(issue), SETTINGS_PATH, model), {
       cwd: REPO_ROOT,
       env: buildDispatchEnv(process.env, token, firebase),
       detached: false,
