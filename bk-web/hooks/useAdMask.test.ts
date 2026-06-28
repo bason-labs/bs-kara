@@ -118,4 +118,23 @@ describe('useAdMask', () => {
     unmount();
     expect(clear).toHaveBeenCalled();
   });
+
+  it('does not disarm an active gate when re-armed after guard was active', () => {
+    const { player } = makePlayer(AD_URL);
+    const { result, rerender } = renderHook(
+      ({ isPlaying }) => useAdMask(player, SONG, isPlaying),
+      { initialProps: { isPlaying: false } },
+    );
+    // Guard is active, deferred reset scheduled
+    expect(result.current.isAdGated).toBe(false);
+
+    // Re-render to activate polling; cleanup cancels the deferred reset
+    rerender({ isPlaying: true });
+
+    // Let polling arm the gate
+    act(() => vi.advanceTimersByTime(500));
+
+    // Gate should be armed; the stale deferred reset did not fire
+    expect(result.current.isAdGated).toBe(true);
+  });
 });
