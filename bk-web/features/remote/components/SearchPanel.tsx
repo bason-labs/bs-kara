@@ -67,19 +67,26 @@ const ResultRow = memo(function ResultRow({
   const isJustAdded = video.id === justAddedId;
   const queuePos = queuePositionMap?.get(video.id);
 
-  // Card border/background depends on the state. The now-playing song gets no
-  // special highlight in the list; just-added (transient celebration) wins,
-  // then queued.
-  const cardClass = isJustAdded
-    ? 'bg-surface border-accent/70 animate-just-added'
-    : isQueued
-      ? 'bg-surface border-accent/35'
-      : 'bg-surface border-border';
+  // Card border/background depends on the state. Order matters: now-playing
+  // wins, then just-added (transient celebration), then queued.
+  const cardClass = isNowPlaying
+    ? 'bg-gradient-to-br from-brand/5 to-surface border-glow/55 shadow-glow'
+    : isJustAdded
+      ? 'bg-surface border-accent/70 animate-just-added'
+      : isQueued
+        ? 'bg-surface border-accent/35'
+        : 'bg-surface border-border';
 
-  // Status pill: only one renders at a time. The now-playing song shows no pill
-  // (only its action stays disabled). Just-added > queued.
+  // Status pill: only one renders at a time. Now-playing > just-added > queued.
   let statusPill: React.ReactNode = null;
-  if (isJustAdded) {
+  if (isNowPlaying) {
+    statusPill = (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-glow/18 text-glow text-[11px] mt-1 w-fit">
+        <span className="w-[5px] h-[5px] rounded-full bg-glow animate-pulse" />
+        {t('search.statusNowPlaying')}
+      </span>
+    );
+  } else if (isJustAdded) {
     statusPill = (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/18 text-accent text-[11px] mt-1 w-fit">
         <Sparkles size={11} />
