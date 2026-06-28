@@ -56,7 +56,7 @@ describe('SearchPanel', () => {
     expect(within(card).getByText(/search\.statusQueued/)).toBeInTheDocument();
   });
 
-  it('keeps the now-playing action disabled but shows no now-playing highlight pill in the list', async () => {
+  it('highlights the now-playing song with a pill + glow border and keeps its action disabled', async () => {
     render(
       <SearchPanel
         onAdd={() => {}}
@@ -69,11 +69,12 @@ describe('SearchPanel', () => {
     const card = (
       screen.getByText(/Mock result for bolero/)
     ).closest('div.grid') as HTMLElement;
-    // No "Đang phát" / "Now playing" highlight pill is rendered in the list...
-    expect(within(card).queryByText('search.statusNowPlaying')).toBeNull();
-    // ...and no equalizer overlay bars are rendered on the thumbnail.
-    expect(card.querySelectorAll('[class*="animate-eq-bar"]')).toHaveLength(0);
-    // ...but the action stays disabled so the playing song can't be re-added.
+    // The "Đang phát" / "Now playing" tag is shown in the list (the pill —
+    // distinct from the action button which only exposes it as aria-label).
+    expect(within(card).getByText('search.statusNowPlaying')).toBeInTheDocument();
+    // ...the card gets the glow highlight border (same treatment as queue).
+    expect(card.className).toMatch(/border-glow/);
+    // ...and the action stays disabled so the playing song can't be re-added.
     const disabled = within(card).getByRole('button', {
       name: 'search.statusNowPlaying',
     });
