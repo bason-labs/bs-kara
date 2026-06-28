@@ -226,6 +226,11 @@
     "announcing": "MC đang giới thiệu",
     "preparing": "MC đang chuẩn bị lời giới thiệu…"
   },
+  "adMask": {
+    "title": "Nghỉ chút xíu",
+    "subtitle": "Bài hát sẽ bắt đầu ngay…",
+    "nextUp": "Tiếp theo"
+  },
   "requester": {
     "title": "Ai sẽ hát bài này?",
     "hint": "Nhập tên ca sĩ để hiển thị khi bài này được phát.",

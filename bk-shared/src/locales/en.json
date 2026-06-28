@@ -226,6 +226,11 @@
     "announcing": "AI MC is talking",
     "preparing": "MC is warming up…"
   },
+  "adMask": {
+    "title": "Quick break",
+    "subtitle": "The song starts in a moment…",
+    "nextUp": "Up next"
+  },
   "requester": {
     "title": "Who's singing this?",
     "hint": "Add a singer name so it shows up when the song plays.",
