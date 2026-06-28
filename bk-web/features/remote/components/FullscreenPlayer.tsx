@@ -13,6 +13,8 @@ import { EmojiLayer } from '@/components/EmojiLayer';
 import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
 import { EndScreenOverlay } from '@/components/EndScreenOverlay';
 import { IdleQRCode } from '@/components/IdleQRCode';
+import { useAdMask } from '@/hooks/useAdMask';
+import { AdIntermissionOverlay } from '@/components/AdIntermissionOverlay';
 
 interface FullscreenPlayerProps {
   // Nullable: the player stays mounted even when no song is loaded so the
@@ -87,6 +89,12 @@ export function FullscreenPlayer({
     mcVoice,
     tryClaimAnnouncementLock,
   });
+
+  const { isAdGated } = useAdMask(
+    ytPlayer,
+    track?.id ?? '',
+    !isMcGated && isPlaying,
+  );
 
   // Live outro score. Returns null when the toggle is off or no song is
   // loaded — pass-through into EndScreenOverlay's optional `score` prop.
@@ -316,8 +324,8 @@ export function FullscreenPlayer({
               videoId={track.id}
               onSongEnd={onSongEnd}
               isPlaying={!isMcGated && isPlaying}
-              volume={isMcGated ? 0 : volume}
-              onPlayingChange={isMcGated ? undefined : onPlayingChange}
+              volume={isMcGated || isAdGated ? 0 : volume}
+              onPlayingChange={isMcGated || isAdGated ? undefined : onPlayingChange}
               onPlayerReady={setYtPlayer}
             />
             {isMcGated && (
@@ -328,6 +336,9 @@ export function FullscreenPlayer({
                 mcText={mcText ?? undefined}
                 onClose={onClose}
               />
+            )}
+            {isAdGated && !isMcGated && (
+              <AdIntermissionOverlay variant="phone" nextSongTitle={nextSongTitle ?? null} />
             )}
             {/* End-screen overlay sits above the iframe + tap layer (z-[5])
                 but below the chrome and center transport (z-10). The wrapper
