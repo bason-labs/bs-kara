@@ -56,7 +56,7 @@ describe('SearchPanel', () => {
     expect(within(card).getByText(/search\.statusQueued/)).toBeInTheDocument();
   });
 
-  it('marks the now-playing card with the now-playing status and a disabled action', async () => {
+  it('keeps the now-playing action disabled but shows no now-playing highlight pill in the list', async () => {
     render(
       <SearchPanel
         onAdd={() => {}}
@@ -69,11 +69,18 @@ describe('SearchPanel', () => {
     const card = (
       screen.getByText(/Mock result for bolero/)
     ).closest('div.grid') as HTMLElement;
-    expect(within(card).getByText('search.statusNowPlaying')).toBeInTheDocument();
+    // No "Đang phát" / "Now playing" highlight pill is rendered in the list...
+    expect(within(card).queryByText('search.statusNowPlaying')).toBeNull();
+    // ...and no equalizer overlay bars are rendered on the thumbnail.
+    expect(card.querySelectorAll('[class*="animate-eq-bar"]')).toHaveLength(0);
+    // ...but the action stays disabled so the playing song can't be re-added.
     const disabled = within(card).getByRole('button', {
       name: 'search.statusNowPlaying',
     });
     expect(disabled).toBeDisabled();
+    expect(
+      within(card).queryByRole('button', { name: 'search.addAriaLabel' }),
+    ).toBeNull();
   });
 
   it('shows the quota error message when search returns quota error', async () => {
