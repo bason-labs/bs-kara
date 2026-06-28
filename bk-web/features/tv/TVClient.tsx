@@ -242,7 +242,7 @@ export default function TVClient() {
                   nextSongTitle={roomData.queue[0]?.title ?? null}
                 />
               )}
-              {!isMcGated && (
+              {!isMcGated && !isAdGated && (
                 <EndScreenOverlay
                   player={ytPlayer}
                   songId={roomData.currentPlaying.id}
@@ -251,7 +251,7 @@ export default function TVClient() {
                   score={songScore}
                 />
               )}
-              {roomData.currentPlaying.requesterName && !isMcGated && (
+              {roomData.currentPlaying.requesterName && !isMcGated && !isAdGated && (
                 <div
                   aria-live="polite"
                   className="absolute top-3 left-3 z-20 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-sm font-semibold shadow-lg border border-white/10"

@@ -344,7 +344,7 @@ export function FullscreenPlayer({
                 but below the chrome and center transport (z-10). The wrapper
                 creates a stacking context at z-[6] so the overlay's internal
                 z-20 doesn't escape past the chrome. */}
-            {!isMcGated && (
+            {!isMcGated && !isAdGated && (
               <div className="absolute inset-0 z-[6] pointer-events-none">
                 <EndScreenOverlay
                   player={ytPlayer}

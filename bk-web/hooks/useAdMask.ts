@@ -81,6 +81,10 @@ export function useAdMask(
   }, [player, requestedVideoId, isPlaying]);
 
   // Safety cap: a stuck reading can never freeze the room behind the overlay.
+  // Trade-off: if a genuine ad signal persists past this cap, force-clearing
+  // briefly unmutes (≈500ms) until the next debounced poll re-arms the gate.
+  // This is an accepted quirk of the safety valve — the alternative (permanent
+  // gate on a stale signal) is far worse for the user experience.
   useEffect(() => {
     if (!isAdGated) return;
     const id = window.setTimeout(() => setIsAdGated(false), SAFETY_CAP_MS);

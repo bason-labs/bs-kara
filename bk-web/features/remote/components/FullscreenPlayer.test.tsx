@@ -22,6 +22,19 @@ vi.mock('@/hooks/useMCPlayer', () => ({
   useMCPlayer: () => ({ isMcGated: mockGated, mcText: mockGated ? 'Hi!' : null }),
 }));
 
+let mockAdGated = false;
+vi.mock('@/hooks/useAdMask', () => ({
+  useAdMask: () => ({ isAdGated: mockAdGated }),
+}));
+
+vi.mock('@/components/AdIntermissionOverlay', () => ({
+  AdIntermissionOverlay: () => <div data-testid="ad-intermission-overlay" />,
+}));
+
+vi.mock('@/components/EndScreenOverlay', () => ({
+  EndScreenOverlay: () => <div data-testid="end-screen-overlay" />,
+}));
+
 // useSongScore subscribes to Firebase at module load. The test runs
 // without env, so swap in a stub that mirrors the off-toggle behaviour.
 vi.mock('@/hooks/useSongScore', () => ({
@@ -178,6 +191,30 @@ describe('FullscreenPlayer', () => {
     // Cleanup: restore fullscreen API stubs.
     delete (document as unknown as { fullscreenElement?: unknown }).fullscreenElement;
     delete (document as unknown as { exitFullscreen?: unknown }).exitFullscreen;
+  });
+
+  // Regression: previously the EndScreenOverlay was only guarded by !isMcGated.
+  // During an ad of ≥16s the player's getCurrentTime()/getDuration() report the
+  // AD's timeline, so the outro/confetti condition can be satisfied while the
+  // AdIntermissionOverlay is already on screen. The fix adds !isAdGated to the
+  // guard.
+  //
+  // Why this test would FAIL against the old guard: with `{!isMcGated && (` only,
+  // isAdGated=true has no effect on whether EndScreenOverlay mounts — it would
+  // still render, and queryByTestId('end-screen-overlay') would return the element,
+  // causing the `not.toBeInTheDocument()` assertion to fail.
+  it('does not render the end-screen outro while an ad is masked', () => {
+    mockGated = false;
+    mockAdGated = true;
+    render(<FullscreenPlayer {...baseProps} />);
+
+    // The intermission overlay must be present while the ad gate is active.
+    expect(screen.getByTestId('ad-intermission-overlay')).toBeInTheDocument();
+    // The end-screen outro must NOT be mounted — it polls the player clock
+    // which during an ad reports the ad's timeline, not the song's.
+    expect(screen.queryByTestId('end-screen-overlay')).not.toBeInTheDocument();
+
+    mockAdGated = false;
   });
 
   // Regression: when a song ends on mobile and the queue is empty, the

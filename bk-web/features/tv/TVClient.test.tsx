@@ -5,6 +5,7 @@ import { render, screen, act, cleanup } from '@testing-library/react';
 // reference it, and individual tests can mutate it before render.
 const state = vi.hoisted(() => ({
   isMcGated: false as boolean,
+  isAdGated: false as boolean,
   mcText: null as string | null,
   videoPlayerProps: null as Record<string, unknown> | null,
   setIsPlayingMock: vi.fn(),
@@ -60,6 +61,14 @@ vi.mock('@bs-kara/shared/hooks', () => ({
 
 vi.mock('@/hooks/useMCPlayer', () => ({
   useMCPlayer: () => ({ isMcGated: state.isMcGated, mcText: state.mcText }),
+}));
+
+vi.mock('@/hooks/useAdMask', () => ({
+  useAdMask: () => ({ isAdGated: state.isAdGated }),
+}));
+
+vi.mock('@/components/AdIntermissionOverlay', () => ({
+  AdIntermissionOverlay: () => <div data-testid="ad-intermission-overlay" />,
 }));
 
 vi.mock('@/hooks/useAutoRandom', () => ({ useAutoRandom: () => {} }));
@@ -131,7 +140,7 @@ vi.mock('@/components/EndScreenOverlay', () => ({
     onVisibleChange?: (visible: boolean) => void;
   }) => {
     state.outroOnVisibleChange = onVisibleChange ?? null;
-    return null;
+    return <div data-testid="end-screen-overlay" />;
   },
 }));
 
@@ -144,6 +153,7 @@ import TVClient from './TVClient';
 describe('TVClient — MC gate / video autoplay', () => {
   beforeEach(() => {
     state.isMcGated = false;
+    state.isAdGated = false;
     state.mcText = null;
     state.videoPlayerProps = null;
     state.setIsPlayingMock = vi.fn();
@@ -307,6 +317,33 @@ describe('TVClient — MC gate / video autoplay', () => {
       isPlaying: true,
       volume: 80,
     });
+  });
+
+  // Regression: previously the EndScreenOverlay was only guarded by !isMcGated.
+  // During an ad of ≥16s the player's getCurrentTime()/getDuration() report the
+  // AD's timeline, so the outro/confetti condition can be satisfied while the
+  // AdIntermissionOverlay is already on screen — the end-screen fires on top of
+  // the intermission. The fix adds !isAdGated to the guard so the outro is
+  // suppressed for the entire duration of the ad gate.
+  //
+  // Why this test would FAIL against the old guard: with `{!isMcGated && (` only,
+  // isAdGated=true has no effect — EndScreenOverlay mounts regardless, and
+  // queryByTestId('end-screen-overlay') would return the element, causing the
+  // `not.toBeInTheDocument()` assertion to fail.
+  it('does not render the end-screen outro while an ad is masked', async () => {
+    state.isAdGated = true;
+
+    render(<TVClient />);
+    const waiting = await screen.findByRole('button', { name: /waiting room/i });
+    await act(async () => {
+      waiting.click();
+    });
+
+    // The intermission overlay must be visible while the ad gate is active.
+    expect(screen.getByTestId('ad-intermission-overlay')).toBeInTheDocument();
+    // The end-screen outro must NOT be mounted — it polls the player clock
+    // which during an ad reports the ad's timeline, not the song's.
+    expect(screen.queryByTestId('end-screen-overlay')).not.toBeInTheDocument();
   });
 
   // The TV used to be a passive display — only a fullscreen toggle.
