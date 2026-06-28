@@ -34,39 +34,53 @@ sourcing (a separate possible effort, not in this spec).
 
 There is no official "ad" event in the IFrame API, so detection is heuristic.
 
-**Primary signal — duration mismatch.** Each song carries its real `duration`
-(populated by search/BFF metadata on `currentPlaying`). `player.getDuration()`
-reports the timeline of whatever is currently on screen; during a pre-roll or
-mid-roll ad that is the **ad's** duration, not the song's.
+**Constraints discovered during planning (these shaped the signal choice):**
 
-Detection rule (polled at the existing 250 ms cadence used by
-`EndScreenOverlay`):
+- The app never stores a real song duration — the search BFF hardcodes
+  `duration: ''` (`bk-web/app/api/youtube/search/route.ts:98`), and the YouTube
+  *search* endpoint does not return durations. So there is **no known song
+  duration** to compare `getDuration()` against. Duration-mismatch is therefore
+  **not** the primary signal.
+- `getVideoData()` is **not reachable**: playback goes through the
+  `youtube-player` wrapper under `react-youtube`, whose exposed method list does
+  not include `getVideoData()`. Reachable, useful methods are `getVideoUrl()`,
+  `getDuration()`, `getCurrentTime()`, `getPlayerState()`.
 
-- State is `PLAYING`, **and**
-- `player.getDuration() > 0` (metadata loaded; ignore buffering), **and**
-- reported duration differs from the known song duration beyond a tolerance
+**Primary signal — video-id mismatch via `getVideoUrl()`.** We always have the
+requested `videoId` (it is the `currentPlaying.id` prop). `player.getVideoUrl()`
+returns the URL of whatever is currently on screen. Extract the `v=` id from it
+and compare to the requested `videoId`:
+
+- State is `PLAYING` (`getPlayerState() === 1`), **and**
+- `getVideoUrl()` returns a parseable id, **and**
+- that id ≠ the requested `videoId`
   → `isAdLikely = true` → mute + overlay.
-- When reported duration returns to ~the expected song length →
+- When the id matches the requested `videoId` again →
   `isAdLikely = false` → unmute + uncover.
 
-**Honest limitations:** this is a heuristic. It can false-positive (stored
-duration wrong) or miss (ad length ≈ song length). Mitigations below.
+Polled at the existing 250 ms cadence used by `EndScreenOverlay`.
 
-### Phase 0 — validation spike (do first, throwaway)
+**Honest limitations:** this is a heuristic, and whether `getVideoUrl()`
+actually reflects the ad (vs. always returning the requested video's URL) is
+**unverified** — that is what the Phase 0 spike must confirm before the rest is
+built. Mitigations (debounce, safety timeout) below.
 
-Before building the feature, instrument a real ad-bearing video and log over
-time:
+### Phase 0 — validation spike (do FIRST, decision-gating, throwaway)
 
-- `player.getDuration()`
-- `player.getCurrentTime()`
-- `player.getVideoData().video_id`
+This spike is **decision-gating**, not just tuning: if `getVideoUrl()` does not
+change during ads, the primary signal is invalid and we reconvene before
+building Tasks 2+.
 
-Confirm the duration-mismatch signal behaves as expected during pre-roll and
-mid-roll ads, and tune the tolerance / debounce / safety-timeout constants. If
-duration-mismatch proves flaky, evaluate `getVideoData().video_id` mismatch
-(requested videoId vs reported) as a backup or composite signal. The spike is
-instrumentation only — not shipped, no tests — but its findings are recorded
-back into this spec.
+Instrument a real ad-bearing video on the TV and log, over time:
+
+- `player.getVideoUrl()`
+- `player.getPlayerState()`
+- `player.getDuration()` / `player.getCurrentTime()` (secondary observation)
+
+Confirm `getVideoUrl()` reports a different id (or an unparseable/empty URL)
+while an ad plays and snaps back to the requested id when the song starts. Tune
+the debounce and safety-timeout constants. The spike is instrumentation only —
+not shipped, no tests — but its findings are recorded back into this spec.
 
 ## Architecture
 
@@ -74,20 +88,30 @@ Model ad masking on the existing **MC gate** pattern (`useMCPlayer` /
 `isMcGated`), which already does "mute + cover + suppress state echo". This
 composes with the current code instead of fighting it.
 
-### `useAdMask(player, expectedDurationSeconds, isPlaying)` — new hook
+### `detectAd(player, requestedVideoId)` — signal probe (pure-ish)
+
+- Location: `hooks/useAdMask.ts` (co-located, exported for unit tests).
+- Reads `player.getPlayerState()` and `player.getVideoUrl()`, extracts the `v=`
+  id, returns `true` when state is PLAYING and the parsed id ≠
+  `requestedVideoId`. Returns `false` on any unparseable/empty URL or non-PLAYING
+  state (fail-safe — never reports an ad when unsure). Wrapped in try/catch (the
+  YT widget API throws mid-teardown, mirroring `VideoPlayer`).
+- This is the only spike-informed unit; the gate machine below is signal-agnostic.
+
+### `useAdMask(player, requestedVideoId, isPlaying)` — new hook
 
 - Location: `hooks/` (next to `useMCPlayer`).
 - Returns `{ isAdGated }`.
-- Owns: the 250 ms poll, the duration-mismatch rule, edge debounce, and the
-  safety timeout. Clears its interval on unmount / song change.
-- Disarmed (returns `isAdGated: false` always) when `expectedDurationSeconds`
-  is missing/invalid — fail-safe, never shows a false overlay.
+- Owns: the 250 ms poll (calls `detectAd`), edge debounce, and the safety
+  timeout. Clears its interval on unmount / song change.
+- Disarmed (returns `isAdGated: false` always) when `player` is null or
+  `requestedVideoId` is empty — fail-safe, never shows a false overlay.
 
 ### Wrapper integration (`TVClient`, `FullscreenPlayer`)
 
 Both already hold the `ytPlayer` ref (`onPlayerReady={setYtPlayer}`) and know
-`currentPlaying.duration`. They call `useAdMask` and combine its result with the
-existing MC gate:
+`currentPlaying.id`. They call `useAdMask(ytPlayer, currentPlaying.id, isPlaying)`
+and combine its result with the existing MC gate:
 
 - `volume = (isMcGated || isAdGated) ? 0 : volume`
 - `onPlayingChange` suppressed while either gate is active (so the ad does not
@@ -109,31 +133,35 @@ wrapper paints the overlay. No new YouTube API surface, no player fork.
 
 ## Edge cases & safety
 
-- **Unknown/missing duration** → mask disarmed for that song (fail-safe).
-- **Duration parsing** → add `durationToSeconds()` helper in `lib/` if one does
-  not already exist (with unit tests). Tolerance ≈ a few seconds, plus a
-  "min ad gap" so a coincidentally-close song does not trip the gate.
+- **Null player / empty videoId** → mask disarmed (fail-safe).
+- **Unparseable / empty `getVideoUrl()`** → `detectAd` returns `false` (treat as
+  "not an ad"; do not flash the overlay on a transient empty read).
 - **Stuck overlay** → hard safety timeout (≈45 s cap) force-clears the gate
   regardless of readings, so a bad value can never freeze the room.
-- **Flicker** → debounce both arm and disarm edges against brief `getDuration()`
-  blips.
-- **Pre-roll timing** → ignore `getDuration() === 0`; act only on a real,
-  mismatched value.
+- **Flicker** → debounce both arm and disarm edges against brief `getVideoUrl()`
+  blips (require the signal to hold across consecutive polls).
+- **Non-PLAYING states** → `detectAd` returns `false` unless state is PLAYING,
+  so buffering/cued/paused never arm the gate.
 - **MC + ad overlap** → MC precedence (above).
-- **Cleanup** → poll interval cleared on unmount / song change.
+- **Cleanup** → poll interval and safety timeout cleared on unmount / song
+  change.
 
 ## Testing
 
 Per the repo testing policy (Vitest + Testing Library + Playwright):
 
-- **Vitest — `useAdMask`** (mock the player ref):
-  - arms when reported duration ≠ expected while `PLAYING`
-  - disarms when reported duration matches expected
-  - stays disarmed when `expectedDurationSeconds` is unknown
-  - respects tolerance / min-ad-gap
+- **Vitest — `detectAd`** (mock the player handle):
+  - returns `true` when PLAYING and `getVideoUrl()` id ≠ requested id
+  - returns `false` when ids match
+  - returns `false` when not PLAYING
+  - returns `false` on empty/unparseable URL
+  - returns `false` (swallows) when a getter throws
+- **Vitest — `useAdMask`** (mock the player handle + fake timers):
+  - arms after the ad signal holds across the debounce window
+  - disarms after the song signal holds across the debounce window
+  - stays disarmed when `player` is null or `requestedVideoId` is empty
   - respects the safety timeout (force-clear)
-  - debounces arm/disarm edges
-- **Vitest — `durationToSeconds()`** (if added): formats + empty/edge inputs.
+  - clears interval + timeout on unmount
 - **Vitest + Testing Library — `AdIntermissionOverlay`**: renders next-song
   text when gated; renders nothing when not.
 - **Playwright** — real ads are non-deterministic and cannot be reliably
@@ -146,16 +174,14 @@ Per the repo testing policy (Vitest + Testing Library + Playwright):
 ## Files (anticipated)
 
 Source:
-- `bk-web/hooks/useAdMask.ts` — detection + gate logic (new)
+- `bk-web/hooks/useAdMask.ts` — `detectAd` probe + `useAdMask` gate (new)
 - `bk-web/components/AdIntermissionOverlay.tsx` — overlay (new)
-- `bk-web/lib/...durationToSeconds` helper (new, if not present)
 - `bk-web/features/tv/TVClient.tsx` — wire `useAdMask` + overlay
 - `bk-web/features/remote/components/FullscreenPlayer.tsx` — wire `useAdMask` +
   overlay
-- `bk-web/locales/{en,vi}` — intermission strings
+- `bk-shared/src/locales/{en,vi}.json` — intermission strings (`adMask.*`)
 
 Tests:
-- `useAdMask` unit tests
-- `AdIntermissionOverlay` component test
-- `durationToSeconds` unit tests (if added)
-- Playwright spec asserting gate behavior via forced signal
+- `bk-web/hooks/useAdMask.test.ts` — `detectAd` + `useAdMask` unit tests
+- `bk-web/components/AdIntermissionOverlay.test.tsx` — component test
+- `bk-web/e2e/...` Playwright spec asserting gate behavior via forced signal
