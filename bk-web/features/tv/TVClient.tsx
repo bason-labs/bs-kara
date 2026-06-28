@@ -16,6 +16,8 @@ import { MCAnnouncementOverlay } from '@/components/MCAnnouncementOverlay';
 import { EndScreenOverlay } from '@/components/EndScreenOverlay';
 import { IdleQRCode } from '@/components/IdleQRCode';
 import { TransportControls } from '@/components/TransportControls';
+import { useAdMask } from '@/hooks/useAdMask';
+import { AdIntermissionOverlay } from '@/components/AdIntermissionOverlay';
 import { useTVPresence } from '@/features/tv/hooks/useTVPresence';
 import { useEndParty } from '@/features/tv/hooks/useEndParty';
 import { BackdropLayers } from '@/features/tv/components/BackdropLayers';
@@ -113,6 +115,15 @@ export default function TVClient() {
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const [ytPlayer, setYtPlayer] = useState<YouTubePlayer | null>(null);
+
+  // Ad masking: cover + mute the embed while an ad plays. Disarmed during the
+  // MC gate (MC takes precedence) and whenever playback is paused.
+  const { isAdGated } = useAdMask(
+    ytPlayer,
+    roomData.currentPlaying?.id ?? '',
+    !isMcGated && roomData.isPlaying,
+  );
+
   const [isFs, setIsFs] = useState(false);
   const { visible: userActive } = useAutoHide(2500);
   const [outroActive, setOutroActive] = useState(false);
@@ -209,12 +220,12 @@ export default function TVClient() {
                 videoId={roomData.currentPlaying.id}
                 onSongEnd={handleSongEnd}
                 isPlaying={!isMcGated && roomData.isPlaying}
-                volume={isMcGated ? 0 : roomData.volume}
-                // Suppress the iframe → React sync while MC is speaking.
-                // The brief PLAYING/PAUSED ping when autoplay starts and we
-                // immediately pause would otherwise echo back into Firebase
-                // and flip isPlaying to false.
-                onPlayingChange={isMcGated ? undefined : setIsPlaying}
+                volume={isMcGated || isAdGated ? 0 : roomData.volume}
+                // Suppress the iframe → React sync while MC is speaking or an
+                // ad is playing. The brief PLAYING/PAUSED ping when autoplay
+                // starts and we immediately pause would otherwise echo back
+                // into Firebase and flip isPlaying to false.
+                onPlayingChange={isMcGated || isAdGated ? undefined : setIsPlaying}
                 onPlayerReady={setYtPlayer}
               />
               {isMcGated && (
@@ -223,6 +234,12 @@ export default function TVClient() {
                   title={roomData.currentPlaying.title}
                   requesterName={roomData.currentPlaying.requesterName}
                   mcText={mcText ?? undefined}
+                />
+              )}
+              {isAdGated && !isMcGated && (
+                <AdIntermissionOverlay
+                  variant="tv"
+                  nextSongTitle={roomData.queue[0]?.title ?? null}
                 />
               )}
               {!isMcGated && (
