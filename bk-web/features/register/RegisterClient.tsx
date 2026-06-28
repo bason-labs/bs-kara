@@ -10,9 +10,11 @@ import { usePhoneAuth } from './hooks/usePhoneAuth';
 import { PhoneStep } from './components/PhoneStep';
 import { OtpStep } from './components/OtpStep';
 import { NameStep } from './components/NameStep';
+import { StepDots } from './components/StepDots';
 import { registerUser, lookupUserByPhone, ensureHostUid } from '@/lib/registeredUsers';
+import type { RegisterStep } from './types';
 
-type Step = 'phone' | 'otp' | 'name';
+type Step = RegisterStep;
 
 export function RegisterClient() {
   const { t } = useTranslation();
@@ -60,9 +62,6 @@ export function RegisterClient() {
   const sendError = authStep === 'error' && uiStep === 'phone' ? error : null;
   const otpError = authStep === 'error' && uiStep === 'otp' ? error : null;
 
-  const steps: Step[] = ['phone', 'otp', 'name'];
-  const stepIndex = steps.indexOf(uiStep);
-
   return (
     <main className="relative min-h-[100dvh] w-full flex flex-col overflow-hidden bg-bg text-fg">
       <NeonOrbs />
@@ -95,20 +94,7 @@ export function RegisterClient() {
           </div>
 
           {/* Step dots */}
-          <div className="flex items-center gap-2">
-            {steps.map((s, i) => (
-              <div
-                key={s}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i === stepIndex
-                    ? 'w-8 bg-gradient-brand'
-                    : i < stepIndex
-                      ? 'w-2 bg-brand/50'
-                      : 'w-2 bg-border'
-                }`}
-              />
-            ))}
-          </div>
+          <StepDots current={uiStep} />
 
           {/* Card */}
           <div className="w-full rounded-3xl border border-border bg-surface/80 backdrop-blur-md p-7 shadow-glow">
