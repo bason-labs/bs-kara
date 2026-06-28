@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+
 // Minimal player surface useAdMask depends on. The real react-youtube player
 // exposes far more; narrowing keeps the unit-test fakes tiny.
 export interface AdMaskPlayer {
@@ -31,4 +33,59 @@ export function detectAd(player: AdMaskPlayer, requestedVideoId: string): boolea
   } catch {
     return false;
   }
+}
+
+const POLL_MS = 250;
+const DEBOUNCE_POLLS = 2; // signal must hold ~500ms before the gate flips
+const SAFETY_CAP_MS = 45_000; // never stay gated longer than this
+
+// Polls detectAd and exposes a debounced, self-clearing ad gate. Mirrors the
+// EndScreenOverlay 250ms poll cadence. Returns isAdGated=false whenever there
+// is nothing to measure (no player / no song id / not playing) so the overlay
+// can never appear spuriously.
+export function useAdMask(
+  player: AdMaskPlayer | null,
+  requestedVideoId: string,
+  isPlaying: boolean,
+): { isAdGated: boolean } {
+  const [isAdGated, setIsAdGated] = useState(false);
+  const gatedRef = useRef(false);
+  const streakRef = useRef(0); // consecutive polls disagreeing with the gate
+
+  useEffect(() => {
+    gatedRef.current = isAdGated;
+  }, [isAdGated]);
+
+  useEffect(() => {
+    if (!player || !requestedVideoId || !isPlaying) {
+      streakRef.current = 0;
+      // Wrapping in setTimeout avoids calling setState synchronously in the
+      // effect body (react-hooks/set-state-in-effect). Same pattern as
+      // useAutoHide.ts.
+      const id = window.setTimeout(() => setIsAdGated(false), 0);
+      return () => window.clearTimeout(id);
+    }
+    const id = window.setInterval(() => {
+      const adNow = detectAd(player, requestedVideoId);
+      if (adNow === gatedRef.current) {
+        streakRef.current = 0; // agrees with current gate; nothing to flip
+        return;
+      }
+      streakRef.current += 1;
+      if (streakRef.current >= DEBOUNCE_POLLS) {
+        streakRef.current = 0;
+        setIsAdGated(adNow);
+      }
+    }, POLL_MS);
+    return () => window.clearInterval(id);
+  }, [player, requestedVideoId, isPlaying]);
+
+  // Safety cap: a stuck reading can never freeze the room behind the overlay.
+  useEffect(() => {
+    if (!isAdGated) return;
+    const id = window.setTimeout(() => setIsAdGated(false), SAFETY_CAP_MS);
+    return () => window.clearTimeout(id);
+  }, [isAdGated]);
+
+  return { isAdGated };
 }

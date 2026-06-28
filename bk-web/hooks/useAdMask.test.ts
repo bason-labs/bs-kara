@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { detectAd, parseVideoId } from './useAdMask';
+import { act, renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { detectAd, parseVideoId, useAdMask, type AdMaskPlayer } from './useAdMask';
 
 const SONG = 'songId123';
 const playing = (url: string) => ({
@@ -40,5 +41,81 @@ describe('detectAd', () => {
       getVideoUrl: () => '',
     };
     expect(detectAd(thrower, SONG)).toBe(false);
+  });
+});
+
+describe('useAdMask', () => {
+  const SONG = 'songId123';
+  const AD_URL = 'https://www.youtube.com/watch?v=adXYZ';
+  const SONG_URL = `https://www.youtube.com/watch?v=${SONG}`;
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  function makePlayer(initialUrl: string) {
+    const ref = { url: initialUrl };
+    return {
+      player: { getPlayerState: () => 1, getVideoUrl: () => ref.url } as AdMaskPlayer,
+      setUrl: (u: string) => { ref.url = u; },
+    };
+  }
+
+  it('arms only after the ad signal holds across the debounce window', () => {
+    const { player } = makePlayer(AD_URL);
+    const { result } = renderHook(() => useAdMask(player, SONG, true));
+    expect(result.current.isAdGated).toBe(false);
+    act(() => vi.advanceTimersByTime(250)); // 1st ad poll
+    expect(result.current.isAdGated).toBe(false);
+    act(() => vi.advanceTimersByTime(250)); // 2nd ad poll → arm
+    expect(result.current.isAdGated).toBe(true);
+  });
+
+  it('disarms after the song signal holds across the debounce window', () => {
+    const { player, setUrl } = makePlayer(AD_URL);
+    const { result } = renderHook(() => useAdMask(player, SONG, true));
+    act(() => vi.advanceTimersByTime(500)); // arm
+    expect(result.current.isAdGated).toBe(true);
+    act(() => setUrl(SONG_URL));
+    act(() => vi.advanceTimersByTime(250));
+    expect(result.current.isAdGated).toBe(true);
+    act(() => vi.advanceTimersByTime(250)); // 2nd song poll → disarm
+    expect(result.current.isAdGated).toBe(false);
+  });
+
+  it('stays disarmed when player is null', () => {
+    const { result } = renderHook(() => useAdMask(null, SONG, true));
+    act(() => vi.advanceTimersByTime(1000));
+    expect(result.current.isAdGated).toBe(false);
+  });
+
+  it('stays disarmed when requestedVideoId is empty', () => {
+    const { player } = makePlayer(AD_URL);
+    const { result } = renderHook(() => useAdMask(player, '', true));
+    act(() => vi.advanceTimersByTime(1000));
+    expect(result.current.isAdGated).toBe(false);
+  });
+
+  it('stays disarmed when isPlaying is false', () => {
+    const { player } = makePlayer(AD_URL);
+    const { result } = renderHook(() => useAdMask(player, SONG, false));
+    act(() => vi.advanceTimersByTime(1000));
+    expect(result.current.isAdGated).toBe(false);
+  });
+
+  it('force-clears a stuck gate after the safety cap', () => {
+    const { player } = makePlayer(AD_URL); // stays on the ad url forever
+    const { result } = renderHook(() => useAdMask(player, SONG, true));
+    act(() => vi.advanceTimersByTime(500)); // arm
+    expect(result.current.isAdGated).toBe(true);
+    act(() => vi.advanceTimersByTime(45_000)); // safety cap fires
+    expect(result.current.isAdGated).toBe(false);
+  });
+
+  it('clears its interval on unmount', () => {
+    const clear = vi.spyOn(window, 'clearInterval');
+    const { player } = makePlayer(AD_URL);
+    const { unmount } = renderHook(() => useAdMask(player, SONG, true));
+    unmount();
+    expect(clear).toHaveBeenCalled();
   });
 });
