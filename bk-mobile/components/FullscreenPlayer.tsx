@@ -10,7 +10,9 @@ import {
 } from 'react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import YoutubeIframe from 'react-native-youtube-iframe';
+import YoutubeIframe, { PLAYER_STATES, type YoutubeIframeRef } from 'react-native-youtube-iframe';
+import { useAdMask } from '@/hooks/useAdMask';
+import { AdIntermissionOverlay } from '@/components/AdIntermissionOverlay';
 import { X } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useRoomContext } from '@/context/RoomContext';
@@ -32,6 +34,8 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
   const { currentPlaying, isMCEnabled, mcVoice } = roomData;
   const c = useColors();
 
+  const playerRef = useRef<YoutubeIframeRef>(null);
+  const [playerPlaying, setPlayerPlaying] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   // Local play state — starts from the Firebase value but flips to true
@@ -51,6 +55,10 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
     ready: true,
     mcVoice,
   });
+
+  // Ad masking: mute + cover the embed while an ad plays. Disarmed during the
+  // MC gate (MC precedence) and whenever the player is not actively playing.
+  const { isAdGated } = useAdMask(playerRef, videoId, !isMcGated && playerPlaying);
 
   // Keep shouldPlay in sync with Firebase isPlaying (for pause from other controls).
   useEffect(() => {
@@ -102,14 +110,16 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
             sits above it in z-order. When isMcGated drops, play flips true
             on an already-ready player — no fresh-mount timing race. */}
         <YoutubeIframe
+          ref={playerRef}
           videoId={videoId}
           height={playerHeight}
           width={playerWidth}
           play={!isMcGated && shouldPlay}
+          mute={isMcGated || isAdGated}
           webViewStyle={{ backgroundColor: '#000' }}
           forceAndroidAutoplay
-          onReady={() => console.log('[YT] playerReady fired. isMcGated=', isMcGated, 'shouldPlay=', shouldPlay, 'play=', !isMcGated && shouldPlay)}
-          onChangeState={(state: string) => console.log('[YT] stateChange:', state, '| isMcGated=', isMcGated, 'shouldPlay=', shouldPlay)}
+          onReady={() => {}}
+          onChangeState={(state: string) => setPlayerPlaying(state === PLAYER_STATES.PLAYING)}
         />
 
         {isMcGated && currentPlaying && (
@@ -120,6 +130,10 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
             mcText={mcText ?? undefined}
             onClose={onClose}
           />
+        )}
+
+        {isAdGated && !isMcGated && (
+          <AdIntermissionOverlay nextSongTitle={roomData.queue[0]?.title ?? null} />
         )}
 
         {!isMcGated && (
