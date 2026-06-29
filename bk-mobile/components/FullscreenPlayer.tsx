@@ -92,17 +92,24 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
   // so the mute prop stops asserting mute and the ad gate regains control.
   useEffect(() => {
     if (audioUnlocked) return;
+    let cancelled = false;
     const id = setInterval(() => {
       void (async () => {
         try {
           const muted = await playerRef.current?.isMuted();
-          if (muted === false) setAudioUnlocked(true);
+          // Guard against a late isMuted() resolving after unmount / unlock,
+          // which would setState on an unmounted component (matches the
+          // cancelled-flag pattern in useAdMask / useMCPlayer).
+          if (!cancelled && muted === false) setAudioUnlocked(true);
         } catch {
           // player mid-teardown; ignore and retry next tick
         }
       })();
     }, 500);
-    return () => clearInterval(id);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [audioUnlocked]);
 
   useEffect(() => {
