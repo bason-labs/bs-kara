@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { View, Text, SafeAreaView } from 'react-native';
-import YoutubeIframe from 'react-native-youtube-iframe';
 import { useTranslation } from 'react-i18next';
 import { useRoomContext } from '@/context/RoomContext';
 import { TopBar } from '@/components/TopBar';
@@ -9,6 +8,7 @@ import { RemoteControls } from '@/components/RemoteControls';
 import { FullscreenPlayer } from '@/components/FullscreenPlayer';
 import { EmojiPad } from '@/components/EmojiPad';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { BackgroundAudioDriver } from '@/components/BackgroundAudioDriver';
 import { useColors } from '@/hooks/useColors';
 
 export default function PlayerScreen() {
@@ -36,7 +36,7 @@ export default function PlayerScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       {/* Background audio driver — suppressed while fullscreen is open (FullscreenPlayer has its own iframe + MC gate). */}
       {!isTvActive && !fullscreenOpen && (
-        <YoutubeIframe videoId={currentPlaying.id} height={0} width={0} play={isPlaying} />
+        <BackgroundAudioDriver videoId={currentPlaying.id} isPlaying={isPlaying} />
       )}
 
       <TopBar roomCode={roomCode} />
