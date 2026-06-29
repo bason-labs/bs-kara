@@ -6,6 +6,7 @@ import {
   Text,
   SafeAreaView,
   AccessibilityInfo,
+  Platform,
   useWindowDimensions,
 } from 'react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -36,6 +37,12 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
 
   const playerRef = useRef<YoutubeIframeRef>(null);
   const [playerPlaying, setPlayerPlaying] = useState(false);
+  // Android System WebView blocks UNMUTED autoplay without an in-document user
+  // gesture (Chromium + YouTube IFrame policy), so on Android we start the song
+  // playing MUTED — which is allowed — and unmute once the user taps the player
+  // (a real in-frame gesture; YouTube's native tap-to-unmute). iOS (WKWebView)
+  // permits programmatic unmuted autoplay, so it starts unlocked.
+  const [audioUnlocked, setAudioUnlocked] = useState(Platform.OS !== 'android');
   const [showHint, setShowHint] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   // Local play state — starts from the Firebase value but flips to true
@@ -62,22 +69,41 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
 
   // Keep shouldPlay in sync with Firebase isPlaying (for pause from other controls).
   useEffect(() => {
-    console.log('[FS] isPlaying prop changed:', isPlaying, '→ setShouldPlay');
     setShouldPlay(isPlaying);
   }, [isPlaying]);
 
   // Kick-play: when MC gate drops (true → false), flip shouldPlay immediately
-  // and also write to Firebase so other devices stay in sync.
+  // and also write to Firebase so other devices stay in sync. On Android the
+  // resume is muted (audioUnlocked is false) so the WebView autoplay policy
+  // allows it; the video rolls instead of freezing on the play button.
   const prevMcGatedRef = useRef(false);
   useEffect(() => {
-    console.log('[FS] isMcGated effect: prev=', prevMcGatedRef.current, 'now=', isMcGated, 'shouldPlay=', shouldPlay);
     if (prevMcGatedRef.current && !isMcGated) {
-      console.log('[FS] MC gate dropped → setShouldPlay(true), setIsPlaying(true)');
       setShouldPlay(true);
       void setIsPlaying(true);
     }
     prevMcGatedRef.current = isMcGated;
   }, [isMcGated, setIsPlaying]); // shouldPlay intentionally omitted — read at fire time via closure
+
+  // Android only: the song plays muted until the user taps the player to unmute
+  // (YouTube's native tap-to-unmute — the one gesture the autoplay policy
+  // accepts). We can't observe that tap directly (the library owns onMessage),
+  // so poll isMuted() and, once the player reports unmuted, flip audioUnlocked
+  // so the mute prop stops asserting mute and the ad gate regains control.
+  useEffect(() => {
+    if (audioUnlocked) return;
+    const id = setInterval(() => {
+      void (async () => {
+        try {
+          const muted = await playerRef.current?.isMuted();
+          if (muted === false) setAudioUnlocked(true);
+        } catch {
+          // player mid-teardown; ignore and retry next tick
+        }
+      })();
+    }, 500);
+    return () => clearInterval(id);
+  }, [audioUnlocked]);
 
   useEffect(() => {
     let mounted = true;
@@ -115,7 +141,7 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
           height={playerHeight}
           width={playerWidth}
           play={!isMcGated && shouldPlay}
-          mute={isMcGated || isAdGated}
+          mute={isMcGated || isAdGated || !audioUnlocked}
           webViewStyle={{ backgroundColor: '#000' }}
           forceAndroidAutoplay
           onReady={() => {}}
@@ -134,6 +160,28 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
 
         {isAdGated && !isMcGated && (
           <AdIntermissionOverlay nextSongTitle={roomData.queue[0]?.title ?? null} />
+        )}
+
+        {/* Android plays muted until the user taps the player to unmute. This
+            hint must NOT intercept that tap, so it is pointer-events: none and
+            sits at the top, leaving the player surface tappable. */}
+        {!audioUnlocked && !isMcGated && !isAdGated && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 16,
+              alignSelf: 'center',
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              borderRadius: 999,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
+              {t('player.tapForSound')}
+            </Text>
+          </View>
         )}
 
         {!isMcGated && (
