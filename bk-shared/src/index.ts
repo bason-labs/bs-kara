@@ -28,6 +28,9 @@ export {
 } from './lib/random/picker';
 export * from './lib/random/songPools';
 
+// YouTube utilities
+export { parseVideoId } from './lib/youtube/adDetection';
+
 // Types
 export type {
   YouTubeVideo,

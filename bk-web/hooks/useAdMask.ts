@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { parseVideoId } from '@bs-kara/shared';
+
+export { parseVideoId };
 
 // Minimal player surface useAdMask depends on. The real react-youtube player
 // exposes far more; narrowing keeps the unit-test fakes tiny.
@@ -9,14 +12,6 @@ export interface AdMaskPlayer {
 
 // YT.PlayerState.PLAYING === 1.
 const YT_PLAYING = 1;
-
-// Pull the v= id out of a watch URL. Returns null when the URL is empty or has
-// no parseable id.
-export function parseVideoId(url: string): string | null {
-  if (!url) return null;
-  const match = url.match(/[?&]v=([^&]+)/);
-  return match ? match[1] : null;
-}
 
 // True when an ad is *likely* on screen: the player is PLAYING but the id in
 // getVideoUrl() differs from the song we asked for. Fail-safe: any throw,
