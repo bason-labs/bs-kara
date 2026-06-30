@@ -150,7 +150,8 @@
     "unmute": "Bật tiếng",
     "idleHint": "Chưa có bài nào đang phát — vào Tìm bài để chọn.",
     "idleFullscreenHint": "Đang chờ bài tiếp theo — chọn bài để phát",
-    "rotateHint": "↻ Xoay điện thoại"
+    "rotateHint": "↻ Xoay điện thoại",
+    "tapForSound": "🔊 Chạm vào video để mở tiếng"
   },
   "toast": {
     "addedToQueue": "Đã thêm vào hàng chờ",
@@ -225,6 +226,11 @@
   "aiMc": {
     "announcing": "MC đang giới thiệu",
     "preparing": "MC đang chuẩn bị lời giới thiệu…"
+  },
+  "adMask": {
+    "title": "Nghỉ chút xíu",
+    "subtitle": "Bài hát sẽ bắt đầu ngay…",
+    "nextUp": "Tiếp theo"
   },
   "requester": {
     "title": "Ai sẽ hát bài này?",

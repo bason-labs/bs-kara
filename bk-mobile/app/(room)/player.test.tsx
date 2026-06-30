@@ -32,7 +32,8 @@ jest.mock('@/hooks/useMCPlayer', () => ({
   useMCPlayer: () => ({ isMcGated: false, mcText: null }),
 }));
 
-jest.mock('react-native-youtube-iframe', () => 'YoutubeIframe');
+jest.mock('react-native-youtube-iframe', () => ({ __esModule: true, default: 'YoutubeIframe', PLAYER_STATES: { PLAYING: 'playing' } }));
+jest.mock('@/components/BackgroundAudioDriver', () => ({ BackgroundAudioDriver: () => null }));
 jest.mock('@/components/FullscreenPlayer', () => ({ FullscreenPlayer: () => null }));
 jest.mock('@/components/MCAnnouncementOverlay', () => ({ MCAnnouncementOverlay: () => null }));
 jest.mock('@/components/TopBar', () => ({ TopBar: () => null }));

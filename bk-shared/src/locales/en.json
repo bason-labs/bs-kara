@@ -150,7 +150,8 @@
     "unmute": "Unmute",
     "idleHint": "Nothing playing yet — pick a song from Search and tap add.",
     "idleFullscreenHint": "Waiting for next song — pick one to play",
-    "rotateHint": "↻ Rotate your phone"
+    "rotateHint": "↻ Rotate your phone",
+    "tapForSound": "🔊 Tap the video for sound"
   },
   "toast": {
     "addedToQueue": "Added to queue",
@@ -225,6 +226,11 @@
   "aiMc": {
     "announcing": "AI MC is talking",
     "preparing": "MC is warming up…"
+  },
+  "adMask": {
+    "title": "Quick break",
+    "subtitle": "The song starts in a moment…",
+    "nextUp": "Up next"
   },
   "requester": {
     "title": "Who's singing this?",
