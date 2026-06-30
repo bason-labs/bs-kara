@@ -140,6 +140,7 @@ export default function TVClient() {
     isInitialized &&
     !!roomData.currentPlaying &&
     !isMcGated &&
+    !isAdGated &&
     !outroActive &&
     (!roomData.isPlaying || userActive);
 

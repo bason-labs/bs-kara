@@ -217,6 +217,34 @@ describe('FullscreenPlayer', () => {
     mockAdGated = false;
   });
 
+  // Regression: showCenterControls previously lacked !isAdGated, so the
+  // prev/play/next buttons were visible while the AdIntermissionOverlay
+  // covered the player. The fix adds !isAdGated to the guard so the
+  // center transport is not rendered during an ad.
+  //
+  // Why this test would FAIL against the pre-fix code: without !isAdGated
+  // in showCenterControls, the buttons would still mount when isAdGated is
+  // true, so queryByRole('button', { name: 'player.pause' }) would return
+  // an element, causing the not.toBeInTheDocument() assertion to fail.
+  it('hides center transport controls (not rendered) while an ad is gated', () => {
+    mockGated = false;
+    mockAdGated = true;
+    render(<FullscreenPlayer {...baseProps} />);
+
+    // The ad intermission overlay must be present.
+    expect(screen.getByTestId('ad-intermission-overlay')).toBeInTheDocument();
+    // The play/pause button is the center transport sentinel — it must NOT
+    // be in the DOM while the ad gate is active.
+    expect(
+      screen.queryByRole('button', { name: 'player.pause' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'controls.previousLabel' }),
+    ).not.toBeInTheDocument();
+
+    mockAdGated = false;
+  });
+
   // Regression: when a song ends on mobile and the queue is empty, the
   // FullscreenPlayer must NOT unmount (which would drop the user back to
   // the RemoteClient). It must stay mounted with an idle placeholder so

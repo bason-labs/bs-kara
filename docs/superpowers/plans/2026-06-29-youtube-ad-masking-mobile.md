@@ -689,7 +689,7 @@ Run: `pnpm -C bk-web run typecheck` → PASS
 
 Output the CLAUDE.md report (source files / test files / why each test) and:
 
-```
+```text
 ✅ bk-mobile typecheck / lint / jest (N tests)
 ✅ bk-shared vitest
 ✅ bk-web useAdMask + typecheck (regression)

@@ -760,7 +760,7 @@ Expected: PASS — existing `/tv` and `/remote` flows unaffected.
 Output the required CLAUDE.md report (Files changed source/tests + "Why each test
 exists") and the verification summary:
 
-```
+```text
 ✅ typecheck
 ✅ lint
 ✅ vitest (N tests)

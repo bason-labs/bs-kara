@@ -295,8 +295,10 @@ export function FullscreenPlayer({
   // Hide entirely while the celebratory outro is up so the headline isn't
   // competing with playback chrome — the outro layer above blocks taps to
   // the iframe, so the user can't accidentally pause through it either.
+  // Also hidden during an ad: pausing via these controls would flip isPlaying
+  // false, disarm useAdMask, and reveal the ad frame behind the overlay.
   const showCenterControls =
-    !!track && !isMcGated && !outroActive && (!isPlaying || chromeVisible);
+    !!track && !isMcGated && !isAdGated && !outroActive && (!isPlaying || chromeVisible);
 
   return (
     <div

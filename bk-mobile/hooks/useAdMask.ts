@@ -52,25 +52,29 @@ export function useAdMask(
       streakRef.current = 0;
       return;
     }
+    // Poll SEQUENTIALLY: reschedule only after each awaited probe resolves, so
+    // a slow getVideoUrl() bridge call can never overlap the next one and let
+    // stale out-of-order results flip the gate late.
     let cancelled = false;
-    const id = setInterval(() => {
-      void (async () => {
-        const adNow = await detectAdNative(playerRef.current, requestedVideoId, isPlaying);
-        if (cancelled) return;
-        if (adNow === gatedRef.current) {
-          streakRef.current = 0;
-          return;
-        }
+    let id: ReturnType<typeof setTimeout> | null = null;
+    const poll = async () => {
+      const adNow = await detectAdNative(playerRef.current, requestedVideoId, isPlaying);
+      if (cancelled) return;
+      if (adNow === gatedRef.current) {
+        streakRef.current = 0;
+      } else {
         streakRef.current += 1;
         if (streakRef.current >= DEBOUNCE_POLLS) {
           streakRef.current = 0;
           setIsAdGated(adNow);
         }
-      })();
-    }, POLL_MS);
+      }
+      id = setTimeout(poll, POLL_MS);
+    };
+    id = setTimeout(poll, POLL_MS);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      if (id) clearTimeout(id);
     };
   }, [playerRef, requestedVideoId, isPlaying]);
 

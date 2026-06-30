@@ -443,6 +443,27 @@ describe('TVClient — MC gate / video autoplay', () => {
       ).toBeDisabled();
     });
 
+    // Regression: showTransportControls previously lacked !isAdGated, so
+    // the prev/play/next cluster stayed visible while an ad overlay covered
+    // the player. With the fix, isAdGated=true collapses the transport div
+    // to opacity-0 / pointer-events-none — the buttons remain in the DOM
+    // but the wrapper is invisible and non-interactive.
+    //
+    // Why this test would FAIL against the pre-fix code: without !isAdGated
+    // in showTransportControls, the wrapper would have className containing
+    // 'opacity-100', not 'opacity-0', causing the toContain('opacity-0')
+    // assertion to fail.
+    it('hides transport controls (opacity-0) while an ad is gated', async () => {
+      state.isAdGated = true;
+      await renderActivated();
+      const playButton = screen.getByRole('button', {
+        name: 'controls.pauseLabel',
+      });
+      const wrapper = playButton.parentElement!;
+      expect(wrapper.className).toContain('opacity-0');
+      expect(wrapper.className).not.toContain('opacity-100');
+    });
+
     // Regression: the outro previously kept the transport controls mounted
     // and only faded them on a hover/tap timer, so the prev/play/next
     // cluster sat on top of the celebratory headline. The fix is to fade

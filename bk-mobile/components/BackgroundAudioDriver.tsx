@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import YoutubeIframe, { PLAYER_STATES, type YoutubeIframeRef } from 'react-native-youtube-iframe';
 import { useAdMask } from '@/hooks/useAdMask';
 
@@ -13,6 +13,12 @@ interface BackgroundAudioDriverProps {
 export function BackgroundAudioDriver({ videoId, isPlaying }: BackgroundAudioDriverProps): React.ReactElement {
   const playerRef = useRef<YoutubeIframeRef>(null);
   const [playerPlaying, setPlayerPlaying] = useState(false);
+  // Reset the playing flag on track change so a stale PLAYING from the previous
+  // song can't make the ad probe (id-mismatch based) treat a normal song change
+  // as an ad and briefly mute the new track.
+  useEffect(() => {
+    setPlayerPlaying(false);
+  }, [videoId]);
   const { isAdGated } = useAdMask(playerRef, videoId, isPlaying && playerPlaying);
 
   return (

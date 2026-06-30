@@ -68,10 +68,48 @@ describe('useAdMask', () => {
     expect(result.current.isAdGated).toBe(false);
   });
 
+  // Regression: the disarm path of the sequential-poll loop. Once armed,
+  // the gate must clear when the player's reported URL returns to the song
+  // id (i.e., the ad has ended and the song is back). The pre-fix
+  // overlapping-setInterval code could leave the gate stuck if a stale
+  // interval resolution arrived after the URL had already switched back.
+  //
+  // Why this test would FAIL against the pre-fix code: the old setInterval
+  // loop could overlap resolutions, so consecutive ad=false readings might
+  // never accumulate two consecutive streak increments inside the same
+  // sequential chain — the gate could remain true indefinitely. With the
+  // sequential setTimeout fix, each poll completes before the next fires,
+  // so two ad=false readings in a row reliably flip the gate to false.
+  it('disarms after the song signal returns (ad ends)', async () => {
+    // Mutable ref that tests can redirect.
+    let currentUrl = AD_URL;
+    const mutableRef: { current: AdMaskNativeRef } = {
+      current: { getVideoUrl: () => Promise.resolve(currentUrl) },
+    };
+
+    const { result } = renderHook(() => useAdMask(mutableRef, SONG, true));
+
+    // Arm: advance two poll windows (2 × 250 ms) so the debounce fires.
+    await act(async () => { jest.advanceTimersByTime(250); });
+    await act(async () => { jest.advanceTimersByTime(250); });
+    expect(result.current.isAdGated).toBe(true);
+
+    // Simulate the ad ending: player now reports the song URL.
+    currentUrl = SONG_URL;
+
+    // Disarm: advance two more poll windows.
+    await act(async () => { jest.advanceTimersByTime(250); });
+    await act(async () => { jest.advanceTimersByTime(250); });
+    expect(result.current.isAdGated).toBe(false);
+  });
+
   it('force-clears a stuck gate after the safety cap', async () => {
     const ref = refTo(AD_URL);
     const { result } = renderHook(() => useAdMask(ref, SONG, true));
-    await act(async () => { jest.advanceTimersByTime(500); });
+    // Sequential poll pumps one probe per timer-advance, so arming across the
+    // debounce window takes two steps.
+    await act(async () => { jest.advanceTimersByTime(250); });
+    await act(async () => { jest.advanceTimersByTime(250); });
     expect(result.current.isAdGated).toBe(true);
     await act(async () => { jest.advanceTimersByTime(45_000); });
     expect(result.current.isAdGated).toBe(false);

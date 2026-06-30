@@ -63,9 +63,18 @@ export function FullscreenPlayer({ videoId, isPlaying, onClose }: FullscreenPlay
     mcVoice,
   });
 
+  // Clear the local playing flag the instant the track changes, so the ad
+  // probe (which treats a current/requested id mismatch as an ad) does not arm
+  // on the new videoId while the iframe still reports the previous song —
+  // otherwise a normal queue advance briefly looks like an ad.
+  useEffect(() => {
+    setPlayerPlaying(false);
+  }, [videoId]);
+
   // Ad masking: mute + cover the embed while an ad plays. Disarmed during the
-  // MC gate (MC precedence) and whenever the player is not actively playing.
-  const { isAdGated } = useAdMask(playerRef, videoId, !isMcGated && playerPlaying);
+  // MC gate (MC precedence), while paused (shouldPlay), and until the new track
+  // actually reaches PLAYING (playerPlaying).
+  const { isAdGated } = useAdMask(playerRef, videoId, !isMcGated && shouldPlay && playerPlaying);
 
   // Keep shouldPlay in sync with Firebase isPlaying (for pause from other controls).
   useEffect(() => {

@@ -8,11 +8,11 @@ jest.mock('react-i18next', () => ({
 describe('AdIntermissionOverlay', () => {
   it('renders the intermission title', () => {
     const { getByText } = render(<AdIntermissionOverlay />);
-    expect(getByText('adMask.title')).toBeTruthy();
+    expect(getByText('adMask.title')).not.toBeNull();
   });
   it('shows the next song title when provided', () => {
     const { getByText } = render(<AdIntermissionOverlay nextSongTitle="Hotel California" />);
-    expect(getByText('Hotel California')).toBeTruthy();
+    expect(getByText('Hotel California')).not.toBeNull();
   });
   it('omits the next-up row when no next song is given', () => {
     const { queryByText } = render(<AdIntermissionOverlay nextSongTitle={null} />);
