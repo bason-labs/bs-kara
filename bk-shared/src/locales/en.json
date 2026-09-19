@@ -1,4 +1,23 @@
 {
+  "voiceChat": {
+    "modeLabel": "Search mode", "manual": "Manual", "voice": "Voice Chat",
+    "conversation": "Your conversation", "welcome": "What would you like to sing?",
+    "currentSong": "Current song", "queued": "Added to the queue", "started": "Selected as the current song",
+    "start": "Start speaking", "stop": "Stop listening", "replay": "Replay reply", "retry": "Check and retry",
+    "status": { "idle": "Microphone off", "permission": "Opening microphone", "listening": "Listening...", "transcribing": "Transcribing", "thinking": "Working on your request", "speaking": "Kara is replying" },
+    "errors": {
+      "permission": "Microphone access is unavailable. Allow it in your browser and try again.",
+      "unsupported": "This browser cannot record audio. Please use Manual mode.",
+      "noSpeech": "I couldn't hear that. Please try again.", "recording": "Couldn't record audio. Please try again.",
+      "speech": "Couldn't play the reply. You can still read it above.",
+      "interrupted": "Stopped. Check the previous request before sending another.",
+      "staleSelection": "These results have expired. Please search again.",
+      "session": "The conversation expired or the room is no longer available.",
+      "rateLimit": "Too many requests. Please wait a moment and try again.",
+      "configuration": "Voice Chat is unavailable. Please use Manual mode.",
+      "network": "Couldn't complete the request. Check your connection and try again."
+    }
+  },
   "home": {
     "title": "BS Kara Remote",
     "subtitle": "Enter the room code shown on the TV",
@@ -211,6 +230,8 @@
     "dragDropHint": "Let users drag songs to change the queue order.",
     "requesterPromptLabel": "Ask for singer name",
     "requesterPromptHint": "When off, songs go straight into the queue without asking who's singing.",
+    "voiceChatLabel": "Voice Chat mode",
+    "voiceChatHint": "Show Voice Chat beside Manual search for everyone in this room.",
     "guestCanRemoveLabel": "Allow guests to remove songs",
     "guestCanRemoveHint": "Guests in the room can remove songs from the queue.",
     "aiMcLabel": "AI MC intro",

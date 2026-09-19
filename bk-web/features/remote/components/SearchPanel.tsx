@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
@@ -211,6 +212,8 @@ const SearchResults = memo(function SearchResults({
 });
 
 interface SearchPanelProps {
+  modeSwitch?: ReactNode;
+  active?: boolean;
   onAdd: (video: YouTubeVideo) => void;
   queuedMap?: Map<string, string>;
   queuePositionMap?: Map<string, number>;
@@ -222,6 +225,8 @@ interface SearchPanelProps {
 }
 
 export function SearchPanel({
+  modeSwitch,
+  active = true,
   onAdd,
   queuedMap,
   queuePositionMap,
@@ -258,13 +263,17 @@ export function SearchPanel({
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [searchBarHeight, setSearchBarHeight] = useState(0);
 
-  // Measure the search-bar wrapper once it mounts so the offset can clamp
-  // exactly to its height. useLayoutEffect (not useEffect) avoids a
-  // first-frame flash where the bar is laid out at full height before the
-  // scroll-coupled transform kicks in.
+  // Hidden manual mode measures as zero. Remeasure before paint on return,
+  // and observe responsive changes so the results never sit under the bar.
   useLayoutEffect(() => {
-    if (searchBarRef.current) setSearchBarHeight(searchBarRef.current.offsetHeight);
-  }, []);
+    const bar = searchBarRef.current;
+    if (!bar || !active) return;
+    const measure = () => { if (bar.offsetHeight) setSearchBarHeight(bar.offsetHeight); };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(bar);
+    return () => observer.disconnect();
+  }, [active]);
 
   const { offset: chromeOffset, snap: chromeSnap } = useScrollOffset(
     resultsScrollRef,
@@ -353,19 +362,6 @@ export function SearchPanel({
     [activeChips, query, runSearch],
   );
 
-  const handleClearChips = useCallback(() => {
-    const empty = new Set<FilterChipId>();
-    setActiveChips(empty);
-    const trimmed = query.trim();
-    if (trimmed) {
-      runSearch(query, empty);
-    } else {
-      setSearched(false);
-      setResults([]);
-      setSearchError(null);
-    }
-  }, [query, runSearch]);
-
   const handleVoiceUnsupported = useCallback(() => {
     alert(t('search.voiceNotSupported'));
   }, [t]);
@@ -379,6 +375,10 @@ export function SearchPanel({
     onFinal: handleVoiceFinal,
     onUnsupported: handleVoiceUnsupported,
   });
+
+  useEffect(() => {
+    if (!active) closeVoicePopup();
+  }, [active, closeVoicePopup]);
 
   // Close suggestion dropdown when clicking outside the search bar.
   useEffect(() => {
@@ -468,6 +468,7 @@ export function SearchPanel({
             : ''
         }`}
       >
+        {modeSwitch}
         <div ref={wrapperRef} className="relative px-4 pt-3 pb-3">
           <div className="flex items-center gap-2">
             {/* Back button — always in the DOM so the pill width is stable

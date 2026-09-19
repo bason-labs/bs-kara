@@ -5,6 +5,9 @@ import userEvent from '@testing-library/user-event';
 
 // Firebase must be mocked before any module that transitively imports it.
 vi.mock('@/lib/firebase', () => ({ db: {}, auth: {} }));
+vi.mock('@/features/voice/client', () => ({
+  createVoiceSession: vi.fn(), sendVoiceTurn: vi.fn(), transcribeVoice: vi.fn(),
+}));
 vi.mock('firebase/database', () => ({
   ref: vi.fn(),
   onValue: vi.fn(),

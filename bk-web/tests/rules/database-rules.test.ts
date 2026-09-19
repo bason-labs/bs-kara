@@ -16,7 +16,7 @@ import { ref, set, get, push } from 'firebase/database';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-const RULES_PATH = path.resolve(__dirname, '../../database.rules.json');
+const RULES_PATH = path.resolve(__dirname, '../../../database.rules.json');
 const SNAPSHOT_PATH = path.resolve(
   __dirname,
   './fixtures/production-snapshot.json',
@@ -85,6 +85,41 @@ function renameRoomCodes(
 }
 
 describe('database.rules.json', () => {
+  describe('voice chat setting', () => {
+    it('accepts booleans and rejects other values', async () => {
+      const db = userDb();
+      await assertSucceeds(set(ref(db, 'rooms/1234/voiceChatEnabled'), true));
+      await assertSucceeds(set(ref(db, 'rooms/1234/voiceChatEnabled'), false));
+      await assertFails(set(ref(db, 'rooms/1234/voiceChatEnabled'), 'true'));
+    });
+  });
+
+  describe('voice isolation', () => {
+    it('denies guest and authenticated client access to private voice sessions', async () => {
+      await testEnv.withSecurityRulesDisabled(async ctx => {
+        await set(ref(ctx.database(), 'voiceSessions/sessions/session1'), { tokenHash: 'private', expiresAt: 100 });
+      });
+      for (const db of [userDb(), testEnv.authenticatedContext('host').database()]) {
+        await assertFails(get(ref(db, 'voiceSessions/sessions/session1')));
+        await assertFails(set(ref(db, 'voiceSessions/sessions/session1'), null));
+      }
+    });
+
+    it('protects the receipt ledger from deletion and replacement while allowing ordinary room updates', async () => {
+      const ledger = JSON.stringify({ request1: { status: 'queued', expiresAt: 100 } });
+      await testEnv.withSecurityRulesDisabled(async ctx => {
+        await set(ref(ctx.database(), 'rooms/1234'), { isPlaying: true, voiceReceipts: ledger });
+      });
+      const db = userDb();
+      await assertFails(set(ref(db, 'rooms/1234/voiceReceipts'), null));
+      await assertFails(set(ref(db, 'rooms/1234/voiceReceipts'), '{}'));
+      await assertFails(set(ref(db, 'rooms/1234'), null));
+      await assertSucceeds(set(ref(db, 'rooms/1234/isPlaying'), false));
+      await assertSucceeds(set(ref(db, 'rooms/1234/lastEndedAt'), 123));
+      await assertSucceeds(set(ref(db, 'rooms/1234/queue/new'), { id: 'a', title: 't', channel: 'c', thumbnail: '', duration: '' }));
+      expect((await get(ref(db, 'rooms/1234/voiceReceipts'))).val()).toBe(ledger);
+    });
+  });
   // ─── Smoke test ────────────────────────────────────────────────────────
   // Replays a sanitized production snapshot against the new rules. Every
   // legitimate field/value combination from real rooms must validate.

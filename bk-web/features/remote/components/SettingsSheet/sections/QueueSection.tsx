@@ -1,6 +1,6 @@
 'use client';
 
-import { GripVertical, Mic } from 'lucide-react';
+import { AudioLines, GripVertical, Mic } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SectionHeader } from '../primitives/SectionHeader';
 import { ToggleRow } from '../primitives/ToggleRow';
@@ -10,6 +10,8 @@ interface QueueSectionProps {
   onDragDropToggle: (enabled: boolean) => void;
   requesterPromptEnabled: boolean;
   onRequesterPromptToggle: (enabled: boolean) => void;
+  voiceChatEnabled: boolean;
+  onVoiceChatToggle: (enabled: boolean) => void;
   guestCanRemove: boolean;
   onGuestCanRemoveToggle: (enabled: boolean) => void;
 }
@@ -19,6 +21,8 @@ export function QueueSection({
   onDragDropToggle,
   requesterPromptEnabled,
   onRequesterPromptToggle,
+  voiceChatEnabled,
+  onVoiceChatToggle,
   guestCanRemove,
   onGuestCanRemoveToggle,
 }: QueueSectionProps) {
@@ -42,6 +46,13 @@ export function QueueSection({
         hint={t('settings.requesterPromptHint')}
         enabled={requesterPromptEnabled}
         onToggle={onRequesterPromptToggle}
+      />
+      <ToggleRow
+        Icon={AudioLines}
+        label={t('settings.voiceChatLabel')}
+        hint={t('settings.voiceChatHint')}
+        enabled={voiceChatEnabled}
+        onToggle={onVoiceChatToggle}
       />
       <ToggleRow
         label={t('settings.guestCanRemoveLabel')}

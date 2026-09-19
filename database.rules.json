@@ -12,7 +12,11 @@
     "rooms": {
       "$roomId": {
         ".read": "$roomId.matches(/^[0-9]{4}$/)",
-        ".write": "$roomId.matches(/^[0-9]{4}$/)",
+        ".write": "$roomId.matches(/^[0-9]{4}$/) && newData.child('voiceReceipts').val() === data.child('voiceReceipts').val()",
+
+        "voiceReceipts": {
+          ".validate": "newData.isString() && newData.val() === data.val()"
+        },
 
         "queue": {
           "$queueId": {
@@ -68,6 +72,7 @@
         },
         "dragDropEnabled":        { ".validate": "newData.isBoolean()" },
         "requesterPromptEnabled": { ".validate": "newData.isBoolean()" },
+        "voiceChatEnabled":       { ".validate": "newData.isBoolean()" },
         "isMCEnabled":            { ".validate": "newData.isBoolean()" },
         "isAImcEnabled":          { ".validate": "newData.isBoolean()" },
         "mcVoice":                { ".validate": "newData.isString() && newData.val().length <= 64" },
@@ -90,6 +95,12 @@
       }
     },
 
+    "voiceSessions": {
+      ".read": false,
+      ".write": false,
+      "sessions": { ".indexOn": ["expiresAt"] },
+      "rateLimits": { ".indexOn": ["expiresAt"] }
+    },
     "$other": { ".validate": false }
   }
 }

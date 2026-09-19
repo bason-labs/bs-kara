@@ -50,6 +50,7 @@ export function useRoomSubscribe(roomId: string | null) {
         playedHistory?: Record<string, string> | string[];
         dragDropEnabled?: boolean;
         requesterPromptEnabled?: boolean;
+        voiceChatEnabled?: boolean;
         isMCEnabled?: boolean;
         mcVoice?: string;
         // Legacy field — read for backwards-compat with rooms created
@@ -111,6 +112,7 @@ export function useRoomSubscribe(roomId: string | null) {
         // Same default-on pattern: rooms that predate this setting still
         // get the singer-name prompt unless explicitly turned off.
         requesterPromptEnabled: data.requesterPromptEnabled !== false,
+        voiceChatEnabled: data.voiceChatEnabled === true,
         // Default on for feature discoverability — hosts hear the MC the
         // first time around and can disable it from settings if they don't
         // want it. Read the new field, falling back to the legacy name so

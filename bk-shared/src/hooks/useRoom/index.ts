@@ -38,6 +38,7 @@ export function useRoom(roomId: string | null) {
     addToPlayedHistory,
     setDragDropEnabled: settings.setDragDropEnabled,
     setRequesterPromptEnabled: settings.setRequesterPromptEnabled,
+    setVoiceChatEnabled: settings.setVoiceChatEnabled,
     setMCEnabled: settings.setMCEnabled,
     setAiScoringEnabled: settings.setAiScoringEnabled,
     setMcVoice: settings.setMcVoice,

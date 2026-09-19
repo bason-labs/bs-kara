@@ -1,4 +1,23 @@
 {
+  "voiceChat": {
+    "modeLabel": "Chế độ tìm bài", "manual": "Thủ công", "voice": "Voice Chat",
+    "conversation": "Hội thoại của bạn", "welcome": "Hôm nay bạn muốn hát bài gì?",
+    "currentSong": "Bài hát hiện tại", "queued": "Đã thêm vào hàng chờ", "started": "Đã chuyển sang bài hát này",
+    "start": "Bắt đầu nói", "stop": "Dừng lắng nghe", "replay": "Nghe lại câu trả lời", "retry": "Kiểm tra và thử lại",
+    "status": { "idle": "Mic đã tắt", "permission": "Đang mở microphone", "listening": "Đang nghe...", "transcribing": "Đang nhận dạng", "thinking": "Đang xử lý", "speaking": "Kara đang trả lời" },
+    "errors": {
+      "permission": "Chưa có quyền microphone. Bạn có thể cấp quyền trong trình duyệt rồi thử lại.",
+      "unsupported": "Trình duyệt chưa hỗ trợ thu âm. Hãy dùng chế độ Thủ công.",
+      "noSpeech": "Chưa nghe rõ. Bạn nói lại nhé?", "recording": "Không thể thu âm. Vui lòng thử lại.",
+      "speech": "Không phát được câu trả lời. Nội dung vẫn hiển thị ở trên.",
+      "interrupted": "Đã dừng. Kiểm tra yêu cầu trước khi gửi yêu cầu mới.",
+      "staleSelection": "Danh sách này không còn hiệu lực. Hãy tìm lại bài hát.",
+      "session": "Phiên trò chuyện đã hết hạn hoặc phòng không còn hoạt động.",
+      "rateLimit": "Có quá nhiều yêu cầu. Bạn đợi một chút rồi thử lại nhé.",
+      "configuration": "Voice Chat chưa sẵn sàng. Vui lòng dùng chế độ Thủ công.",
+      "network": "Chưa hoàn tất yêu cầu. Hãy kiểm tra kết nối và thử lại."
+    }
+  },
   "home": {
     "title": "BS Kara Remote",
     "subtitle": "Nhập mã phòng hiển thị trên TV",
@@ -211,6 +230,8 @@
     "dragDropHint": "Cho phép kéo thả để thay đổi thứ tự bài hát trong hàng chờ.",
     "requesterPromptLabel": "Hỏi tên ca sĩ",
     "requesterPromptHint": "Khi tắt, bài hát sẽ được thêm ngay vào hàng chờ mà không hỏi tên người hát.",
+    "voiceChatLabel": "Chế độ Voice Chat",
+    "voiceChatHint": "Hiện Voice Chat bên cạnh tìm kiếm thủ công cho mọi người trong phòng.",
     "guestCanRemoveLabel": "Cho phép khách xóa bài",
     "guestCanRemoveHint": "Khách tham gia có thể xóa bài trong hàng chờ.",
     "aiMcLabel": "Bật/Tắt MC",
