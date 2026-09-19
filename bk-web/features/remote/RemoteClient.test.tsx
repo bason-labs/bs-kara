@@ -220,6 +220,10 @@ vi.mock('next/dynamic', () => ({
   default: () => () => null,
 }));
 
+vi.mock('@/features/remote/hooks/useSearchModeParam', () => ({
+  useSearchModeParam: () => ['manual', vi.fn()],
+}));
+
 vi.mock('@/features/remote/hooks/useTabParam', () => ({
   useTabParam: () => [state.tab, vi.fn()],
 }));

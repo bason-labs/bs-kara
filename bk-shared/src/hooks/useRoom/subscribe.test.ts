@@ -50,3 +50,16 @@ describe('useRoomSubscribe — guestCanRemove', () => {
   });
 });
 
+describe('useRoomSubscribe — voiceChatEnabled', () => {
+  it('defaults voiceChatEnabled to false when field is missing', () => {
+    const { result } = renderHook(() => useRoomSubscribe('1234'));
+    triggerSnapshot({ isPlaying: true });
+    expect(result.current.roomData.voiceChatEnabled).toBe(false);
+  });
+
+  it('maps voiceChatEnabled: true from the snapshot', () => {
+    const { result } = renderHook(() => useRoomSubscribe('1234'));
+    triggerSnapshot({ voiceChatEnabled: true });
+    expect(result.current.roomData.voiceChatEnabled).toBe(true);
+  });
+});

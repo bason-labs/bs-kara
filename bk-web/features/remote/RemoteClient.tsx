@@ -11,6 +11,10 @@ import {
   type CSSProperties,
 } from 'react';
 import { useTabParam } from '@/features/remote/hooks/useTabParam';
+import { useSearchModeParam } from '@/features/remote/hooks/useSearchModeParam';
+import { useVoiceConversation } from '@/features/remote/hooks/useVoiceConversation';
+import { SearchModeSwitch } from '@/features/remote/components/SearchModeSwitch';
+import { VoiceChatPanel } from '@/features/remote/components/VoiceChatPanel';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
@@ -78,7 +82,7 @@ const SettingsPanel = dynamic(
 );
 
 function RemoteInner() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     rawRoomCode,
     roomCode,
@@ -93,6 +97,8 @@ function RemoteInner() {
   const { profile: hostProfile, loading: hostLoading } = useCurrentHost();
 
   const [tab, setTab] = useTabParam();
+  const [searchMode, setSearchMode] = useSearchModeParam();
+  const voiceConversation = useVoiceConversation(roomCode, (i18n?.language ?? 'vi').startsWith('en') ? 'en' : 'vi', resetActivity);
   const [playerOpen, setPlayerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -125,15 +131,15 @@ function RemoteInner() {
   // for the keyboard + results: the header slides fully off-screen and the
   // spacer inside SearchPanel (which reserves room for the absolute header)
   // shrinks to zero. On desktop (lg+) the header is static and unaffected.
-  const searchFocusHide = tab === 'search' && isSearchFocused;
+  const searchFocusHide = tab === 'search' && searchMode === 'manual' && isSearchFocused;
   // The spacer that SearchPanel adds for the absolute header must be 0 when
   // we've hidden it; otherwise the top of the results list has dead space.
   const effectiveHeaderHeight = searchFocusHide ? 0 : headerHeight;
 
   const headerShift = searchFocusHide
     ? headerHeight // fully above viewport
-    : tab === 'search' ? Math.min(headerHeight, Math.max(0, chromeOffset)) : 0;
-  const headerSnap = tab === 'search' && chromeSnap;
+    : tab === 'search' && searchMode === 'manual' ? Math.min(headerHeight, Math.max(0, chromeOffset)) : 0;
+  const headerSnap = tab === 'search' && searchMode === 'manual' && chromeSnap;
   // Header is absolutely positioned on mobile (see className below) and
   // floats above the list on its own layer, so retraction is pure
   // translateY — no margin animation, no list reflow. The flex-1 content
@@ -163,6 +169,7 @@ function RemoteInner() {
     setRandomFilters,
     setDragDropEnabled,
     setRequesterPromptEnabled,
+    setVoiceChatEnabled,
     setMCEnabled,
     setAiScoringEnabled,
     setMcVoice,
@@ -173,6 +180,14 @@ function RemoteInner() {
     setCurrentPlayingDirectly,
     playSongNow,
   } = useRoom(roomCode);
+
+  const voiceChatAvailable = roomExists === true && roomData.voiceChatEnabled;
+  const effectiveSearchMode = voiceChatAvailable ? searchMode : 'manual';
+  useEffect(() => {
+    if (roomExists === true && !roomData.voiceChatEnabled && searchMode !== 'manual') {
+      setSearchMode('manual');
+    }
+  }, [roomData.voiceChatEnabled, roomExists, searchMode, setSearchMode]);
 
   const { isHost } = useHostAuth(roomData.hostUid);
 
@@ -540,7 +555,11 @@ function RemoteInner() {
           {isLoading ? (
             <SearchSkeleton />
           ) : (
+            <>
+            <div className={effectiveSearchMode === 'manual' ? 'h-full' : 'hidden'}>
             <SearchPanel
+              modeSwitch={voiceChatAvailable ? <SearchModeSwitch mode={effectiveSearchMode} onChange={setSearchMode} /> : undefined}
+              active={effectiveSearchMode === 'manual' && tab === 'search' && !timedOut}
               onAdd={handleAddToQueue}
               queuedMap={queuedMap}
               queuePositionMap={queuePositionMap}
@@ -549,6 +568,16 @@ function RemoteInner() {
               onChromeChange={handleChromeChange}
               onFocusChange={setIsSearchFocused}
             />
+            </div>
+            <div className={effectiveSearchMode === 'voice' ? 'h-full' : 'hidden'}>
+              <VoiceChatPanel
+                conversation={voiceConversation}
+                active={effectiveSearchMode === 'voice' && tab === 'search' && !timedOut && !playerOpen}
+                modeSwitch={<SearchModeSwitch mode={effectiveSearchMode} onChange={setSearchMode} />}
+                currentPlaying={roomData.currentPlaying}
+              />
+            </div>
+            </>
           )}
         </section>
 
@@ -706,6 +735,8 @@ function RemoteInner() {
                 onDragDropToggle={setDragDropEnabled}
                 requesterPromptEnabled={roomData.requesterPromptEnabled}
                 onRequesterPromptToggle={setRequesterPromptEnabled}
+                voiceChatEnabled={roomData.voiceChatEnabled}
+                onVoiceChatToggle={setVoiceChatEnabled}
                 mcEnabled={roomData.isMCEnabled}
                 onMCToggle={setMCEnabled}
                 mcVoice={roomData.mcVoice}
@@ -800,6 +831,8 @@ function RemoteInner() {
           onDragDropToggle={setDragDropEnabled}
           requesterPromptEnabled={roomData.requesterPromptEnabled}
           onRequesterPromptToggle={setRequesterPromptEnabled}
+          voiceChatEnabled={roomData.voiceChatEnabled}
+          onVoiceChatToggle={setVoiceChatEnabled}
           mcEnabled={roomData.isMCEnabled}
           onMCToggle={setMCEnabled}
           mcVoice={roomData.mcVoice}

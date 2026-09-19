@@ -65,6 +65,14 @@ export function useRoomSettings(
     [roomId],
   );
 
+  const setVoiceChatEnabled = useCallback(
+    (enabled: boolean) => {
+      if (!roomId) return;
+      set(ref(db, `${getRoomDataPath(roomId)}/voiceChatEnabled`), enabled);
+    },
+    [roomId],
+  );
+
   const setMCEnabled = useCallback(
     (enabled: boolean) => {
       if (!roomId) return;
@@ -112,6 +120,7 @@ export function useRoomSettings(
     setRandomFilters,
     setDragDropEnabled,
     setRequesterPromptEnabled,
+    setVoiceChatEnabled,
     setMCEnabled,
     setAiScoringEnabled,
     setMcVoice,

@@ -19,6 +19,8 @@ export interface SettingsPanelProps {
   onDragDropToggle: (enabled: boolean) => void;
   requesterPromptEnabled: boolean;
   onRequesterPromptToggle: (enabled: boolean) => void;
+  voiceChatEnabled: boolean;
+  onVoiceChatToggle: (enabled: boolean) => void;
   mcEnabled: boolean;
   onMCToggle: (enabled: boolean) => void;
   mcVoice: string;
@@ -45,6 +47,8 @@ export function SettingsPanel({
   onDragDropToggle,
   requesterPromptEnabled,
   onRequesterPromptToggle,
+  voiceChatEnabled,
+  onVoiceChatToggle,
   mcEnabled,
   onMCToggle,
   mcVoice,
@@ -75,6 +79,8 @@ export function SettingsPanel({
             onDragDropToggle={onDragDropToggle}
             requesterPromptEnabled={requesterPromptEnabled}
             onRequesterPromptToggle={onRequesterPromptToggle}
+            voiceChatEnabled={voiceChatEnabled}
+            onVoiceChatToggle={onVoiceChatToggle}
             guestCanRemove={guestCanRemove}
             onGuestCanRemoveToggle={onGuestCanRemoveToggle}
           />

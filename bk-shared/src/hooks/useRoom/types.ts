@@ -16,6 +16,8 @@ export interface RoomState {
   playedHistory: string[];
   dragDropEnabled: boolean;
   requesterPromptEnabled: boolean;
+  // Host-controlled opt-in. Missing values stay off for existing rooms.
+  voiceChatEnabled: boolean;
   isMCEnabled: boolean;
   // Google TTS voice id (from the Settings dropdown). Read by useMCPlayer
   // and forwarded to /api/tts. Falls back to the default if missing.
@@ -62,6 +64,7 @@ export const DEFAULT_STATE: RoomState = {
   playedHistory: [],
   dragDropEnabled: true,
   requesterPromptEnabled: true,
+  voiceChatEnabled: false,
   isMCEnabled: true,
   mcVoice: 'vi-VN-Neural2-A',
   lastAnnouncedSongId: null,

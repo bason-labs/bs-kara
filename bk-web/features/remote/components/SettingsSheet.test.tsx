@@ -35,6 +35,8 @@ function renderSheet(over: Partial<React.ComponentProps<typeof SettingsSheet>> =
     onDragDropToggle: vi.fn(),
     requesterPromptEnabled: true,
     onRequesterPromptToggle: vi.fn(),
+    voiceChatEnabled: false,
+    onVoiceChatToggle: vi.fn(),
     mcEnabled: true,
     onMCToggle: vi.fn(),
     mcVoice: 'vi-VN-Neural2-A',
