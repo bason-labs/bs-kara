@@ -3,11 +3,11 @@ import { z } from 'zod';
 import {
   requireAdmin,
   AdminAuthError,
-} from '@/features/admin/lib/requireAdmin';
+} from '@/server/admin/requireAdmin';
 import {
   cancelSubscription,
   getSubscription,
-} from '@/lib/subscriptions/repo';
+} from '@/server/subscriptions/repo';
 import { derive, daysLeft } from '@/lib/subscriptions/expiry';
 
 export const dynamic = 'force-dynamic';

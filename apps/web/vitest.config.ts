@@ -18,7 +18,7 @@ export default defineConfig({
     setupFiles: ['./tests/setup.tsx'],
     globals: false,
     css: false,
-    include: ['{app,components,features,lib,hooks,tests}/**/*.{test,spec}.{ts,tsx}'],
+    include: ['{app,components,features,lib,hooks,server,tests}/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['e2e/**', 'node_modules/**', '.next/**', 'tests/rules/**'],
     coverage: {
       provider: 'v8',
@@ -28,6 +28,7 @@ export default defineConfig({
         'components/**/*.{ts,tsx}',
         'features/**/*.{ts,tsx}',
         'lib/**/*.ts',
+        'server/**/*.ts',
         'hooks/**/*.ts',
       ],
       exclude: [

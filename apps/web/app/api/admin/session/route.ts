@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
-import { getAdminApp } from '@/features/admin/lib/firebaseAdmin';
+import { getAdminApp } from '@/server/firebaseAdmin';
 import {
   ADMIN_SESSION_COOKIE,
   isAllowlistedEmail,
-} from '@/features/admin/lib/requireAdmin';
+} from '@/server/admin/requireAdmin';
 
 // 5 days, matching Firebase Auth's session cookie max.
 const SESSION_TTL_MS = 5 * 24 * 60 * 60 * 1000;

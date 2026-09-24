@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { AdminNav } from '@/features/admin/components/AdminNav';
-import { requireAdmin, AdminAuthError } from '@/features/admin/lib/requireAdmin';
+import { requireAdmin, AdminAuthError } from '@/server/admin/requireAdmin';
 import { AdminDataProvider } from '@/features/admin/context/AdminDataContext';
 import { AdminBottomNav } from '@/features/admin/components/AdminBottomNav';
 

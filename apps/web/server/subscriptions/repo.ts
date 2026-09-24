@@ -1,13 +1,13 @@
 import 'server-only';
 import { getDatabase } from 'firebase-admin/database';
-import { getAdminApp } from '@/features/admin/lib/firebaseAdmin';
+import { getAdminApp } from '@/server/firebaseAdmin';
 import {
   CreateSubscriptionInputSchema,
   DAY_MS,
   SubscriptionRecordSchema,
   type SubscriptionRecord,
-} from './schema';
-import { isE164VN } from './phone';
+} from '@/lib/subscriptions/schema';
+import { isE164VN } from '@/lib/subscriptions/phone';
 import {
   byPhonePath,
   subscriptionPath,

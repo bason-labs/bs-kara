@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getDatabase } from 'firebase-admin/database';
-import { getAdminApp } from '@/features/admin/lib/firebaseAdmin';
+import { getAdminApp } from '@/server/firebaseAdmin';
 import {
   requireAdmin,
   AdminAuthError,
-} from '@/features/admin/lib/requireAdmin';
+} from '@/server/admin/requireAdmin';
 import { ptDateKey } from '@bs-kara/shared';
 
 export const dynamic = 'force-dynamic';

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { normalizeQuery, QuotaExhaustedError, searchYouTubeApi } from '@/lib/youtube/server';
-export { __resetKeyCursorForTests } from '@/lib/youtube/server';
+import { normalizeQuery, QuotaExhaustedError, searchYouTubeApi } from '@/server/youtube';
+export { __resetKeyCursorForTests } from '@/server/youtube';
 
 export async function GET(req: NextRequest) {
   const normalized = normalizeQuery(req.nextUrl.searchParams.get('q') ?? '');

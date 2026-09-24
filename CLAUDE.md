@@ -69,14 +69,14 @@ This is a Next.js 15 (App Router) karaoke app with two distinct views, both back
 
 ### Data flow
 
-- **Firebase Realtime Database** is the source of truth for all room state. The shape is mirrored in `RoomState` (`hooks/useRoom/types.ts`): queue, currentPlaying, history, playedHistory, isPlaying, settings (auto-random + filters, drag-drop, requester prompt, MC + voice), `lastAnnouncedSongId` (cross-device MC lock), `isTvActive` (TV presence), `lastEndedAt` (End Party marker).
-- **Active-room pointer** at `meta/activeRoom` (`lib/activeRoom.ts`) is a single Firebase node holding the currently-claimed room code. `claimOrGetActiveRoom()` does an atomic `runTransaction` claim. The TV claims on mount; mobile phones auto-attach; desktops join via OTP.
-- **YouTube search** goes through a BFF route at `app/api/youtube/search/route.ts`. Reads `YOUTUBE_API_KEYS` (comma-separated), rotates on 403, wraps the call in `unstable_cache` with a 1h `revalidate`, and suffixes the query with `"karaoke beat"`. Cache key is normalised by `lib/text/normalize.ts → normalizeDiacritics` plus a whitespace collapse. Client code in `lib/youtube/client.ts → searchYouTube()` calls the BFF and falls back to the `yt-search` scraper at `/api/search` only on 429 (quota exhausted) or 5xx.
+- **Firebase Realtime Database** is the source of truth for all room state. The shape is mirrored in `RoomState` (`packages/shared/src/hooks/useRoom/types.ts`): queue, currentPlaying, history, playedHistory, isPlaying, settings (auto-random + filters, drag-drop, requester prompt, MC + voice), `lastAnnouncedSongId` (cross-device MC lock), `isTvActive` (TV presence), `lastEndedAt` (End Party marker).
+- **Active-room pointer** at `meta/activeRoom` (`packages/shared/src/lib/activeRoom.ts`) is a single Firebase node holding the currently-claimed room code. `claimOrGetActiveRoom()` does an atomic `runTransaction` claim. The TV claims on mount; mobile phones auto-attach; desktops join via OTP.
+- **YouTube search** goes through a BFF route at `app/api/youtube/search/route.ts`, backed by `server/youtube.ts`. Reads `YOUTUBE_API_KEYS` (comma-separated), rotates on 403, wraps the call in `unstable_cache` with a 1h `revalidate`, and suffixes the query with `"karaoke beat"`. Cache key is normalised by `normalizeDiacritics` (`packages/shared/src/lib/text/normalize.ts`) plus a whitespace collapse. Client code in `lib/youtube/client.ts → searchYouTube()` calls the BFF and falls back to the `yt-search` scraper at `/api/search` only on 429 (quota exhausted) or 5xx.
 - **Autocomplete suggestions** come from `/api/suggestions`, which proxies Google's `suggestqueries.google.com`. Exists to avoid CORS and to handle a charset quirk: Google returns ISO-8859-1 but declares it inconsistently, so the route decodes raw bytes as latin-1 before `JSON.parse`. Suggestions are debounced 300 ms in `useSearchSuggestions`.
-- **AI MC announcements**: when a song hits the queue (or `currentPlaying`), `app/api/generate-mc/route.ts` is asked for a one-line MC intro (OpenAI by default, Gemini fallback via `AI_MC_PROVIDER`). The text is written onto the queue node, or onto `currentPlaying` if the song already promoted. `useMCPlayer` then gates the iframe (mute + pause), claims `lastAnnouncedSongId` atomically (so only one device speaks across TV + phone), and plays via Google TTS at `/api/tts`. After the announcement, `useMCKickPlay` flips `isPlaying` back on at the gated → ungated edge.
-- **Auto-random**: when `isAutoRandomMode` is on and the queue is empty + nothing playing, `useAutoRandom` picks from a curated song pool (`lib/random/`) honouring genre/type/tone filters, hits the BFF, and writes the result straight to `currentPlaying`. Both TV and phone can drive it; an internal busy ref + a Firebase-snapshot guard prevents double-writes.
+- **AI MC announcements**: when a song hits the queue (or `currentPlaying`), `/api/generate-mc` is asked for a one-line MC intro (`server/mc/`: OpenAI by default, Gemini via `AI_MC_PROVIDER`, template fallback on any error). The text is written onto the queue node, or onto `currentPlaying` if the song already promoted. `useMCPlayer` then gates the iframe (mute + pause), claims `lastAnnouncedSongId` atomically (so only one device speaks across TV + phone), and plays via Google TTS at `/api/tts` (`server/tts.ts`). When the gate releases, VideoPlayer's `isPlaying` prop flips false→true and resumes the iframe; no extra Firebase write is needed.
+- **Auto-random**: when `isAutoRandomMode` is on and the queue is empty + nothing playing, `useAutoRandom` picks from a curated song pool (`packages/shared/src/lib/random/`) honouring genre/type/tone filters, hits the BFF, and writes the result straight to `currentPlaying`. Both TV and phone can drive it; an internal busy ref + a Firebase-snapshot guard prevents double-writes.
 
-### Key types (`lib/youtube/types.ts`)
+### Key types (`packages/shared/src/lib/youtube/types.ts`)
 
 ```ts
 YouTubeVideo  { id, title, channel, thumbnail, duration, requesterName?, mcText? }
@@ -87,25 +87,31 @@ RandomFilters { type: 'all'|'solo'|'duet'; tone: 'all'|'male'|'female'; genre: '
 ### Top-level layout
 
 ```
-app/                    Next.js App Router
-  api/                  route handlers: youtube/search, search (yt-search fallback),
-                        suggestions, generate-mc, tts
-  page.tsx              wraps <RemoteClient />
-  tv/page.tsx           wraps <TVClient />
-features/
-  remote/               phone-side feature: RemoteClient + components/ + hooks/
-  tv/                   TV-side feature: TVClient + components/ + hooks/
-hooks/                  shared hooks (useRoom — split into a folder by concern,
-                        useAutoRandom, useMCPlayer, useMCKickPlay, useTransientNotice,
-                        useAIVoice, useAutoHide)
-components/             cross-feature presentational components (VideoPlayer,
-                        EmojiLayer, ConfirmDialog, MCAnnouncementOverlay, ThemeProvider)
-lib/                    firebase, activeRoom pointer, config, i18n, logger, reactions,
-                        random/ (auto-random picker + song pools), text/ (normalize),
-                        youtube/ (client + types)
-locales/                en + vi i18n bundles (react-i18next)
-e2e/                    Playwright specs
-tests/                  Vitest setup + MSW handlers
+apps/
+  web/                  Next.js App Router (@bs-kara/web); paths below are relative to it
+    app/                routes: page.tsx (remote), tv/, admin/, register/;
+                        api/ route handlers stay thin (parse request, call server/, map response)
+    features/           remote/, tv/, admin/, register/, voice/ — components/ + hooks/,
+                        plus server/ when the server code belongs to one feature (voice)
+    server/             server-only modules shared across routes: firebaseAdmin,
+                        admin/requireAdmin, youtube (BFF search + key rotation), analytics,
+                        subscriptions/ (repo, paths, roomAccess), mc/ (AI MC lines), tts
+    hooks/              cross-feature client hooks (useMCPlayer, useAutoRandom, useAIVoice,
+                        useAdMask, useAutoHide, useSongScore, useScrollOffset)
+    components/         cross-feature presentational components (VideoPlayer, EmojiLayer,
+                        ConfirmDialog, MCAnnouncementOverlay, ThemeProvider, …)
+    lib/                client-safe helpers: youtube/ (client + types), subscriptions/
+                        (schema, phone, expiry), roomAccess (API contract), logger, siteUrl, …
+    tests/              Vitest setup, MSW handlers, stubs, Firebase rules suite
+  mobile/               Expo Router app (@bs-kara/mobile): app/, components/, hooks/,
+                        context/, features/settings
+packages/
+  shared/               @bs-kara/shared: Firebase client + room paths, useRoom and
+                        useTransientNotice, i18n + locales, scoring, random picker, reactions,
+                        YouTube types
+scripts/acdc/           ACDC ticket-to-PR automation (watcher, scope gate)
+e2e/                    Playwright specs (root playwright.config.ts builds apps/web)
+docs/                   proposals/, specs and plans
 ```
 
 ### Component responsibilities (high-level)
@@ -116,13 +122,12 @@ tests/                  Vitest setup + MSW handlers
 - `features/remote/components/ClientQueue.tsx` — read-only queue with optional drag-and-drop (gated on `dragDropEnabled`).
 - `features/remote/components/FullscreenPlayer.tsx` — phone fullscreen player; only used when the TV is offline.
 - `features/remote/components/JoinForm.tsx` — desktop OTP form; gated on the active-room pointer.
-- `features/tv/TVClient.tsx` — composition shell. Uses `useTVPresence` (room claim + isTvActive presence with `onDisconnect`), `useEndParty` (confirm + reset + 5s toast), `useRoom`, `useAutoRandom`, `useMCPlayer`, `useMCKickPlay`. Renders `<BackdropLayers />`, `<WaitingOverlay />`, the inline video section, and `<QueuePanel />`.
+- `features/tv/TVClient.tsx` — composition shell. Uses `useTVPresence` (room claim + isTvActive presence with `onDisconnect`), `useEndParty` (confirm + reset + 5s toast), `useRoom`, `useAutoRandom`, `useMCPlayer`. Renders `<BackdropLayers />`, `<WaitingOverlay />`, the inline video section, and `<QueuePanel />`.
 
 ### Useful shared hooks
 
-- `useRoom(roomId)` — composed of `subscribe`, `queue`, `history`, `mc`, `settings` sub-hooks under `hooks/useRoom/`. Returns the full `RoomState` plus all mutators. Public import: `@/hooks/useRoom`.
-- `useTransientNotice(durationMs)` — self-clearing toast hook used by both `RemoteClient` and `TVClient`.
-- `useMCKickPlay(isMcGated, isPlaying, setPlaying)` — flips playback back on at the gated → ungated edge; shared between TV and phone fullscreen player.
+- `useRoom(roomId)` — composed of `subscribe`, `queue`, `history`, `mc`, `settings` sub-hooks under `packages/shared/src/hooks/useRoom/`. Returns the full `RoomState` plus all mutators. Public import: `@bs-kara/shared/hooks`.
+- `useTransientNotice(durationMs)` — self-clearing toast hook used by both `RemoteClient` and `TVClient` (`@bs-kara/shared/hooks`).
 
 ---
 

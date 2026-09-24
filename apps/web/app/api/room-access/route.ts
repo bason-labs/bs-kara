@@ -1,26 +1,13 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from 'firebase-admin/database';
-import { getAdminApp } from '@/features/admin/lib/firebaseAdmin';
-import {
-  getRoomCodeIndexEntryPath,
-  getRegisteredUserPath,
-} from '@bs-kara/shared';
-import { byPhoneRoot, subscriptionPath } from '@/lib/subscriptions/paths';
+import { getAdminApp } from '@/server/firebaseAdmin';
+import { checkRoomAccess } from '@/server/subscriptions/roomAccess';
+import type { RoomAccessReason, RoomAccessResponse } from '@/lib/roomAccess';
 
 export const dynamic = 'force-dynamic';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
-
-export type RoomAccessReason =
-  | 'ok'
-  | 'room_not_found'
-  | 'subscription_expired';
-
-export interface RoomAccessResponse {
-  allowed: boolean;
-  reason: RoomAccessReason;
-}
 
 function adminDb() {
   return getDatabase(getAdminApp());
@@ -51,37 +38,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    // 1. Resolve room code → normalizedPhone
-    const indexSnap = await db.ref(getRoomCodeIndexEntryPath(roomCode)).once('value');
-    if (!indexSnap.exists()) return deny('room_not_found');
-    const rawPhone = indexSnap.val();
-    if (typeof rawPhone !== 'string') return deny('room_not_found');
-    const normalizedPhone = rawPhone;
-
-    // 2. Verify user is not suspended
-    const userSnap = await db.ref(getRegisteredUserPath(normalizedPhone)).once('value');
-    if (!userSnap.exists()) return deny('room_not_found');
-    const userData = userSnap.val() as { suspended?: boolean };
-    if (userData.suspended === true) return deny('room_not_found');
-
-    // 3. Check for an active, non-expired subscription
-    // registeredUsers stores '84XXXXXXXXX'; subscriptionsByPhone uses '+84XXXXXXXXX'
-    const phoneE164 = '+' + normalizedPhone;
-    const subIndexSnap = await db.ref(byPhoneRoot(phoneE164)).once('value');
-    let hasActiveSubscription = false;
-    if (subIndexSnap.exists()) {
-      const ids = Object.keys(subIndexSnap.val() as Record<string, unknown>);
-      const now = Date.now();
-      const subSnaps = await Promise.all(
-        ids.map((id) => db.ref(subscriptionPath(id)).once('value')),
-      );
-      hasActiveSubscription = subSnaps.some((snap) => {
-        if (!snap.exists()) return false;
-        const s = snap.val() as { status?: string; endDate?: number };
-        return s.status === 'active' && typeof s.endDate === 'number' && s.endDate >= now;
-      });
-    }
-    if (!hasActiveSubscription) return deny('subscription_expired');
+    const reason = await checkRoomAccess(db, roomCode);
+    if (reason !== 'ok') return deny(reason);
 
     return NextResponse.json(
       { allowed: true, reason: 'ok' } satisfies RoomAccessResponse,

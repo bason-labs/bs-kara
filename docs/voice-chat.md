@@ -45,7 +45,7 @@ Existing room fields still permit broad direct writes. The voice API adds its ow
 | Client orchestration and audio | `apps/web/features/voice/conversation.ts`, `client.ts`, `audio.ts`, `types.ts` |
 | Intent, authorization, queue transactions | `apps/web/features/voice/server/agent.ts`, `service.ts`, `http.ts` |
 | HTTP endpoints | `apps/web/app/api/voice/{session,turn,transcribe}/route.ts` |
-| Reused server search | `apps/web/lib/youtube/server.ts`, existing search route adapters |
+| Reused server search | `apps/web/server/youtube.ts`, existing search route adapters |
 | Labels | `packages/shared/src/locales/{en,vi}.json` |
 | Database protection | `database.rules.json`, root `firebase.json`, `apps/web/tests/rules/database-rules.test.ts` |
 | Verification | Colocated unit/component tests and `e2e/voice-chat.spec.ts` |
