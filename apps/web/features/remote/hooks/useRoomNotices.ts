@@ -8,13 +8,15 @@ interface UseRoomNoticesArgs {
   roomCode: string | null;
   // The URL points at a room that can't be entered (bad code, or one Firebase says doesn't exist).
   roomMissing: boolean;
+  // True once this room's first Firebase snapshot has arrived (useRoom's roomExists === true).
+  roomLoaded: boolean;
   lastEndedAt: number | null | undefined;
   handleLeave: () => void;
 }
 
 // Transient toasts about the room itself: it doesn't exist (drops the user
 // back to home) or the TV just ended the party. Returns the current notice.
-export function useRoomNotices({ roomCode, roomMissing, lastEndedAt, handleLeave }: UseRoomNoticesArgs) {
+export function useRoomNotices({ roomCode, roomMissing, roomLoaded, lastEndedAt, handleLeave }: UseRoomNoticesArgs) {
   const { t } = useTranslation();
   const { notice, show: showNotice } = useTransientNotice(4000);
 
@@ -27,28 +29,27 @@ export function useRoomNotices({ roomCode, roomMissing, lastEndedAt, handleLeave
   }, [roomMissing, handleLeave, showNotice, t]);
 
   // End-Party toast: the TV writes `lastEndedAt` when it resets the room.
-  // We seed the ref with whatever value Firebase reports on the first
-  // snapshot so historical resets (or rejoining after the fact) don't
-  // re-trigger the toast — only forward jumps that happen while we're
-  // connected fire the notice.
-  const lastEndedSeenRef = useRef<number | null | undefined>(undefined);
+  // Each room's first loaded snapshot seeds the marker, so historical resets
+  // (or rejoining after the fact) don't fire the toast — only forward jumps
+  // that happen while we're connected do. The seed is dropped whenever the
+  // room isn't loaded, so a room switch re-seeds from the new room's first
+  // snapshot instead of comparing against the previous room's value.
+  const seenRef = useRef<{ roomCode: string | null; value: number | null } | null>(null);
   useEffect(() => {
-    const value = lastEndedAt;
-    if (lastEndedSeenRef.current === undefined) {
-      lastEndedSeenRef.current = value;
+    if (!roomLoaded) {
+      seenRef.current = null;
       return;
     }
-    if (value && value !== lastEndedSeenRef.current) {
-      lastEndedSeenRef.current = value;
+    const seen = seenRef.current;
+    if (!seen || seen.roomCode !== roomCode) {
+      seenRef.current = { roomCode, value: lastEndedAt ?? null };
+      return;
+    }
+    if (lastEndedAt && lastEndedAt !== seen.value) {
+      seen.value = lastEndedAt;
       showNotice(t('tv.endPartyNotice'));
     }
-  }, [lastEndedAt, showNotice, t]);
-
-  // Reset the seen marker when the room changes so a fresh subscribe
-  // re-seeds against the new room's history instead of replaying it.
-  useEffect(() => {
-    lastEndedSeenRef.current = undefined;
-  }, [roomCode]);
+  }, [roomLoaded, roomCode, lastEndedAt, showNotice, t]);
 
   return notice;
 }
