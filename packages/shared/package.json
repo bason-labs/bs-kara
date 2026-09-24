@@ -14,6 +14,14 @@
     "./firebase-config": {
       "types": "./src/lib/firebaseConfig.ts",
       "default": "./src/lib/firebaseConfig.ts"
+    },
+    "./registered-users": {
+      "types": "./src/lib/registeredUsers.ts",
+      "default": "./src/lib/registeredUsers.ts"
+    },
+    "./phone": {
+      "types": "./src/lib/phone.ts",
+      "default": "./src/lib/phone.ts"
     }
   },
   "scripts": {

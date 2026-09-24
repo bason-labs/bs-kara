@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { registerUser, lookupUserByPhone } from '@/lib/registeredUsers';
+import { registerUser, lookupUserByPhone } from '@bs-kara/shared/registered-users';
 
 export interface CreateSubscriptionFormInput {
   userPhone: string; // raw, as typed

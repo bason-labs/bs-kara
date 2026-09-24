@@ -9,7 +9,7 @@ import {
   listSubscriptions,
 } from '@/server/subscriptions/repo';
 import { CreateSubscriptionInputSchema } from '@/lib/subscriptions/schema';
-import { toE164VN } from '@/lib/subscriptions/phone';
+import { toE164VN } from '@bs-kara/shared/phone';
 
 export const dynamic = 'force-dynamic';
 

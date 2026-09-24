@@ -4,12 +4,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-vi.mock('@/lib/registeredUsers', () => ({
+vi.mock('@bs-kara/shared/registered-users', () => ({
   registerUser: vi.fn(),
   lookupUserByPhone: vi.fn(),
 }));
 
-import { registerUser, lookupUserByPhone } from '@/lib/registeredUsers';
+import { registerUser, lookupUserByPhone } from '@bs-kara/shared/registered-users';
 import { useCreateSubscription } from './useCreateSubscription';
 
 const registerMock = registerUser as ReturnType<typeof vi.fn>;

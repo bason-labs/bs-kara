@@ -7,7 +7,7 @@ import {
   SubscriptionRecordSchema,
   type SubscriptionRecord,
 } from '@/lib/subscriptions/schema';
-import { isE164VN } from '@/lib/subscriptions/phone';
+import { isE164VN } from '@bs-kara/shared/phone';
 import {
   byPhonePath,
   subscriptionPath,

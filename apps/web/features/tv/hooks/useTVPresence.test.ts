@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/lib/firebase', () => ({ db: {} }));
-vi.mock('@/lib/registeredUsers', () => ({
+vi.mock('@bs-kara/shared/registered-users', () => ({
   lookupUserByCode: vi.fn(),
   lookupUserByPhone: vi.fn(),
 }));

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isE164VN } from './phone';
+import { isE164VN } from '@bs-kara/shared/phone';
 
 export type SubscriptionType = 'trial' | 'paid';
 // Stored values are only 'active' or 'cancelled'. 'expired' is NEVER

@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toE164VN } from '@/lib/subscriptions/phone';
+import { toE164VN } from '@bs-kara/shared/phone';
 
 interface PhoneStepProps {
   onSubmit: (e164Phone: string) => void;
