@@ -16,7 +16,7 @@ interface PlayNowButtonProps {
 //
 // Visibility / sizing:
 //   - Mobile (< lg): always visible, 40×40 rounded-full with bg-surface-2.
-//     Sized to pair with the AddToQueueButton's mobile icon-only variant
+//     Sized to pair with the row's mobile icon-only add button
 //     so the row reads as two equal-weight controls instead of a small
 //     icon next to a dominant pill.
 //   - Desktop (≥ lg): hidden until the row is hovered (`group-hover`),

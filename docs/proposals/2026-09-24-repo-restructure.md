@@ -32,6 +32,8 @@ Cal.com and similar large TypeScript monorepos, and how each one applies to this
 Findings from reading the tree as of `cd6ca78`:
 
 ### Structure
+0. **Principle for this migration:** remove what's redundant *before* adding anything. New
+   tooling (CI, boundary lint, Storybook, infra) lands only when a step actually needs it.
 1. **Top-level folders don't say what they are.** `bk-web`, `bk-mobile` and `bk-shared` sit
    at the root next to `scripts/acdc`, which is also a workspace package. A newcomer can't
    tell deployables from libraries.
@@ -336,7 +338,7 @@ small and reversible.
 
 | # | Step | Size | Risk |
 |---|---|---|---|
-| 0 | ✅ **Guardrails first:** lean report-only CI (build, typecheck, lint, test for all workspaces, E2E, gitleaks), dependency-cruiser in *report-only* mode (`pnpm deps:check`, 11 existing violations), remove the dead `bk-mobile-ui` workspace entry, align React declarations to 19.0.0. The root expo/RN deps are kept (see §2.3) | S | Low |
+| 0 | ✅ **Clean up first, add nothing:** removed 2 dead web components, 14 never-wired mobile files from `ad40872` (plus tests), unused deps (`@types/react-youtube`, `expo-status-bar`, `react-native-qrcode-svg`), the orphaned `sonar-project.properties`, the duplicate `Makefile` and the dead `bk-mobile-ui` entry; aligned React declarations to 19.0.0. Tooling additions (CI, boundary lint) are deferred until needed | S | Low |
 | 1 | **Rename** (`git mv`, history preserved): `bk-web`→`apps/web`, `bk-mobile`→`apps/mobile`, `bk-shared`→`packages/shared` (temporary), `scripts/acdc`→`tooling/acdc`; then update the workspace, turbo, tsconfig paths, Playwright and ACDC protected paths | S | Low (mechanical) |
 | 2 | **Extract `tooling/tsconfig` + `eslint-config` + `vitest-config`** | S | Low |
 | 3 | **Add `packages/config`** with a zod env schema; replace the ~24 direct `process.env` reads, and add tests for missing or malformed vars (CLAUDE.md Rule 3) | M | Medium |
