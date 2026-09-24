@@ -105,7 +105,7 @@ tests/                  Vitest setup + MSW handlers
 ### Component responsibilities (high-level)
 
 - `features/remote/RemoteClient.tsx` — composition shell. Wires `useRoomGate` (URL ↔ room contract, localStorage persistence, mobile auto-claim), `useRoom` (Firebase state + mutations), `useAutoRandom`, `useRequesterDialog` (add/edit name + post-add toast), `useQueuedMap`, layout, tab nav, and mobile/desktop branching.
-- `features/remote/components/SearchPanel.tsx` — search input + suggestion dropdown + voice search modal + results list. Composes `useHotHits`, `useSearchHistory`, `useSearchSuggestions`, `useVoiceSearch` from `features/remote/hooks/`. Renders `<AddToQueueButton />` per result.
+- `features/remote/components/SearchPanel.tsx` — search input + suggestion dropdown + voice search modal + results list. Composes `useHotHits`, `useSearchHistory`, `useSearchSuggestions`, `useVoiceSearch` from `features/remote/hooks/`.
 - `features/remote/components/SettingsSheet/` — bottom sheet split into sections (`AutoRandomSection`, `QueueSection`, `AIMcSection`, `ThemeSection`, `RoomSection`) sharing primitives (`ToggleRow`, `FilterRow`, `SectionHeader`). `VoicePicker` renders the MC voice radio cards with live audio preview.
 - `features/remote/components/ClientQueue.tsx` — read-only queue with optional drag-and-drop (gated on `dragDropEnabled`).
 - `features/remote/components/FullscreenPlayer.tsx` — phone fullscreen player; only used when the TV is offline.
