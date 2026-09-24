@@ -6,7 +6,7 @@ description: Take ONE agent-ready ticket to a green PR — read+parse the issue,
 # ACDC run — one ticket to a green PR
 
 You are implementing ONE `agent-ready` ticket end-to-end on `bason-labs/bs-kara`
-(a pnpm@10.11 + turbo monorepo: `bk-web`, `bk-mobile`, `bk-mobile-ui`, `bk-shared`,
+(a pnpm@10.11 + turbo monorepo: `apps/web`, `apps/mobile`, `packages/shared`,
 and the `@bs-kara/acdc` tooling workspace). Input: an issue number `N`.
 
 ## Non-negotiable guardrails
@@ -85,15 +85,15 @@ and the `@bs-kara/acdc` tooling workspace). Input: an issue number `N`.
       watcher verifies it was applied by a human, not by you.
 
 ## Environment notes (learned from the first real run)
-- **Firebase config for the e2e build.** The Playwright `webServer` builds `bk-web`,
+- **Firebase config for the e2e build.** The Playwright `webServer` builds `apps/web`,
   which needs `NEXT_PUBLIC_FIREBASE_*` or `next build` dies with "Cannot parse
   Firebase url". A fresh worktree has no (gitignored) `.env.local`. Provide the
   public client config via the **environment** (the Phase-3 watcher exports
   `NEXT_PUBLIC_FIREBASE_*`); do NOT read/copy `.env.local` (the scoped settings deny
   it). CI gets these from repo Variables.
-- **i18n lives in `bk-shared`.** Web copy/keys (e.g. `home.joinButton`) are in
-  `bk-shared/src/locales/*.json`, not `bk-web/locales`. Check there for `area:web`
-  i18n changes (and note `bk-shared` is its own area).
+- **i18n lives in `packages/shared`.** Web copy/keys (e.g. `home.joinButton`) are in
+  `packages/shared/src/locales/*.json`, not `apps/web/locales`. Check there for `area:web`
+  i18n changes (and note `packages/shared` is its own area).
 - **OTP auto-submits on completion.** `OTPInput.onComplete` triggers the join
   fetch once the code is full; a home-screen e2e should use web-first
   `toBeEnabled()`/`toBeDisabled()` rather than fixed waits to stay deterministic.

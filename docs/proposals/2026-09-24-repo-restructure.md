@@ -339,7 +339,7 @@ small and reversible.
 | # | Step | Size | Risk |
 |---|---|---|---|
 | 0 | ✅ **Clean up first, add nothing:** removed 2 dead web components, 14 never-wired mobile files from `ad40872` (plus tests), unused deps (`@types/react-youtube`, `expo-status-bar`, `react-native-qrcode-svg`), the orphaned `sonar-project.properties`, the duplicate `Makefile` and the dead `bk-mobile-ui` entry; aligned React declarations to 19.0.0. Tooling additions (CI, boundary lint) are deferred until needed | S | Low |
-| 1 | **Rename** (`git mv`, history preserved): `bk-web`→`apps/web`, `bk-mobile`→`apps/mobile`, `bk-shared`→`packages/shared` (temporary), `scripts/acdc`→`tooling/acdc`; then update the workspace, turbo, tsconfig paths, Playwright and ACDC protected paths | S | Low (mechanical) |
+| 1 | ✅ **Rename** (`git mv`, history preserved): `bk-web`→`apps/web`, `bk-mobile`→`apps/mobile`, `bk-shared`→`packages/shared` (temporary); updated the workspace, lockfile importers, Metro workspace root, iOS `PODS_ROOT` paths, Playwright, vitest aliases, rules-test path, ACDC area globs and docs. `scripts/acdc` stays put for now: the live launchd watcher runs `pnpm -C scripts/acdc` from its own clone, so moving it needs a coordinated reinstall | S | Low (mechanical) |
 | 2 | **Extract `tooling/tsconfig` + `eslint-config` + `vitest-config`** | S | Low |
 | 3 | **Add `packages/config`** with a zod env schema; replace the ~24 direct `process.env` reads, and add tests for missing or malformed vars (CLAUDE.md Rule 3) | M | Medium |
 | 4 | **Split `packages/shared`** into `domain`, `firebase-client`, `i18n` and `client-core` (for `useRoom`) | M | Medium |

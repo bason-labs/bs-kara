@@ -1,5 +1,4 @@
 packages:
-  - 'bk-web'
-  - 'bk-mobile'
-  - 'bk-shared'
+  - 'apps/*'
+  - 'packages/*'
   - 'scripts/acdc'

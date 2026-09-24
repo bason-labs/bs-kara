@@ -3,11 +3,11 @@ const { withNativeWind } = require('nativewind/metro');
 const path = require('path');
 
 const projectRoot = __dirname;
-const workspaceRoot = path.resolve(projectRoot, '..');
+const workspaceRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// Watch the entire workspace so Metro picks up changes in bk-shared
+// Watch the entire workspace so Metro picks up changes in packages/*
 config.watchFolders = [workspaceRoot];
 
 // Resolve workspace packages from both project and workspace node_modules

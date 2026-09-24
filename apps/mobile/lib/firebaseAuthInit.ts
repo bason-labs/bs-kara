@@ -20,7 +20,7 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 // Set AsyncStorage persistence. getAuth(app) may already be initialized by
-// bk-shared/firebase.ts so we use the existing instance and update its
+// packages/shared/firebase.ts so we use the existing instance and update its
 // persistence rather than calling initializeAuth (which would throw).
 const auth = getAuth(app);
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call

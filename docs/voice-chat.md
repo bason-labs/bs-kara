@@ -40,20 +40,20 @@ Existing room fields still permit broad direct writes. The voice API adds its ow
 
 | Area | Files |
 | --- | --- |
-| Mode integration | `bk-web/features/remote/RemoteClient.tsx`, `components/SearchPanel.tsx`, `components/SearchModeSwitch.tsx`, `hooks/useSearchModeParam.ts` |
-| Voice panel and lifecycle | `bk-web/features/remote/components/VoiceChatPanel.tsx`, `hooks/useVoiceConversation.ts` |
-| Client orchestration and audio | `bk-web/features/voice/conversation.ts`, `client.ts`, `audio.ts`, `types.ts` |
-| Intent, authorization, queue transactions | `bk-web/features/voice/server/agent.ts`, `service.ts`, `http.ts` |
-| HTTP endpoints | `bk-web/app/api/voice/{session,turn,transcribe}/route.ts` |
-| Reused server search | `bk-web/lib/youtube/server.ts`, existing search route adapters |
-| Labels | `bk-shared/src/locales/{en,vi}.json` |
-| Database protection | `database.rules.json`, root `firebase.json`, `bk-web/tests/rules/database-rules.test.ts` |
+| Mode integration | `apps/web/features/remote/RemoteClient.tsx`, `components/SearchPanel.tsx`, `components/SearchModeSwitch.tsx`, `hooks/useSearchModeParam.ts` |
+| Voice panel and lifecycle | `apps/web/features/remote/components/VoiceChatPanel.tsx`, `hooks/useVoiceConversation.ts` |
+| Client orchestration and audio | `apps/web/features/voice/conversation.ts`, `client.ts`, `audio.ts`, `types.ts` |
+| Intent, authorization, queue transactions | `apps/web/features/voice/server/agent.ts`, `service.ts`, `http.ts` |
+| HTTP endpoints | `apps/web/app/api/voice/{session,turn,transcribe}/route.ts` |
+| Reused server search | `apps/web/lib/youtube/server.ts`, existing search route adapters |
+| Labels | `packages/shared/src/locales/{en,vi}.json` |
+| Database protection | `database.rules.json`, root `firebase.json`, `apps/web/tests/rules/database-rules.test.ts` |
 | Verification | Colocated unit/component tests and `e2e/voice-chat.spec.ts` |
 
 The original proposal listed more separate components and a shared queue refactor. This implementation keeps the small panel together and adds a server queue adapter without changing existing manual queue hooks. MC announcements retain the existing TV-side fallback for songs without prefetched MC text.
 
 ## Verification and Rollout
 
-Run `pnpm -C bk-web test`, `pnpm -C bk-web typecheck`, `pnpm -C bk-web lint`, and `pnpm -C bk-web build`. Run database checks with `pnpm -C bk-web test:rules:emulator` (demo project only). Run deterministic browser checks with `pnpm exec playwright test --project=chromium --grep-invert @live`, and voice-only cross-browser checks with `pnpm exec playwright test e2e/voice-chat.spec.ts`.
+Run `pnpm -C apps/web test`, `pnpm -C apps/web typecheck`, `pnpm -C apps/web lint`, and `pnpm -C apps/web build`. Run database checks with `pnpm -C apps/web test:rules:emulator` (demo project only). Run deterministic browser checks with `pnpm exec playwright test --project=chromium --grep-invert @live`, and voice-only cross-browser checks with `pnpm exec playwright test e2e/voice-chat.spec.ts`.
 
 Voice browser tests stub Firebase transport, API responses, microphone, and speech output. They verify UI orchestration, not real intent accuracy or acoustic performance. Before release, test an authorized disposable room with real Vietnamese/English utterances, accents, music playing, denied permissions, iOS Safari, Android Chrome, and repeated network interruptions. Check latency, wrong selections, cost, and actual TV updates.

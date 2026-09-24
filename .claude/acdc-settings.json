@@ -4,8 +4,8 @@
     "deny": [
       "Read(./.env)",
       "Read(./.env.*)",
-      "Read(./bk-web/.env)",
-      "Read(./bk-web/.env.*)",
+      "Read(./apps/web/.env)",
+      "Read(./apps/web/.env.*)",
       "Bash(rm *)",
       "Bash(gh secret *)",
       "Bash(gh auth *)",

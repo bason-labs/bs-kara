@@ -37,11 +37,11 @@ importers:
         specifier: ^2
         version: 2.9.14
 
-  bk-mobile:
+  apps/mobile:
     dependencies:
       '@bs-kara/shared':
         specifier: workspace:*
-        version: link:../bk-shared
+        version: link:../../packages/shared
       '@gorhom/bottom-sheet':
         specifier: ^5.2.14
         version: 5.2.14(patch_hash=f74eee9540ea35e5c4c85059f33b710069a7705f42050f09c828334f01c01463)(@types/react@19.0.14)(react-native-gesture-handler@2.24.0(react-native@0.79.6(@babel/core@7.29.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-reanimated@3.17.5(@babel/core@7.29.0)(react-native@0.79.6(@babel/core@7.29.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.29.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
@@ -155,7 +155,7 @@ importers:
         specifier: ^8.60.0
         version: 8.60.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3)
 
-  bk-shared:
+  packages/shared:
     dependencies:
       firebase:
         specifier: ^12.12.1
@@ -195,11 +195,11 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@22.20.0)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1)(msw@2.14.6(@types/node@22.20.0)(typescript@5.9.3))(vite@8.0.13(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.47.1)(tsx@4.22.4)(yaml@2.9.0))
 
-  bk-web:
+  apps/web:
     dependencies:
       '@bs-kara/shared':
         specifier: workspace:*
-        version: link:../bk-shared
+        version: link:../../packages/shared
       '@hello-pangea/dnd':
         specifier: ^18.0.1
         version: 18.0.1(@types/react@19.0.14)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
