@@ -4,7 +4,6 @@ import {
   Suspense,
   useState,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useCallback,
@@ -16,13 +15,10 @@ import { useVoiceConversation } from '@/features/remote/hooks/useVoiceConversati
 import { SearchModeSwitch } from '@/features/remote/components/SearchModeSwitch';
 import { VoiceChatPanel } from '@/features/remote/components/VoiceChatPanel';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { Settings } from 'lucide-react';
 import { useRoom } from '@bs-kara/shared/hooks';
 import { useAutoRandom } from '@/hooks/useAutoRandom';
-import { useTransientNotice } from '@bs-kara/shared/hooks';
-import { primeAudio } from '@/hooks/useAIVoice';
 import { TopBar } from '@/features/remote/components/TopBar';
 import { BottomNav } from '@/features/remote/components/BottomNav';
 import { SearchPanel } from '@/features/remote/components/SearchPanel';
@@ -34,15 +30,16 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { QueueItem, YouTubeVideo } from '@bs-kara/shared';
 import { NowPlayingCard } from '@/features/remote/components/NowPlayingCard';
 import { FullscreenPlayer } from '@/features/remote/components/FullscreenPlayer';
-import { NeonOrbs } from '@/components/NeonOrbs';
-import { ThemeToggle } from '@/features/remote/components/ThemeToggle';
 import { AddedToast } from '@/features/remote/components/AddedToast';
 import { RequesterDialog } from '@/features/remote/components/RequesterDialog';
-import { JoinForm } from '@/features/remote/components/JoinForm';
+import { HomeScreen } from '@/features/remote/components/HomeScreen';
+import { NoticeBanner } from '@/features/remote/components/NoticeBanner';
 import { useRoomGate } from '@/features/remote/hooks/useRoomGate';
 import { useRequesterDialog } from '@/features/remote/hooks/useRequesterDialog';
 import { useQueuedMap } from '@/features/remote/hooks/useQueuedMap';
-import { useFullscreenOwnership } from '@/features/remote/hooks/useFullscreenOwnership';
+import { usePlaybackSurface } from '@/features/remote/hooks/usePlaybackSurface';
+import { useRoomNotices } from '@/features/remote/hooks/useRoomNotices';
+import { useHeaderAutoHide } from '@/features/remote/hooks/useHeaderAutoHide';
 import { useInactivityTimeout } from '@/features/remote/hooks/useInactivityTimeout';
 import { useCurrentHost } from '@/features/remote/hooks/useCurrentHost';
 import { useHostAuth } from '@/features/remote/hooks/useHostAuth';
@@ -99,55 +96,20 @@ function RemoteInner() {
   const [tab, setTab] = useTabParam();
   const [searchMode, setSearchMode] = useSearchModeParam();
   const voiceConversation = useVoiceConversation(roomCode, (i18n?.language ?? 'vi').startsWith('en') ? 'en' : 'vi', resetActivity);
-  const [playerOpen, setPlayerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const emojiLayerRef = useRef<EmojiLayerHandle>(null);
-  // Scroll-coupled chrome auto-hide. SearchPanel's results scroll drives a
-  // px offset (0..headerHeight + searchBarHeight) that translates the
-  // header and the search bar 1:1 with the gesture; `chromeSnap` is true
-  // only during the brief snap-to-rest transition at the end of a scroll.
-  // Gated on the search tab so we don't apply the inline transform when
-  // the user is on the queue tab and SearchPanel is hidden.
-  const headerRef = useRef<HTMLElement>(null);
-  // Seeded with a reasonable mobile header height so the first paint —
-  // before useLayoutEffect measures the real value — lands close to the
-  // correct offset. Without this, any content using `--header-h` for top
-  // padding (e.g. the SearchSkeleton chrome) briefly renders at 0px and
-  // overlaps the absolute-positioned mobile header.
-  const [headerHeight, setHeaderHeight] = useState(56);
-  useLayoutEffect(() => {
-    if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
-  }, []);
-
-  const [chromeOffset, setChromeOffset] = useState(0);
-  const [chromeSnap, setChromeSnap] = useState(false);
-  const handleChromeChange = useCallback((offset: number, snap: boolean) => {
-    setChromeOffset(offset);
-    setChromeSnap(snap);
-  }, []);
-
-  // When the search input is focused on mobile we want to reclaim every pixel
-  // for the keyboard + results: the header slides fully off-screen and the
-  // spacer inside SearchPanel (which reserves room for the absolute header)
-  // shrinks to zero. On desktop (lg+) the header is static and unaffected.
-  const searchFocusHide = tab === 'search' && searchMode === 'manual' && isSearchFocused;
-  // The spacer that SearchPanel adds for the absolute header must be 0 when
-  // we've hidden it; otherwise the top of the results list has dead space.
-  const effectiveHeaderHeight = searchFocusHide ? 0 : headerHeight;
-
-  const headerShift = searchFocusHide
-    ? headerHeight // fully above viewport
-    : tab === 'search' && searchMode === 'manual' ? Math.min(headerHeight, Math.max(0, chromeOffset)) : 0;
-  const headerSnap = tab === 'search' && searchMode === 'manual' && chromeSnap;
-  // Header is absolutely positioned on mobile (see className below) and
-  // floats above the list on its own layer, so retraction is pure
-  // translateY — no margin animation, no list reflow. The flex-1 content
-  // area below is padded by --header-h to keep its content clear of the
-  // header's resting position.
-  const headerStyle: CSSProperties = {
-    transform: `translateY(-${headerShift}px)`,
-  };
+  const {
+    headerRef,
+    headerStyle,
+    searchFocusHide,
+    headerSnap,
+    effectiveHeaderHeight,
+    handleChromeChange,
+  } = useHeaderAutoHide({
+    onManualSearch: tab === 'search' && searchMode === 'manual',
+    isSearchFocused,
+  });
   // Latches true on the first gear-icon click and stays true for the rest of
   // the session. Gates the dynamic-imported SettingsSheet so it doesn't
   // mount (and doesn't fetch its chunk) until the user actually opens it.
@@ -243,42 +205,13 @@ function RemoteInner() {
   const roomMissing =
     (!!rawRoomCode && !roomCode) || (!!roomCode && roomExists === false);
 
-  // Inline toast for transient notices (e.g. "the room you were in has
-  // ended"). Lives next to the rest of the home/main UI rather than the
-  // not-found panel that used to occupy this space.
-  const { notice, show: showNotice } = useTransientNotice(4000);
-
-  // When the TV ends the party (or the URL points at a stale/bad code), drop
-  // back to home and surface a toast so the user understands why.
-  useEffect(() => {
-    if (!roomMissing) return;
-    showNotice(t('errors.roomNotFound.message'));
-    handleLeave();
-  }, [roomMissing, handleLeave, showNotice, t]);
-
-  // End-Party toast: the TV writes `lastEndedAt` when it resets the room.
-  // We seed the ref with whatever value Firebase reports on the first
-  // snapshot so historical resets (or rejoining after the fact) don't
-  // re-trigger the toast — only forward jumps that happen while we're
-  // connected fire the notice.
-  const lastEndedSeenRef = useRef<number | null | undefined>(undefined);
-  useEffect(() => {
-    const value = roomData.lastEndedAt;
-    if (lastEndedSeenRef.current === undefined) {
-      lastEndedSeenRef.current = value;
-      return;
-    }
-    if (value && value !== lastEndedSeenRef.current) {
-      lastEndedSeenRef.current = value;
-      showNotice(t('tv.endPartyNotice'));
-    }
-  }, [roomData.lastEndedAt, showNotice, t]);
-
-  // Reset the seen marker when the room changes so a fresh subscribe
-  // re-seeds against the new room's history instead of replaying it.
-  useEffect(() => {
-    lastEndedSeenRef.current = undefined;
-  }, [roomCode]);
+  // Inline toast for transient notices ("the room you were in has ended", …).
+  const notice = useRoomNotices({
+    roomCode,
+    roomMissing,
+    lastEndedAt: roomData.lastEndedAt,
+    handleLeave,
+  });
 
   // Playback events count as activity — reset the inactivity timer when
   // the playing state or the current song changes.
@@ -335,177 +268,68 @@ function RemoteInner() {
     return { ...toastSong, queueId: item.queueId, queuePos: idx + 1 };
   })();
 
-  const { deviceId, claim, release } = useFullscreenOwnership(roomCode);
+  const {
+    playerOpen,
+    displayedIsPlaying,
+    isExpandBlocked,
+    handleTogglePlayPause,
+    handleExpand,
+    closePlayer,
+  } = usePlaybackSurface({
+    roomCode,
+    isTvActive: roomData.isTvActive,
+    fullscreenOwner: roomData.fullscreenOwner,
+    isPlaying: roomData.isPlaying,
+    togglePlayPause,
+    setIsPlaying,
+  });
 
-  // Cluster-wide view: any device (TV or a phone holding the
-  // fullscreenOwner lock) counts as "the cluster has a playback surface".
-  // displayedIsPlaying must trust Firebase whenever that's true, so a
-  // remote-control phone reflects the host's play/pause state instead of
-  // being clamped to "paused".
-  const someoneHasSurface =
-    roomData.isTvActive || roomData.fullscreenOwner !== null;
-  const iAmFullscreenOwner = roomData.fullscreenOwner === deviceId;
-  const displayedIsPlaying = someoneHasSurface ? roomData.isPlaying : false;
-
-  // Tapping play/pause on a phone that already has a host (TV or another
-  // phone) is a pure remote-control gesture — write Firebase, do not open
-  // local fullscreen. With no host in the cluster, this phone must claim
-  // the lock and become the host before opening its own surface.
-  //
-  // requestFullscreen MUST run synchronously inside the click handler,
-  // before the `await claim()`. After an await the user-gesture activation
-  // is consumed and the engine either rejects the request outright or
-  // briefly enters fullscreen and exits as untrusted — FullscreenPlayer's
-  // own fullscreenchange listener then interprets that exit as an explicit
-  // close. If the claim later loses the race, exit fullscreen as cleanup.
-  const handleTogglePlayPause = useCallback(() => {
-    if (someoneHasSurface) {
-      togglePlayPause(roomData.isPlaying);
-      return;
-    }
-    primeAudio();
-    document.documentElement.requestFullscreen?.().catch(() => {});
-    void (async () => {
-      const ok = await claim();
-      if (!ok) {
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
-        return;
-      }
-      setPlayerOpen(true);
-      // Assert intent so the iframe will play once the MC gate (if any)
-      // releases. Without this, expand-after-MC reads stale isPlaying=false.
-      setIsPlaying(true);
-    })();
-  }, [someoneHasSurface, roomData.isPlaying, togglePlayPause, claim, setIsPlaying]);
-
-  // Shared expand handler for the NowPlayingCard "maximize" button. Same
-  // sync-fullscreen-then-claim sequence as the surface-less togglePlayPause
-  // path above; see the comment there for why requestFullscreen cannot
-  // wait for the claim. Asserting isPlaying after claim is the Bug B fix.
-  const handleExpand = useCallback(() => {
-    primeAudio();
-    document.documentElement.requestFullscreen?.().catch(() => {});
-    void (async () => {
-      const ok = await claim();
-      if (!ok) {
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
-        return;
-      }
-      setPlayerOpen(true);
-      setIsPlaying(true);
-    })();
-  }, [claim, setIsPlaying]);
-
-  // True when another phone currently owns the surface — TV authority is
-  // already handled by hiding onExpand when isTvActive.
-  // TODO: NowPlayingCard does not yet support a `disabled` / `disabledReason`
-  // prop. Once it does, surface this state in the UI with a sublabel like
-  // "Đang xem trên thiết bị khác" instead of hiding the button.
-  const isExpandBlocked = roomData.isTvActive
-    ? false
-    : roomData.fullscreenOwner !== null && !iAmFullscreenOwner;
-
-  // TV came online while we held the phone-side fullscreen lock: drop the
-  // claim and close the local surface so the TV takes over cleanly. The TV
-  // doesn't write fullscreenOwner; isTvActive alone is enough to make
-  // someoneHasSurface true, so other phones already see the cluster as hosted.
-  useEffect(() => {
-    if (roomData.isTvActive && iAmFullscreenOwner) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      }
-      void release().then(() => setPlayerOpen(false));
-    }
-  }, [roomData.isTvActive, iAmFullscreenOwner, release]);
-
-  const noticeBanner = notice ? (
-    <div className="fixed top-4 inset-x-0 z-[60] flex justify-center px-16 sm:px-4 pointer-events-none">
-      <div
-        role="status"
-        aria-live="polite"
-        className="max-w-md px-4 py-2.5 rounded-2xl sm:rounded-full bg-surface-2 border border-glow/40 shadow-glow text-sm text-fg text-center pointer-events-auto"
-      >
-        {notice}
-      </div>
-    </div>
-  ) : null;
 
   if (!roomCode) {
     return (
-      <main className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center px-6 py-10 overflow-hidden bg-bg text-fg">
-        {noticeBanner}
-        <NeonOrbs />
-
-        <div className="absolute top-4 right-4 z-20">
-          <ThemeToggle />
-        </div>
-
-        <div className="relative z-10 w-full max-w-md flex flex-col items-center text-center">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted mb-3">
-            {t('home.appHeading')}
-          </p>
-          <h1
-            className="text-gradient-brand text-4xl sm:text-5xl font-bold mb-3"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            {t('home.wordmark')}
-          </h1>
-          <p className="text-sm sm:text-base text-muted mb-8">{t('home.tagline')}</p>
-
-          {isCoarsePointer === null || hostLoading ? (
-            <div className="w-full h-[260px] rounded-3xl border border-border bg-surface/70 backdrop-blur-md shadow-glow" />
-          ) : (
-            <div className="w-full flex flex-col gap-4">
-              {/* Host path — navigate directly; the guest-access API must
-                not gate the owner from their own room. */}
-              {hostProfile ? (
-                <Link
-                  href={`/?room=${hostProfile.roomCode}`}
-                  className="w-full py-3.5 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98] text-center block"
-                >
-                  {t('auth.goToMyRoom')}
-                </Link>
-              ) : (
-                <Link
-                  href="/register"
-                  className="w-full py-3.5 rounded-full bg-gradient-brand text-white font-semibold tracking-wide shadow-glow transition-transform active:scale-[0.98] text-center block"
-                >
-                  {t('auth.loginOrRegister')}
-                </Link>
-              )}
-
-              {/* Divider */}
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted uppercase tracking-widest">
-                  {t('auth.orDivider')}
-                </span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-
-              {/* Guest path — JoinForm provides its own card */}
-              <JoinForm
-                onJoin={submitJoin}
-                joinError={joinError}
-                isJoining={isJoining}
-              />
-            </div>
-          )}
-        </div>
-      </main>
+      <HomeScreen
+        notice={notice}
+        isCoarsePointer={isCoarsePointer}
+        hostProfile={hostProfile}
+        hostLoading={hostLoading}
+        onJoin={submitJoin}
+        joinError={joinError}
+        isJoining={isJoining}
+      />
     );
   }
+
+  // The mobile settings tab and the desktop settings modal show the same controls.
+  const settingsProps = {
+    roomCode,
+    autoRandomEnabled: roomData.isAutoRandomMode,
+    filters: roomData.randomFilters,
+    onAutoRandomToggle: setAutoRandomMode,
+    onFiltersChange: setRandomFilters,
+    dragDropEnabled: roomData.dragDropEnabled,
+    onDragDropToggle: setDragDropEnabled,
+    requesterPromptEnabled: roomData.requesterPromptEnabled,
+    onRequesterPromptToggle: setRequesterPromptEnabled,
+    voiceChatEnabled: roomData.voiceChatEnabled,
+    onVoiceChatToggle: setVoiceChatEnabled,
+    mcEnabled: roomData.isMCEnabled,
+    onMCToggle: setMCEnabled,
+    mcVoice: roomData.mcVoice,
+    onMcVoiceChange: setMcVoice,
+    aiScoringEnabled: roomData.aiScoringEnabled,
+    onAiScoringToggle: setAiScoringEnabled,
+    isHost,
+    guestCanRemove: roomData.guestCanRemove,
+    onGuestCanRemoveToggle: setGuestCanRemove,
+    onLeave: handleLeave,
+  };
 
   return (
     <main
       className="relative h-[100dvh] w-full flex flex-col overflow-hidden bg-bg text-fg"
       onPointerDown={resetActivity}
     >
-      {noticeBanner}
+      <NoticeBanner notice={notice} />
       <h1 className="sr-only">{t('home.appHeading')}</h1>
 
       <header
@@ -725,30 +549,7 @@ function RemoteInner() {
             <SettingsSkeleton />
           ) : (
             tab === 'settings' && (
-              <SettingsPanel
-                roomCode={roomCode}
-                autoRandomEnabled={roomData.isAutoRandomMode}
-                filters={roomData.randomFilters}
-                onAutoRandomToggle={setAutoRandomMode}
-                onFiltersChange={setRandomFilters}
-                dragDropEnabled={roomData.dragDropEnabled}
-                onDragDropToggle={setDragDropEnabled}
-                requesterPromptEnabled={roomData.requesterPromptEnabled}
-                onRequesterPromptToggle={setRequesterPromptEnabled}
-                voiceChatEnabled={roomData.voiceChatEnabled}
-                onVoiceChatToggle={setVoiceChatEnabled}
-                mcEnabled={roomData.isMCEnabled}
-                onMCToggle={setMCEnabled}
-                mcVoice={roomData.mcVoice}
-                onMcVoiceChange={setMcVoice}
-                aiScoringEnabled={roomData.aiScoringEnabled}
-                onAiScoringToggle={setAiScoringEnabled}
-                isHost={isHost}
-                guestCanRemove={roomData.guestCanRemove}
-                onGuestCanRemoveToggle={setGuestCanRemove}
-                panelOpen={tab === 'settings'}
-                onLeave={handleLeave}
-              />
+              <SettingsPanel {...settingsProps} panelOpen={tab === 'settings'} />
             )
           )}
         </section>
@@ -779,19 +580,7 @@ function RemoteInner() {
             roomData.isTvActive ? tryClaimAnnouncementLock : undefined
           }
           onSongEnd={playNext}
-          onClose={() => {
-            // Exit native fullscreen here (the parent owns this; see the
-            // long comment in FullscreenPlayer near the removed cleanup
-            // for why FullscreenPlayer must NOT do this from a useEffect
-            // teardown). Idempotent — fullscreenElement is null if the
-            // user just hit ESC / swiped to leave fullscreen, in which
-            // case the close-on-fs-exit listener routed us here.
-            if (document.fullscreenElement) {
-              document.exitFullscreen().catch(() => {});
-            }
-            setPlayerOpen(false);
-            void release();
-          }}
+          onClose={closePlayer}
           onPrev={playPrevious}
           onNext={playNext}
           onPlayingChange={setIsPlaying}
@@ -820,29 +609,9 @@ function RemoteInner() {
 
       {hasOpenedSettings && (
         <SettingsSheet
+          {...settingsProps}
           open={settingsOpen}
           onClose={() => setSettingsOpen(false)}
-          roomCode={roomCode}
-          autoRandomEnabled={roomData.isAutoRandomMode}
-          filters={roomData.randomFilters}
-          onAutoRandomToggle={setAutoRandomMode}
-          onFiltersChange={setRandomFilters}
-          dragDropEnabled={roomData.dragDropEnabled}
-          onDragDropToggle={setDragDropEnabled}
-          requesterPromptEnabled={roomData.requesterPromptEnabled}
-          onRequesterPromptToggle={setRequesterPromptEnabled}
-          voiceChatEnabled={roomData.voiceChatEnabled}
-          onVoiceChatToggle={setVoiceChatEnabled}
-          mcEnabled={roomData.isMCEnabled}
-          onMCToggle={setMCEnabled}
-          mcVoice={roomData.mcVoice}
-          onMcVoiceChange={setMcVoice}
-          aiScoringEnabled={roomData.aiScoringEnabled}
-          onAiScoringToggle={setAiScoringEnabled}
-          isHost={isHost}
-          guestCanRemove={roomData.guestCanRemove}
-          onGuestCanRemoveToggle={setGuestCanRemove}
-          onLeave={handleLeave}
         />
       )}
 
