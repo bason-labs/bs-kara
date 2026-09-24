@@ -2,8 +2,9 @@
 
 import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { initializeApp, getApps } from 'firebase/app';
+import { firebaseConfig } from '@bs-kara/shared/firebase-config';
 
-// We reuse the same Firebase config that lib/firebase.ts uses for RTDB, but
+// We reuse the shared Firebase config that the RTDB client uses, but
 // initialise a separate app instance so adding Auth here doesn't disturb the
 // existing RTDB singleton or its consumers. Both apps point at the same
 // project, which is what Auth needs anyway.
@@ -12,15 +13,7 @@ const ADMIN_AUTH_APP = 'bs-kara-admin-auth';
 function getAuthApp() {
   const existing = getApps().find((a) => a.name === ADMIN_AUTH_APP);
   if (existing) return existing;
-  return initializeApp(
-    {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    },
-    ADMIN_AUTH_APP,
-  );
+  return initializeApp(firebaseConfig, ADMIN_AUTH_APP);
 }
 
 export type AdminSignInError =

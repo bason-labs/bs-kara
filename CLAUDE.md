@@ -31,12 +31,12 @@ pnpm -C apps/web run test:rules     # Firebase rules suite (needs the emulator)
 
 ## Environment
 
-`.env.local` must contain:
+Web: `apps/web/.env.local` (often a symlink to the repo-root `.env.local`). Required:
 
 ```
 YOUTUBE_API_KEYS=<key1>,<key2>,<key3>     # server-side; comma-separated; rotated on 403
 GOOGLE_TTS_API_KEY=<key>                  # server-side; Google Cloud TTS for MC playback
-OPENAI_API_KEY=<key>                      # server-side; AI MC line generation (default provider)
+OPENAI_API_KEY=<key>                      # server-side; AI MC lines + voice chat agent
 GEMINI_API_KEY=<key>                      # server-side; AI MC fallback
 NEXT_PUBLIC_FIREBASE_API_KEY=<...>        # client; Firebase web config
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<...>
@@ -45,13 +45,19 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=<...>
 NEXT_PUBLIC_FIREBASE_APP_ID=<...>
 ```
 
-Optional:
+Optional (a missing value disables only that feature):
 
+- `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY` — Firebase Admin for the admin area, subscriptions, analytics and voice chat
+- `ADMIN_EMAILS` — comma-separated allow-list for `/admin`
 - `AI_MC_PROVIDER` — `openai` (default) or `gemini`
+- `NEXT_PUBLIC_ADMIN_TRIAL_DEFAULT_DAYS` — default trial length in the admin subscription form
 - `NEXT_PUBLIC_FIXED_ROOM_ID` — pins the TV to a specific room code instead of claiming via the active-room pointer (debug)
-- `NEXT_PUBLIC_SITE_URL` — used by `app/sitemap.ts`, `app/robots.ts`, `app/layout.tsx` for absolute URLs (defaults to `http://localhost:3000`)
+- `NEXT_PUBLIC_PUBLIC_ORIGIN` — origin for QR/join links, e.g. a dev tunnel (defaults to `window.location.origin`)
+- `NEXT_PUBLIC_SITE_URL` — absolute base URL for metadata, robots and sitemap, read in `lib/siteUrl.ts` (defaults to `http://localhost:3000`)
 
-Legacy: `NEXT_PUBLIC_YOUTUBE_API_KEY` is no longer used (search goes through the BFF). Safe to remove.
+Mobile: `apps/mobile/.env` holds the same Firebase config as `EXPO_PUBLIC_FIREBASE_*`, plus
+`EXPO_PUBLIC_API_BASE_URL` (the web app's origin, for the API routes). Both apps read the
+Firebase config through `packages/shared/src/lib/firebaseConfig.ts`.
 
 ## Architecture
 

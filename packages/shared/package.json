@@ -10,6 +10,10 @@
     "./hooks": {
       "types": "./src/hooks.ts",
       "default": "./src/hooks.ts"
+    },
+    "./firebase-config": {
+      "types": "./src/lib/firebaseConfig.ts",
+      "default": "./src/lib/firebaseConfig.ts"
     }
   },
   "scripts": {
