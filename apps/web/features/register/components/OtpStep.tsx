@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { OTPInput } from '@/features/remote/components/OTPInput';
+import { OTPInput } from '@/components/OTPInput';
 
 interface OtpStepProps {
   phone: string;

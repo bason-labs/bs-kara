@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 
-export const DEFAULT_MC_VOICE = 'vi-VN-Neural2-A';
+const DEFAULT_MC_VOICE = 'vi-VN-Neural2-A';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 
@@ -249,12 +249,4 @@ export function useAIVoice(): UseAIVoiceResult {
   );
 
   return { speak, cancel, previewVoice, voicesReady };
-}
-
-// No-op stub for API parity with apps/web call sites.
-// React Native / expo-av does not require an audio unlock gesture in the
-// same way browsers do — Audio.Sound.createAsync works without a prior
-// user gesture on both iOS and Android.
-export function primeAudio(): void {
-  // intentional no-op
 }

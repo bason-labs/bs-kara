@@ -1,7 +1,7 @@
 import { auth } from '@bs-kara/shared';
 import type { VoiceLanguage, VoiceSessionCredentials, VoiceTurnRequest, VoiceTurnResponse } from './types';
 
-export class VoiceRequestError extends Error {
+class VoiceRequestError extends Error {
   constructor(public code: string, public status: number) { super(code); }
 }
 

@@ -159,7 +159,7 @@ vi.mock('@/components/EmojiLayer', () => ({
   EmojiLayer: () => null,
 }));
 
-vi.mock('@/features/remote/components/NeonOrbs', () => ({
+vi.mock('@/components/NeonOrbs', () => ({
   NeonOrbs: () => null,
 }));
 

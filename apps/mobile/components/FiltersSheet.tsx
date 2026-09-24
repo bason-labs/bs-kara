@@ -8,7 +8,7 @@ import { useColors } from '@/hooks/useColors';
 export interface FilterOption { id: string; label: string; keyword: string; }
 export interface FilterGroup { labelKey: string; options: FilterOption[]; }
 
-export const FILTER_GROUPS: FilterGroup[] = [
+const FILTER_GROUPS: FilterGroup[] = [
   {
     labelKey: 'search.filterGroupHinhThuc',
     options: [

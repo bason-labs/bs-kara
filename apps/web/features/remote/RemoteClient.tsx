@@ -34,7 +34,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { QueueItem, YouTubeVideo } from '@bs-kara/shared';
 import { NowPlayingCard } from '@/features/remote/components/NowPlayingCard';
 import { FullscreenPlayer } from '@/features/remote/components/FullscreenPlayer';
-import { NeonOrbs } from '@/features/remote/components/NeonOrbs';
+import { NeonOrbs } from '@/components/NeonOrbs';
 import { ThemeToggle } from '@/features/remote/components/ThemeToggle';
 import { AddedToast } from '@/features/remote/components/AddedToast';
 import { RequesterDialog } from '@/features/remote/components/RequesterDialog';
