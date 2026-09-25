@@ -209,6 +209,7 @@ function RemoteInner() {
   const notice = useRoomNotices({
     roomCode,
     roomMissing,
+    roomLoaded: roomExists === true,
     lastEndedAt: roomData.lastEndedAt,
     handleLeave,
   });
