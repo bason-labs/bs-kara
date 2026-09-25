@@ -11,7 +11,7 @@ import { PhoneStep } from './components/PhoneStep';
 import { OtpStep } from './components/OtpStep';
 import { NameStep } from './components/NameStep';
 import { StepDots } from './components/StepDots';
-import { registerUser, lookupUserByPhone, ensureHostUid } from '@/lib/registeredUsers';
+import { registerUser, lookupUserByPhone, ensureHostUid } from '@bs-kara/shared/registered-users';
 import type { RegisterStep } from './types';
 
 type Step = RegisterStep;

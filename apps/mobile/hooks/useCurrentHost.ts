@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '@bs-kara/shared';
-import { lookupUserByPhone, type RegisteredUser } from '@/lib/registeredUsers';
+import { lookupUserByPhone, type RegisteredUser } from '@bs-kara/shared/registered-users';
 
 export interface CurrentHostState {
   user: User | null;

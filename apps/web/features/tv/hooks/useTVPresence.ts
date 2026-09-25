@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { onDisconnect, ref, remove, set } from 'firebase/database';
 import { db } from '@bs-kara/shared';
-import { lookupUserByCode, lookupUserByPhone } from '@/lib/registeredUsers';
+import { lookupUserByCode, lookupUserByPhone } from '@bs-kara/shared/registered-users';
 import { getActiveRoomPresencePath, getRoomDataPath } from '@bs-kara/shared';
 import { getPublicOrigin } from '@/lib/publicOrigin';
 

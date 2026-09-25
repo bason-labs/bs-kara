@@ -7,7 +7,7 @@ import {
   useCreateSubscription,
   type CreateSubscriptionFormInput,
 } from '../hooks/useCreateSubscription';
-import { toE164VN } from '@/lib/subscriptions/phone';
+import { toE164VN } from '@bs-kara/shared/phone';
 
 type SubscriptionType = 'trial' | 'paid';
 

@@ -19,8 +19,8 @@ import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { getApp } from 'firebase/app';
 import { auth } from '@bs-kara/shared';
 import { usePhoneAuth } from '@/hooks/usePhoneAuth';
-import { registerUser, lookupUserByPhone, ensureHostUid } from '@/lib/registeredUsers';
-import { toE164VN } from '@/lib/phone';
+import { registerUser, lookupUserByPhone, ensureHostUid } from '@bs-kara/shared/registered-users';
+import { toE164VN } from '@bs-kara/shared/phone';
 import { useColors } from '@/hooks/useColors';
 
 type UiStep = 'phone' | 'otp' | 'name';

@@ -9,7 +9,7 @@ vi.mock('firebase/auth', () => ({
   getAuth: vi.fn(),
   onAuthStateChanged: vi.fn(),
 }));
-vi.mock('@/lib/registeredUsers', () => ({
+vi.mock('@bs-kara/shared/registered-users', () => ({
   lookupUserByPhone: (...args: unknown[]) => mockLookup(...args),
 }));
 

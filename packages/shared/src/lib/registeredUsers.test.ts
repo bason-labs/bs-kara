@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/lib/firebase', () => ({ db: {} }));
+vi.mock('./firebase', () => ({ db: {} }));
 
 vi.mock('firebase/database', () => ({
   getDatabase: vi.fn(),

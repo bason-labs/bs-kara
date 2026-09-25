@@ -8,7 +8,7 @@ import {
   type SubscriptionDetailData,
 } from '../hooks/useSubscriptionDetail';
 import { useCancelSubscription } from '../hooks/useCancelSubscription';
-import { lookupUserByPhone } from '@/lib/registeredUsers';
+import { lookupUserByPhone } from '@bs-kara/shared/registered-users';
 import type {
   DerivedStatus,
   SubscriptionRecord,
