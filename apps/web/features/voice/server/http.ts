@@ -1,8 +1,8 @@
 import 'server-only';
 import { getAuth } from 'firebase-admin/auth';
 import { getDatabase } from 'firebase-admin/database';
-import { getAdminApp } from '@/features/admin/lib/firebaseAdmin';
-import { searchYouTubeServer } from '@/lib/youtube/server';
+import { getAdminApp } from '@/server/firebaseAdmin';
+import { searchYouTubeServer } from '@/server/youtube';
 import { openAI, runAgent } from './agent';
 import { VoiceError, VoiceService } from './service';
 

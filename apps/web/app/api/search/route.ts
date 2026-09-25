@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { searchYouTubeScraper } from '@/lib/youtube/server';
+import { searchYouTubeScraper } from '@/server/youtube';
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q') ?? '';

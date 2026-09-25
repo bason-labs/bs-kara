@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const updateMock = vi.fn().mockResolvedValue(undefined);
 const refMock = vi.fn(() => ({ update: updateMock }));
 
-vi.mock('@/features/admin/lib/firebaseAdmin', () => ({
+vi.mock('@/server/firebaseAdmin', () => ({
   getAdminApp: vi.fn(() => ({})),
 }));
 
@@ -17,7 +17,7 @@ vi.mock('@bs-kara/shared', () => ({
   ptDateKey: vi.fn(() => '20260515'),
 }));
 
-import { recordSearchTotal, recordSearchLive } from './serverAnalytics';
+import { recordSearchTotal, recordSearchLive } from './analytics';
 
 describe('serverAnalytics', () => {
   beforeEach(() => {

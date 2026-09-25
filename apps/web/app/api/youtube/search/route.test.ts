@@ -8,7 +8,7 @@ vi.mock('next/cache', () => ({
 
 // Analytics writes are fire-and-forget side-effects; stub them out so tests
 // don't need a real Firebase Admin instance.
-vi.mock('@/lib/analytics/serverAnalytics', () => ({
+vi.mock('@/server/analytics', () => ({
   recordSearchLive: vi.fn(),
   recordSearchTotal: vi.fn(),
 }));

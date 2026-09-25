@@ -1,7 +1,7 @@
 import 'server-only';
 import { cookies } from 'next/headers';
 import { getAuth } from 'firebase-admin/auth';
-import { getAdminApp } from './firebaseAdmin';
+import { getAdminApp } from '@/server/firebaseAdmin';
 
 export const ADMIN_SESSION_COOKIE = '__session';
 

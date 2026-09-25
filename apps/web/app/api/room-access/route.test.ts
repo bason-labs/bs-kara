@@ -4,7 +4,7 @@ import {
   getRoomCodeIndexEntryPath,
   getRegisteredUserPath,
 } from '@bs-kara/shared';
-import { byPhoneRoot, subscriptionPath } from '@/lib/subscriptions/paths';
+import { byPhoneRoot, subscriptionPath } from '@/server/subscriptions/paths';
 
 // --- Firebase Admin mocks ---
 type FakeSnap = { exists: () => boolean; val: () => unknown };
@@ -17,7 +17,7 @@ const refMock = vi.fn((path: string) => ({
   }),
 }));
 
-vi.mock('@/features/admin/lib/firebaseAdmin', () => ({
+vi.mock('@/server/firebaseAdmin', () => ({
   getAdminApp: vi.fn(() => ({})),
 }));
 

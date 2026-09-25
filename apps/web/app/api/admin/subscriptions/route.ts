@@ -3,11 +3,11 @@ import { ZodError } from 'zod';
 import {
   requireAdmin,
   AdminAuthError,
-} from '@/features/admin/lib/requireAdmin';
+} from '@/server/admin/requireAdmin';
 import {
   createSubscription,
   listSubscriptions,
-} from '@/lib/subscriptions/repo';
+} from '@/server/subscriptions/repo';
 import { CreateSubscriptionInputSchema } from '@/lib/subscriptions/schema';
 import { toE164VN } from '@/lib/subscriptions/phone';
 

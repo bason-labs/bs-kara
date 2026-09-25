@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-vi.mock('@/features/admin/lib/firebaseAdmin', () => ({ getAdminApp: () => { throw new Error('missing credentials'); } }));
+vi.mock('@/server/firebaseAdmin', () => ({ getAdminApp: () => { throw new Error('missing credentials'); } }));
 vi.mock('openai', () => ({ default: class OpenAI {}, toFile: vi.fn() }));
 import { POST as session } from '@/app/api/voice/session/route';
 import { POST as turn } from '@/app/api/voice/turn/route';

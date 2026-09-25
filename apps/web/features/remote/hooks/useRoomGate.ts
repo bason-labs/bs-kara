@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { RoomAccessReason } from '@/app/api/room-access/route';
+import type { RoomAccessReason } from '@/lib/roomAccess';
 
 const ROOM_CODE_PATTERN = /^\d{4,7}$/;
 

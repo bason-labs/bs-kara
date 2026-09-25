@@ -1,4 +1,4 @@
-import { parseAdminEmails } from '@/features/admin/lib/requireAdmin';
+import { parseAdminEmails } from '@/server/admin/requireAdmin';
 
 export function WhitelistPanel() {
   const emails = Array.from(parseAdminEmails(process.env.ADMIN_EMAILS)).sort();

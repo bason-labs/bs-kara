@@ -3,7 +3,7 @@ import ytSearch from 'yt-search';
 import { unstable_cache } from 'next/cache';
 import type { YouTubeVideo } from '@bs-kara/shared';
 import { normalizeDiacritics } from '@bs-kara/shared';
-import { recordSearchLive, recordSearchTotal } from '@/lib/analytics/serverAnalytics';
+import { recordSearchLive, recordSearchTotal } from '@/server/analytics';
 
 const YOUTUBE_ENDPOINT = 'https://www.googleapis.com/youtube/v3/search';
 const CACHE_REVALIDATE_SECONDS = 3600;
