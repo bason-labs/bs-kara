@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { SITE_URL } from "@/lib/siteUrl";
 
 const beVietnamPro = Be_Vietnam_Pro({
   variable: "--font-sans",
@@ -21,7 +22,6 @@ const spaceGrotesk = Space_Grotesk({
 // Mirrors the resolution logic in ThemeProvider.
 const NO_FLASH_THEME_SCRIPT = `(function(){try{var p=localStorage.getItem('karaoke_theme')||'system';var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var t=d?'dark':'light';document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;}catch(e){document.documentElement.setAttribute('data-theme','dark');document.documentElement.style.colorScheme='dark';}})();`;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const APP_DESCRIPTION =
   "Ứng dụng chọn bài hát Karaoke thời gian thực từ điện thoại lên TV cực kỳ mượt mà.";
 

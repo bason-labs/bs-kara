@@ -11,8 +11,6 @@ export default defineConfig({
       // from the client. Under Vitest there is no Next.js runtime, so we
       // stub it to a no-op so server-only files can be unit-tested.
       'server-only': fileURLToPath(new URL('./tests/stubs/server-only.ts', import.meta.url)),
-      '@bs-kara/shared/hooks': fileURLToPath(new URL('../../packages/shared/src/hooks.ts', import.meta.url)),
-      '@bs-kara/shared': fileURLToPath(new URL('../../packages/shared/src/index.ts', import.meta.url)),
     },
   },
   test: {
