@@ -1,4 +1,4 @@
-// bk-mobile/app/(room)/settings.tsx
+// apps/mobile/app/(room)/settings.tsx
 import { View, Text, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { LogOut } from 'lucide-react-native';

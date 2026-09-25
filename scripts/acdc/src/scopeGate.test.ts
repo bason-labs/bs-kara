@@ -10,14 +10,14 @@ const PROTECTED = [
   'pnpm-workspace.yaml',
   'pnpm-lock.yaml',
   'database.rules.json',
-  'bk-web/lib/firebase*',
-  'bk-web/**/firebase*',
+  'apps/web/lib/firebase*',
+  'apps/web/**/firebase*',
 ];
 
 describe('evaluateScopeGate', () => {
   it('passes when only ordinary app files change', () => {
     const r = evaluateScopeGate({
-      changedPaths: ['bk-web/features/remote/RemoteClient.tsx'],
+      changedPaths: ['apps/web/features/remote/RemoteClient.tsx'],
       protectedGlobs: PROTECTED,
       humanApproved: false,
     });
@@ -47,26 +47,26 @@ describe('evaluateScopeGate', () => {
 
   it('hard-fails on Firebase rules regardless of approval flag being false', () => {
     const r = evaluateScopeGate({
-      changedPaths: ['database.rules.json', 'bk-web/lib/firebaseAdmin.ts'],
+      changedPaths: ['database.rules.json', 'apps/web/lib/firebaseAdmin.ts'],
       protectedGlobs: PROTECTED,
       humanApproved: false,
     });
     expect(r.pass).toBe(false);
     expect(r.hardViolations.sort()).toEqual(
-      ['bk-web/lib/firebaseAdmin.ts', 'database.rules.json'].sort(),
+      ['apps/web/lib/firebaseAdmin.ts', 'database.rules.json'].sort(),
     );
   });
 
   it('emits an advisory warning for out-of-area files but still passes', () => {
     const r = evaluateScopeGate({
-      changedPaths: ['bk-mobile/app/index.tsx'],
+      changedPaths: ['apps/mobile/app/index.tsx'],
       protectedGlobs: PROTECTED,
       humanApproved: false,
       areaLabel: 'area:web',
-      areaGlobs: { 'area:web': ['bk-web/**'], 'area:mobile': ['bk-mobile/**'] },
+      areaGlobs: { 'area:web': ['apps/web/**'], 'area:mobile': ['apps/mobile/**'] },
     });
     expect(r.pass).toBe(true);
-    expect(r.advisoryWarnings).toContain('bk-mobile/app/index.tsx');
+    expect(r.advisoryWarnings).toContain('apps/mobile/app/index.tsx');
   });
 
   it('passes on an empty changeset', () => {
@@ -76,11 +76,11 @@ describe('evaluateScopeGate', () => {
 
   it('flags an unknown area label (not multiple, not in the map)', () => {
     const r = evaluateScopeGate({
-      changedPaths: ['bk-web/app/page.tsx'],
+      changedPaths: ['apps/web/app/page.tsx'],
       protectedGlobs: PROTECTED,
       humanApproved: false,
       areaLabel: 'area:does-not-exist',
-      areaGlobs: { 'area:web': ['bk-web/**'] },
+      areaGlobs: { 'area:web': ['apps/web/**'] },
     });
     expect(r.unknownArea).toBe(true);
     expect(r.pass).toBe(true);
@@ -88,11 +88,11 @@ describe('evaluateScopeGate', () => {
 
   it('does not flag area:multiple as unknown', () => {
     const r = evaluateScopeGate({
-      changedPaths: ['bk-web/app/page.tsx'],
+      changedPaths: ['apps/web/app/page.tsx'],
       protectedGlobs: PROTECTED,
       humanApproved: false,
       areaLabel: 'area:multiple',
-      areaGlobs: { 'area:web': ['bk-web/**'] },
+      areaGlobs: { 'area:web': ['apps/web/**'] },
     });
     expect(r.unknownArea).toBe(false);
   });

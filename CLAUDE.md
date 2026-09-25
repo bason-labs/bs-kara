@@ -24,9 +24,9 @@ pnpm dev               # web dev server (turbo dev --filter=@bs-kara/web)
 pnpm build             # production build (turbo build)
 pnpm lint              # ESLint (turbo lint)
 pnpm test              # Vitest, all workspaces (turbo test)
-pnpm -C bk-web run typecheck      # tsc --noEmit for the web app
-pnpm -C bk-web run test:e2e       # Playwright (root config; builds + serves bk-web)
-pnpm -C bk-web run test:rules     # Firebase rules suite (needs the emulator)
+pnpm -C apps/web run typecheck      # tsc --noEmit for the web app
+pnpm -C apps/web run test:e2e       # Playwright (root config; builds + serves apps/web)
+pnpm -C apps/web run test:rules     # Firebase rules suite (needs the emulator)
 ```
 
 ## Environment
@@ -233,15 +233,15 @@ If "Files changed (tests)" is empty for a non-trivial change, you MUST explicitl
 
 ## ACDC automated runs (held-constant Guide for agent work)
 
-This repo is a pnpm@10.11 + turbo monorepo (`bk-web`, `bk-mobile`, `bk-mobile-ui`,
-`bk-shared`, and the `@bs-kara/acdc` automation workspace under `scripts/acdc`).
+This repo is a pnpm@10.11 + turbo monorepo (`apps/web`, `apps/mobile`,
+`packages/shared`, and the `@bs-kara/acdc` automation workspace under `scripts/acdc`).
 
 When an agent implements an `agent-ready` ticket:
 - Work in a git worktree at `../bs-kara-wt/issue-N` on branch `run/issue-N` off
   `origin/main`. Never check out `main` into a worktree.
 - Touch only files in the ticket's declared Area; the CI `scope-gate` blocks
   protected paths (`.github/`, `.claude/`, `scripts/acdc/`, `database.rules.json`,
-  `bk-web/lib/firebase*`, root manifests) unless a CODEOWNER approves.
+  `apps/web/lib/firebase*`, root manifests) unless a CODEOWNER approves.
 - Run the exact green bar CI runs, in this order (build first so `next` regenerates
   `.next/types/*` before `tsc` reads them): `pnpm exec turbo run build --filter=@bs-kara/web`,
   then `pnpm exec turbo run typecheck lint test --filter=@bs-kara/web`, then

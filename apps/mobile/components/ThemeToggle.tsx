@@ -1,4 +1,4 @@
-// bk-mobile/components/ThemeToggle.tsx
+// apps/mobile/components/ThemeToggle.tsx
 import { TouchableOpacity } from 'react-native';
 import { Sun, Moon, Monitor } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';

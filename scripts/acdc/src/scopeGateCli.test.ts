@@ -15,7 +15,7 @@ describe('runScopeGate', () => {
   it('returns exit code 0 on an in-scope change', () => {
     const lines: string[] = [];
     const code = runScopeGate(
-      { changedPaths: ['bk-web/app/page.tsx'], humanApproved: false },
+      { changedPaths: ['apps/web/app/page.tsx'], humanApproved: false },
       (m) => lines.push(m),
     );
     expect(code).toBe(0);
@@ -56,17 +56,17 @@ describe('runScopeGate', () => {
   it('warns on an out-of-area change through the real AREA_GLOBS but still passes', () => {
     const lines: string[] = [];
     const code = runScopeGate(
-      { changedPaths: ['bk-mobile/app/x.tsx'], humanApproved: false, areaLabel: 'area:web' },
+      { changedPaths: ['apps/mobile/app/x.tsx'], humanApproved: false, areaLabel: 'area:web' },
       (m) => lines.push(m),
     );
     expect(code).toBe(0);
-    expect(lines.join('\n')).toContain('::warning::out-of-area change: bk-mobile/app/x.tsx');
+    expect(lines.join('\n')).toContain('::warning::out-of-area change: apps/mobile/app/x.tsx');
   });
 
   it('warns on an unknown area label', () => {
     const lines: string[] = [];
     const code = runScopeGate(
-      { changedPaths: ['bk-web/app/page.tsx'], humanApproved: false, areaLabel: 'area:nope' },
+      { changedPaths: ['apps/web/app/page.tsx'], humanApproved: false, areaLabel: 'area:nope' },
       (m) => lines.push(m),
     );
     expect(code).toBe(0);

@@ -18,14 +18,14 @@ export const PROTECTED_GLOBS = [
   'pnpm-workspace.yaml',
   'pnpm-lock.yaml',
   'database.rules.json',
-  'bk-web/lib/firebase*',
-  'bk-web/**/firebase*',
+  'apps/web/lib/firebase*',
+  'apps/web/**/firebase*',
 ];
 
 export const AREA_GLOBS: Record<string, string[]> = {
-  'area:web': ['bk-web/**', 'e2e/**', 'playwright.config.ts'],
-  'area:mobile': ['bk-mobile/**', 'bk-mobile-ui/**'],
-  'area:shared': ['bk-shared/**'],
+  'area:web': ['apps/web/**', 'e2e/**', 'playwright.config.ts'],
+  'area:mobile': ['apps/mobile/**'],
+  'area:shared': ['packages/shared/**'],
   'area:e2e': ['e2e/**', 'playwright.config.ts'],
   'area:infra': ['.github/**', 'scripts/acdc/**', 'turbo.json'],
 };

@@ -16,7 +16,7 @@ import { ref, set, get, push } from 'firebase/database';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-const RULES_PATH = path.resolve(__dirname, '../../../database.rules.json');
+const RULES_PATH = path.resolve(__dirname, '../../../../database.rules.json');
 const SNAPSHOT_PATH = path.resolve(
   __dirname,
   './fixtures/production-snapshot.json',

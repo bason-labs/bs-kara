@@ -251,7 +251,7 @@ export function useAIVoice(): UseAIVoiceResult {
   return { speak, cancel, previewVoice, voicesReady };
 }
 
-// No-op stub for API parity with bk-web call sites.
+// No-op stub for API parity with apps/web call sites.
 // React Native / expo-av does not require an audio unlock gesture in the
 // same way browsers do — Audio.Sound.createAsync works without a prior
 // user gesture on both iOS and Android.
