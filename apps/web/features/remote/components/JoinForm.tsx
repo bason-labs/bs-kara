@@ -3,7 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QrCode } from 'lucide-react';
-import { OTPInput } from './OTPInput';
+import { OTPInput } from '@/components/OTPInput';
 
 interface JoinFormProps {
   onJoin: (code: string) => void;

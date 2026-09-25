@@ -27,7 +27,7 @@ vi.mock('@/features/remote/components/SearchPanel', () => ({ SearchPanel: () => 
 vi.mock('@/features/remote/components/ClientQueue', () => ({ ClientQueue: () => null }));
 vi.mock('@/features/remote/components/EmojiPad', () => ({ EmojiPad: () => null }));
 vi.mock('@/components/EmojiLayer', () => ({ EmojiLayer: () => null }));
-vi.mock('@/features/remote/components/NeonOrbs', () => ({ NeonOrbs: () => null }));
+vi.mock('@/components/NeonOrbs', () => ({ NeonOrbs: () => null }));
 vi.mock('@/features/remote/components/ThemeToggle', () => ({ ThemeToggle: () => null }));
 vi.mock('@/features/remote/components/AddedToast', () => ({ AddedToast: () => null }));
 vi.mock('@/features/remote/components/RequesterDialog', () => ({ RequesterDialog: () => null }));

@@ -1,11 +1,4 @@
-import {
-  cert,
-  deleteApp,
-  getApp,
-  getApps,
-  initializeApp,
-  type App,
-} from 'firebase-admin/app';
+import { cert, getApps, initializeApp, type App } from 'firebase-admin/app';
 
 const APP_NAME = 'bs-kara-admin';
 
@@ -38,15 +31,4 @@ export function getAdminApp(): App {
     },
     APP_NAME,
   );
-}
-
-// Test seam — exported so unit tests can reset the cached app between cases.
-// Production code should never call this.
-export function __resetAdminAppForTests() {
-  try {
-    const app = getApp(APP_NAME);
-    void deleteApp(app);
-  } catch {
-    // no-op: app was not initialised
-  }
 }

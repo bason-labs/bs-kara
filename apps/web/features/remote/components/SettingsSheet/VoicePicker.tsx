@@ -25,7 +25,7 @@ const VOICE_PREVIEW_FALLBACK =
   'Xin chào, đây là giọng đọc thử của hệ thống.';
 
 // Keep in sync with the ALLOWED_VOICES whitelist in app/api/tts/route.ts.
-export const MC_VOICE_OPTIONS: { value: string; labelKey: string }[] = [
+const MC_VOICE_OPTIONS: { value: string; labelKey: string }[] = [
   { value: 'vi-VN-Neural2-A', labelKey: 'settings.mcVoiceOptions.neural2A' },
   { value: 'vi-VN-Wavenet-C', labelKey: 'settings.mcVoiceOptions.wavenetC' },
   { value: 'vi-VN-Neural2-D', labelKey: 'settings.mcVoiceOptions.neural2D' },

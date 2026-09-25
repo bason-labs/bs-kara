@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react';
-import { NeonOrbs } from '@/features/remote/components/NeonOrbs';
+import { NeonOrbs } from '@/components/NeonOrbs';
 import { auth } from '@bs-kara/shared';
 import { usePhoneAuth } from './hooks/usePhoneAuth';
 import { PhoneStep } from './components/PhoneStep';

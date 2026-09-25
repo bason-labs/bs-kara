@@ -27,9 +27,9 @@ export interface SubscriptionRecord {
   updatedAt: number;
 }
 
-export const SUBSCRIPTION_TYPES = ['trial', 'paid'] as const;
-export const SUBSCRIPTION_STATUSES = ['active', 'cancelled'] as const;
-export const SUBSCRIPTION_SOURCES = [
+const SUBSCRIPTION_TYPES = ['trial', 'paid'] as const;
+const SUBSCRIPTION_STATUSES = ['active', 'cancelled'] as const;
+const SUBSCRIPTION_SOURCES = [
   'manual_admin',
   'self_register_phone',
   'payment_webhook',
