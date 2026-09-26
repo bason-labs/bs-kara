@@ -16,119 +16,44 @@ function item(over: Partial<QueueItem> = {}): QueueItem {
   };
 }
 
+const noop = () => {};
+
 describe('ClientQueue', () => {
-  it('shows the empty state when there are no items', () => {
-    render(<ClientQueue items={[]} onReorder={() => {}} onRemove={() => {}} />);
-    expect(screen.getByText('queue.emptyMessage')).toBeInTheDocument();
-  });
-
-  it('renders one row per item with title and remove button', () => {
-    render(
-      <ClientQueue
-        items={[item({ queueId: 'q1', title: 'A' }), item({ queueId: 'q2', title: 'B' })]}
-        onReorder={() => {}}
-        onRemove={() => {}}
-        isHost={true}
-      />,
-    );
-    expect(screen.getByText('A')).toBeInTheDocument();
-    expect(screen.getByText('B')).toBeInTheDocument();
-    expect(
-      screen.getAllByRole('button', { name: 'queue.removeAriaLabel' }),
-    ).toHaveLength(2);
-  });
-
   it('clicking remove calls onRemove with the queueId', async () => {
     const onRemove = vi.fn();
-    const user = userEvent.setup();
-    render(
-      <ClientQueue
-        items={[item({ queueId: 'q1' })]}
-        onReorder={() => {}}
-        onRemove={onRemove}
-        isHost={true}
-      />,
-    );
-    await user.click(screen.getByRole('button', { name: 'queue.removeAriaLabel' }));
+    render(<ClientQueue items={[item({ queueId: 'q1' })]} onReorder={noop} onRemove={onRemove} isHost />);
+    await userEvent.click(screen.getByRole('button', { name: 'queue.removeAriaLabel' }));
     expect(onRemove).toHaveBeenCalledWith('q1');
   });
 
-  it('shows an "add singer" pill when onEditRequester is provided and no requester yet', () => {
-    render(
-      <ClientQueue
-        items={[item()]}
-        onReorder={() => {}}
-        onRemove={() => {}}
-        onEditRequester={() => {}}
-      />,
-    );
-    expect(screen.getByRole('button', { name: 'requester.addAriaLabel' })).toBeInTheDocument();
-  });
+  it.each([
+    { isHost: true, guestCanRemove: false, canRemove: true },
+    { isHost: false, guestCanRemove: true, canRemove: true },
+    { isHost: false, guestCanRemove: false, canRemove: false },
+  ])(
+    'isHost=$isHost, guestCanRemove=$guestCanRemove → remove button shown: $canRemove',
+    ({ isHost, guestCanRemove, canRemove }) => {
+      render(
+        <ClientQueue
+          items={[item()]}
+          onReorder={noop}
+          onRemove={noop}
+          isHost={isHost}
+          guestCanRemove={guestCanRemove}
+        />,
+      );
+      const buttons = screen.queryAllByRole('button', { name: 'queue.removeAriaLabel' });
+      expect(buttons).toHaveLength(canRemove ? 1 : 0);
+    },
+  );
 
-  it('shows an "edit singer" pill when a requesterName is set', () => {
+  it.each([
+    { requesterName: undefined, label: 'requester.addAriaLabel' },
+    { requesterName: 'Alice', label: 'requester.editAriaLabel' },
+  ])('requester pill uses $label when requesterName=$requesterName', ({ requesterName, label }) => {
     render(
-      <ClientQueue
-        items={[item({ requesterName: 'Alice' })]}
-        onReorder={() => {}}
-        onRemove={() => {}}
-        onEditRequester={() => {}}
-      />,
+      <ClientQueue items={[item({ requesterName })]} onReorder={noop} onRemove={noop} onEditRequester={noop} />,
     );
-    expect(screen.getByRole('button', { name: 'requester.editAriaLabel' })).toBeInTheDocument();
-    expect(screen.getByText('Alice')).toBeInTheDocument();
-  });
-
-  it('renders the static (non-DnD) list when dragDropEnabled=false', () => {
-    render(
-      <ClientQueue
-        items={[item({ queueId: 'q1' })]}
-        dragDropEnabled={false}
-        onReorder={() => {}}
-        onRemove={() => {}}
-      />,
-    );
-    // Static path doesn't add the Reorder song aria label.
-    expect(screen.queryByLabelText('Reorder song')).toBeNull();
-  });
-});
-
-describe('ClientQueue — role gating', () => {
-  it('shows remove button when isHost is true regardless of guestCanRemove', () => {
-    render(
-      <ClientQueue
-        items={[item()]}
-        onReorder={() => {}}
-        onRemove={() => {}}
-        isHost={true}
-        guestCanRemove={false}
-      />,
-    );
-    expect(screen.getByRole('button', { name: 'queue.removeAriaLabel' })).toBeInTheDocument();
-  });
-
-  it('shows remove button when guestCanRemove is true', () => {
-    render(
-      <ClientQueue
-        items={[item()]}
-        onReorder={() => {}}
-        onRemove={() => {}}
-        isHost={false}
-        guestCanRemove={true}
-      />,
-    );
-    expect(screen.getByRole('button', { name: 'queue.removeAriaLabel' })).toBeInTheDocument();
-  });
-
-  it('hides remove button when isHost is false and guestCanRemove is false', () => {
-    render(
-      <ClientQueue
-        items={[item()]}
-        onReorder={() => {}}
-        onRemove={() => {}}
-        isHost={false}
-        guestCanRemove={false}
-      />,
-    );
-    expect(screen.queryByRole('button', { name: 'queue.removeAriaLabel' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
   });
 });

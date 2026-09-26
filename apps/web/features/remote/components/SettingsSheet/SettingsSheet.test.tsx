@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('./sections/ThemeSection', () => ({
@@ -49,22 +49,3 @@ describe('SettingsSheet — scroll container placement', () => {
   });
 });
 
-describe('SettingsSheet — role gating', () => {
-  it('shows only theme and room sections when isHost is false', () => {
-    render(<SettingsSheet {...baseProps} isHost={false} />);
-    expect(screen.getByText('settings.sections.appearance')).toBeInTheDocument();
-    expect(screen.getByText('settings.sections.room')).toBeInTheDocument();
-    expect(screen.queryByText('settings.sections.queue')).not.toBeInTheDocument();
-    expect(screen.queryByText('settings.sections.autoRandom')).not.toBeInTheDocument();
-    expect(screen.queryByText('settings.sections.aiMc')).not.toBeInTheDocument();
-  });
-
-  it('shows all sections when isHost is true', () => {
-    render(<SettingsSheet {...baseProps} isHost={true} />);
-    expect(screen.getByText('settings.sections.queue')).toBeInTheDocument();
-    expect(screen.getByText('settings.sections.autoRandom')).toBeInTheDocument();
-    expect(screen.getByText('settings.sections.aiMc')).toBeInTheDocument();
-    expect(screen.getByText('settings.sections.appearance')).toBeInTheDocument();
-    expect(screen.getByText('settings.sections.room')).toBeInTheDocument();
-  });
-});

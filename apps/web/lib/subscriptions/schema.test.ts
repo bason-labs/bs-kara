@@ -39,61 +39,18 @@ describe('SubscriptionRecordSchema', () => {
     expect(parsed.success).toBe(true);
   });
 
-  it('rejects trial with paymentRef set', () => {
-    const parsed = SubscriptionRecordSchema.safeParse(
-      validRecord({ type: 'trial', paymentRef: 'WRONG' }),
-    );
-    expect(parsed.success).toBe(false);
-  });
-
-  it('rejects paid with paymentRef = null', () => {
-    const parsed = SubscriptionRecordSchema.safeParse(
-      validRecord({ type: 'paid', paymentRef: null }),
-    );
-    expect(parsed.success).toBe(false);
-  });
-
-  it('rejects paid with paymentRef = "" (empty string)', () => {
-    const parsed = SubscriptionRecordSchema.safeParse(
-      validRecord({ type: 'paid', paymentRef: '' }),
-    );
-    expect(parsed.success).toBe(false);
-  });
-
-  it('rejects durationDays = 0', () => {
-    expect(
-      SubscriptionRecordSchema.safeParse(validRecord({ durationDays: 0 })).success,
-    ).toBe(false);
-  });
-
-  it('rejects durationDays = 366', () => {
-    expect(
-      SubscriptionRecordSchema.safeParse(validRecord({ durationDays: 366 })).success,
-    ).toBe(false);
-  });
-
-  it('rejects durationDays = 1.5 (integer enforced)', () => {
-    expect(
-      SubscriptionRecordSchema.safeParse(validRecord({ durationDays: 1.5 })).success,
-    ).toBe(false);
-  });
-
-  it('rejects unknown extra field (strict mode)', () => {
-    const r = { ...validRecord(), bogus: 1 } as unknown;
-    expect(SubscriptionRecordSchema.safeParse(r).success).toBe(false);
-  });
-
-  it('rejects userPhone failing the +84 format', () => {
-    expect(
-      SubscriptionRecordSchema.safeParse(
-        validRecord({ userPhone: '0901234567' }),
-      ).success,
-    ).toBe(false);
-    expect(
-      SubscriptionRecordSchema.safeParse(
-        validRecord({ userPhone: '+1234567890' }),
-      ).success,
-    ).toBe(false);
+  it.each([
+    { reason: 'trial with paymentRef set', over: { type: 'trial', paymentRef: 'WRONG' } },
+    { reason: 'paid with paymentRef = null', over: { type: 'paid', paymentRef: null } },
+    { reason: 'paid with paymentRef = ""', over: { type: 'paid', paymentRef: '' } },
+    { reason: 'durationDays = 0', over: { durationDays: 0 } },
+    { reason: 'durationDays = 366', over: { durationDays: 366 } },
+    { reason: 'durationDays = 1.5 (integer enforced)', over: { durationDays: 1.5 } },
+    { reason: 'userPhone without +84', over: { userPhone: '0901234567' } },
+    { reason: 'userPhone with another country code', over: { userPhone: '+1234567890' } },
+    { reason: 'an unknown extra field (strict mode)', over: { bogus: 1 } },
+  ] as { reason: string; over: Record<string, unknown> }[])('rejects $reason', ({ over }) => {
+    expect(SubscriptionRecordSchema.safeParse({ ...validRecord(), ...over }).success).toBe(false);
   });
 
   it('accepts both nullable userId branches', () => {
@@ -128,84 +85,23 @@ describe('SubscriptionRecordSchema', () => {
 });
 
 describe('CreateSubscriptionInputSchema', () => {
-  it('accepts a valid trial input without paymentRef', () => {
-    expect(
-      CreateSubscriptionInputSchema.safeParse({
-        userPhone: '0901234567',
-        type: 'trial',
-        durationDays: 14,
-      }).success,
-    ).toBe(true);
+  const base = { userPhone: '0901234567', type: 'trial', durationDays: 14 };
+
+  it.each([
+    { reason: 'a trial without paymentRef', input: base },
+    { reason: 'a paid input with paymentRef', input: { ...base, type: 'paid', paymentRef: 'PAY-1' } },
+  ])('accepts $reason', ({ input }) => {
+    expect(CreateSubscriptionInputSchema.safeParse(input).success).toBe(true);
   });
 
-  it('accepts a valid paid input with paymentRef', () => {
-    expect(
-      CreateSubscriptionInputSchema.safeParse({
-        userPhone: '0901234567',
-        type: 'paid',
-        durationDays: 30,
-        paymentRef: 'PAY-1',
-      }).success,
-    ).toBe(true);
-  });
-
-  it('rejects trial input with non-null paymentRef', () => {
-    expect(
-      CreateSubscriptionInputSchema.safeParse({
-        userPhone: '0901234567',
-        type: 'trial',
-        durationDays: 14,
-        paymentRef: 'OOPS',
-      }).success,
-    ).toBe(false);
-  });
-
-  it('rejects paid input without paymentRef', () => {
-    expect(
-      CreateSubscriptionInputSchema.safeParse({
-        userPhone: '0901234567',
-        type: 'paid',
-        durationDays: 30,
-      }).success,
-    ).toBe(false);
-  });
-
-  it('rejects paid input with empty paymentRef', () => {
-    expect(
-      CreateSubscriptionInputSchema.safeParse({
-        userPhone: '0901234567',
-        type: 'paid',
-        durationDays: 30,
-        paymentRef: '',
-      }).success,
-    ).toBe(false);
-  });
-
-  it('rejects durationDays outside 1..365', () => {
-    expect(
-      CreateSubscriptionInputSchema.safeParse({
-        userPhone: '0901234567',
-        type: 'trial',
-        durationDays: 0,
-      }).success,
-    ).toBe(false);
-    expect(
-      CreateSubscriptionInputSchema.safeParse({
-        userPhone: '0901234567',
-        type: 'trial',
-        durationDays: 366,
-      }).success,
-    ).toBe(false);
-  });
-
-  it('rejects unknown extra field', () => {
-    expect(
-      CreateSubscriptionInputSchema.safeParse({
-        userPhone: '0901234567',
-        type: 'trial',
-        durationDays: 14,
-        bogus: true,
-      }).success,
-    ).toBe(false);
+  it.each([
+    { reason: 'trial with non-null paymentRef', input: { ...base, paymentRef: 'OOPS' } },
+    { reason: 'paid without paymentRef', input: { ...base, type: 'paid' } },
+    { reason: 'paid with empty paymentRef', input: { ...base, type: 'paid', paymentRef: '' } },
+    { reason: 'durationDays = 0', input: { ...base, durationDays: 0 } },
+    { reason: 'durationDays = 366', input: { ...base, durationDays: 366 } },
+    { reason: 'an unknown extra field', input: { ...base, bogus: true } },
+  ])('rejects $reason', ({ input }) => {
+    expect(CreateSubscriptionInputSchema.safeParse(input).success).toBe(false);
   });
 });

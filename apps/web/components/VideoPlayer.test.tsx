@@ -117,44 +117,19 @@ describe('VideoPlayer', () => {
       return { onPlayingChange, player };
     }
 
-    it('PLAYING (1) calls onPlayingChange(true)', () => {
-      // Iframe must currently think it's paused for the new value to
-      // differ — handleStateChange short-circuits when ref already matches.
-      const { onPlayingChange } = readyWith(false);
-      capturedStateChange!({ data: 1 });
+    // CUED (5) is the iOS tap-to-play case: blocked autoplay leaves the iframe
+    // cued, and without this mapping the remote button stays stuck on "playing".
+    it.each([
+      { state: 'PLAYING', code: 1, startedPlaying: false, expected: true },
+      { state: 'PAUSED', code: 2, startedPlaying: true, expected: false },
+      { state: 'CUED', code: 5, startedPlaying: true, expected: false },
+      { state: 'UNSTARTED', code: -1, startedPlaying: true, expected: false },
+      { state: 'ENDED', code: 0, startedPlaying: true, expected: false },
+    ])('$state ($code) calls onPlayingChange($expected)', ({ code, startedPlaying, expected }) => {
+      const { onPlayingChange } = readyWith(startedPlaying);
+      capturedStateChange!({ data: code });
       expect(onPlayingChange).toHaveBeenCalledTimes(1);
-      expect(onPlayingChange).toHaveBeenCalledWith(true);
-    });
-
-    it('PAUSED (2) calls onPlayingChange(false)', () => {
-      const { onPlayingChange } = readyWith(true);
-      capturedStateChange!({ data: 2 });
-      expect(onPlayingChange).toHaveBeenCalledTimes(1);
-      expect(onPlayingChange).toHaveBeenCalledWith(false);
-    });
-
-    // The iOS tap-to-play case: blocked autoplay leaves the iframe in
-    // CUED. Without this branch the remote button would stay stuck on
-    // "playing" until something else echoed PAUSED.
-    it('CUED (5) calls onPlayingChange(false)', () => {
-      const { onPlayingChange } = readyWith(true);
-      capturedStateChange!({ data: 5 });
-      expect(onPlayingChange).toHaveBeenCalledTimes(1);
-      expect(onPlayingChange).toHaveBeenCalledWith(false);
-    });
-
-    it('UNSTARTED (-1) calls onPlayingChange(false)', () => {
-      const { onPlayingChange } = readyWith(true);
-      capturedStateChange!({ data: -1 });
-      expect(onPlayingChange).toHaveBeenCalledTimes(1);
-      expect(onPlayingChange).toHaveBeenCalledWith(false);
-    });
-
-    it('ENDED (0) calls onPlayingChange(false)', () => {
-      const { onPlayingChange } = readyWith(true);
-      capturedStateChange!({ data: 0 });
-      expect(onPlayingChange).toHaveBeenCalledTimes(1);
-      expect(onPlayingChange).toHaveBeenCalledWith(false);
+      expect(onPlayingChange).toHaveBeenCalledWith(expected);
     });
 
     it('BUFFERING (3) is ignored (no onPlayingChange call) to avoid flicker', () => {

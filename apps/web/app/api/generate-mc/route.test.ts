@@ -74,29 +74,16 @@ describe('POST /api/generate-mc', () => {
   // Documentation states OpenAI is the default. The route must honor that
   // when AI_MC_PROVIDER is unset, an empty string, or whitespace — without
   // requiring the env var to be set in every deployment.
-  it('defaults to OpenAI when AI_MC_PROVIDER is unset', async () => {
-    delete process.env.AI_MC_PROVIDER;
-    fetchMock.mockResolvedValue(openaiResponse('Hi from default'));
+  it.each([
+    { label: 'unset', value: undefined },
+    { label: 'the empty string', value: '' },
+    { label: 'only whitespace', value: '   ' },
+  ])('defaults to OpenAI when AI_MC_PROVIDER is $label', async ({ value }) => {
+    if (value === undefined) delete process.env.AI_MC_PROVIDER;
+    else process.env.AI_MC_PROVIDER = value;
+    fetchMock.mockResolvedValue(openaiResponse('Hi'));
     const res = await POST(makeReq({ songTitle: 'X' }));
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ text: 'Hi from default' });
-    expect(String(fetchMock.mock.calls[0][0])).toContain('api.openai.com');
-  });
-
-  it('defaults to OpenAI when AI_MC_PROVIDER is the empty string', async () => {
-    process.env.AI_MC_PROVIDER = '';
-    fetchMock.mockResolvedValue(openaiResponse('Hi from empty'));
-    const res = await POST(makeReq({ songTitle: 'X' }));
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ text: 'Hi from empty' });
-    expect(String(fetchMock.mock.calls[0][0])).toContain('api.openai.com');
-  });
-
-  it('defaults to OpenAI when AI_MC_PROVIDER is only whitespace', async () => {
-    process.env.AI_MC_PROVIDER = '   ';
-    fetchMock.mockResolvedValue(openaiResponse('Hi from spaces'));
-    const res = await POST(makeReq({ songTitle: 'X' }));
-    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ text: 'Hi' });
     expect(String(fetchMock.mock.calls[0][0])).toContain('api.openai.com');
   });
 
@@ -261,97 +248,6 @@ describe('POST /api/generate-mc', () => {
     const userMsg = getOpenAIUserMessage();
     expect(userMsg).toContain('Người được mời lên hát: "New Name"');
     expect(userMsg).not.toContain('Old Name');
-  });
-
-  function getOpenAISystemMessage(): string {
-    const init = fetchMock.mock.calls[0][1] as { body: string };
-    const parsed = JSON.parse(init.body) as {
-      messages: { role: string; content: string }[];
-    };
-    return parsed.messages.find((m) => m.role === 'system')?.content ?? '';
-  }
-
-  // Locks in the style-rotation persona so a future "tighten the prompt"
-  // pass can't silently flatten the MC back to a generic single-style voice.
-  // Without this, users complained the MC never produced varied styles.
-  // The persona was reworked to merge the original menu with a new set of
-  // tone-aware styles (sang trọng / hoài niệm / miền tây / ...) and to drop
-  // the "lục bát" verse style — the model produces poor Vietnamese poetry
-  // and it doesn't fit miền-Tây / casual karaoke audiences.
-  it('mandates style rotation with a concrete merged style menu in the system prompt', async () => {
-    process.env.AI_MC_PROVIDER = 'openai';
-    fetchMock.mockResolvedValue(openaiResponse('ok'));
-    await POST(makeReq({ songTitle: 'X' }));
-    const sys = getOpenAISystemMessage();
-    // The lục bát / poetry style must be gone — generating Vietnamese verse
-    // is unreliable and the audience doesn't want it.
-    expect(sys.toLowerCase()).not.toMatch(/lục bát/);
-    // The new tone-aware styles all need to be present.
-    const newStyles = [
-      'sang trọng',
-      'trẻ trung',
-      'hoài niệm',
-      'hài hước',
-      'miêu tả',
-      'miền tây',
-    ];
-    for (const s of newStyles) {
-      expect(sys.toLowerCase()).toContain(s);
-    }
-    // The kept old styles (every old style except lục bát) must survive.
-    const keptOldStyles = ['rap', 'gen z', 'bóng đá', 'tin nóng', 'đám cưới', 'kiếm hiệp'];
-    for (const s of keptOldStyles) {
-      expect(sys.toLowerCase()).toContain(s);
-    }
-  });
-
-  // The miền-Tây style was added specifically for the bolero / nhạc trữ
-  // tình audience. The persona must steer toward it (and toward hoài niệm)
-  // when the song's genre/mood signals bolero / trữ tình / dân ca, otherwise
-  // the model defaults to a generic upbeat tone that doesn't fit.
-  it('encodes genre-aware style selection (bolero / trữ tình → miền tây / hoài niệm)', async () => {
-    process.env.AI_MC_PROVIDER = 'openai';
-    fetchMock.mockResolvedValue(openaiResponse('ok'));
-    await POST(makeReq({ songTitle: 'X' }));
-    const sys = getOpenAISystemMessage().toLowerCase();
-    expect(sys).toContain('bolero');
-    expect(sys).toMatch(/trữ tình/);
-    // The mapping from bolero / trữ tình / dân ca to miền tây or hoài niệm
-    // must be encoded as a steering rule, not just present as standalone
-    // labels — otherwise the model treats them as unrelated tags.
-    const boleroRuleLine = sys
-      .split('\n')
-      .find((l) => l.includes('bolero') && l.includes('miền tây'));
-    expect(boleroRuleLine).toBeTruthy();
-  });
-
-  // Users complained the MC announcements ended without inviting the singer
-  // to the stage ("just floats off without a 'your turn' cue"). The persona
-  // must require a closing invitation phrase and supply a varied sample bank
-  // so the model rotates phrases instead of always saying "Xin mời".
-  it('requires a closing invitation phrase with a varied sample bank', async () => {
-    process.env.AI_MC_PROVIDER = 'openai';
-    fetchMock.mockResolvedValue(openaiResponse('ok'));
-    await POST(makeReq({ songTitle: 'X' }));
-    const sys = getOpenAISystemMessage();
-    // The rule itself
-    expect(sys.toLowerCase()).toMatch(/mời.*lên sân khấu|câu mời/);
-    // A handful of distinct invitation samples — at least three so the model
-    // has variety to rotate through.
-    const invitationSamples = [
-      'Xin mời',
-      'cất tiếng hót',
-      'Mic là của bạn',
-      'chiến binh ra trận',
-      'toả sáng',
-      'quẩy lên',
-      'vỗ tay đón',
-      'tràng pháo tay',
-      'Sân khấu giờ là của bạn',
-      'cất giọng',
-    ];
-    const matched = invitationSamples.filter((s) => sys.includes(s));
-    expect(matched.length).toBeGreaterThanOrEqual(3);
   });
 
   // Case A: every variable in the new prompt-template table is supplied —

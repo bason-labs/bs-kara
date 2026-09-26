@@ -48,21 +48,16 @@ afterEach(() => {
 });
 
 describe('normalizePhone', () => {
-  it('strips leading 0 and prefixes 84', () => {
-    expect(normalizePhone('0912345678')).toBe('84912345678');
+  it.each([
+    ['0912345678', 'leading 0'],
+    ['84912345678', 'already 84'],
+    ['+84 912 345 678', 'spaces and +'],
+    ['912345678', 'no prefix'],
+    ['0084912345678', '0084 international prefix'],
+  ])('normalizes %s (%s) to 84912345678', (input) => {
+    expect(normalizePhone(input)).toBe('84912345678');
   });
-  it('keeps numbers already starting with 84', () => {
-    expect(normalizePhone('84912345678')).toBe('84912345678');
-  });
-  it('strips non-digit characters', () => {
-    expect(normalizePhone('+84 912 345 678')).toBe('84912345678');
-  });
-  it('prefixes 84 when no leading 0 or 84', () => {
-    expect(normalizePhone('912345678')).toBe('84912345678');
-  });
-  it('handles 0084 international prefix', () => {
-    expect(normalizePhone('0084912345678')).toBe('84912345678');
-  });
+
   it('throws on garbage input shorter than 9 digits', () => {
     expect(() => normalizePhone('123')).toThrow('Invalid phone number');
   });
