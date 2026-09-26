@@ -104,7 +104,7 @@ Each step that changes the repo is one PR, stacked on the previous one, per the 
 | Step | What | PR | Proof it works |
 |---|---|---|---|
 | 1 | Standalone output, health route, Dockerfile, `.dockerignore` | PR 1 | `docker run -p 3000:3000` on the Mac: app works; `/api/health` reports the version |
-| 2 | awscli and Terraform on the Mac; `aws configure sso` (admin user from IAM Identity Center) | (none) | `aws sts get-caller-identity` |
+| 2 | awscli and Terraform on the Mac; IAM user `bason-admin` (AdministratorAccess + MFA); `aws login` for short-lived CLI credentials (no access keys) | (none) | `aws sts get-caller-identity` shows `bason-admin` |
 | 3 | Terraform: EC2, security group, key pair, Elastic IP | PR 2 | `terraform apply`; `ssh ubuntu@<ip>` works |
 | 4 | Prepare the server **by hand** over SSH, then capture the commands in `bootstrap.sh` | PR 3 | `docker version` on the server; `ufw status` |
 | 5 | First deploy **by hand**: build on the Mac (native arm64) → push to GHCR → write `.env` → compose up → Caddy obtains the certificate | PR 3 (compose, Caddyfile, scripts) | `https://<ip-dashes>.sslip.io` loads with a valid 🔒 |
