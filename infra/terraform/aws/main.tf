@@ -40,7 +40,7 @@ resource "aws_security_group" "web" {
 
 resource "aws_vpc_security_group_ingress_rule" "http" {
   security_group_id = aws_security_group.web.id
-  description       = "HTTP (Caddy redirects to HTTPS; Let's Encrypt validation)"
+  description       = "HTTP - Caddy redirects to HTTPS and answers Lets Encrypt checks"
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "tcp"
   from_port         = 80
