@@ -1,0 +1,22 @@
+# Allow-list: ignore everything, then let in only what the web image needs.
+# Keeps secrets (.env*), node_modules and mobile code out of the build context.
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!.npmrc
+!patches/**
+!apps/web/**
+!packages/shared/**
+
+# Re-exclude generated and secret files inside the allowed folders.
+**/node_modules
+**/.next
+**/.turbo
+**/.env*
+**/*.tsbuildinfo
+**/coverage
+apps/web/test-results
+apps/web/tests
+**/*.test.ts
+**/*.test.tsx
