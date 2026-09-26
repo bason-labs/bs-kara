@@ -4,7 +4,7 @@
 
 ## Area
 
-<!-- web | mobile | shared | e2e | infra | multiple -->
+<!-- web | mobile | shared | infra | multiple -->
 
 ## Validation
 

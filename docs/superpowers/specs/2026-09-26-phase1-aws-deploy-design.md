@@ -135,10 +135,9 @@ Each step that changes the repo is one PR, stacked on the previous one, per the 
 
 Per the repo's CLAUDE.md:
 
-- `next.config.ts` counts as a high-risk config change: run the full suite (typecheck, lint,
-  Vitest, Playwright, `next build`) and confirm it's green.
-- `app/api/health/route.ts` is a new route handler, so it gets a Vitest test: it returns
-  `ok: true` with `APP_VERSION`, and falls back to `"dev"` when that isn't set.
+- `next.config.ts` changes: run build, typecheck, lint and Vitest and confirm they're green.
+- `app/api/health/route.ts` gets a Vitest test: it returns `ok: true` with `APP_VERSION`, and
+  falls back to `"dev"` when that isn't set.
 - The Docker image gets a smoke test on the Mac: build, run, `curl /api/health`, load the home page.
 - The scripts pass `shellcheck`. Terraform passes `terraform fmt -check` and `terraform validate`.
 - The workflow itself is proven by a real deploy in Step 7.

@@ -4,22 +4,22 @@ A real-time karaoke app for parties. The TV runs the player; phones run the remo
 
 ## Stack
 
-- **Next.js 15** (App Router) + **React 19**
+- **Next.js 16** (App Router) + **React 19**
 - **Firebase Realtime Database** — room state, queue, presence, MC lock
 - **YouTube Data API v3** for search, **yt-search** scraper as the quota-exhausted fallback
 - **OpenAI** (default) or **Gemini** for MC line generation
 - **Google Cloud TTS** for MC voice playback
 - **Tailwind CSS v4**, **react-i18next** (en + vi)
-- **Vitest** + **Testing Library** + **MSW**, **Playwright** (chromium + firefox + webkit)
+- **Vitest** + **Testing Library** + **MSW**
 
 ## Getting started
 
-Prereqs: Node 20+, a Firebase project (with Realtime Database enabled), a YouTube Data API key, plus OpenAI/Gemini and Google TTS keys for the AI MC.
+Prereqs: Node 22, pnpm 10, a Firebase project (with Realtime Database enabled), a YouTube Data API key, plus OpenAI/Gemini and Google TTS keys for the AI MC.
 
 ```bash
-npm install
+pnpm install
 # create .env.local — see "Environment" in CLAUDE.md for the full key list
-npm run dev
+pnpm dev
 ```
 
 Open http://localhost:3000 on your phone (or simulate `pointer: coarse`) and http://localhost:3000/tv on a second screen.
@@ -34,7 +34,7 @@ To test on real phones during development, expose the local server over HTTPS us
 
 ```bash
 # Terminal 1 — production build (closer to prod behavior than `next dev`)
-npm run build && npm run start
+pnpm build && pnpm -C apps/web start
 
 # Terminal 2 — tunnel (pick one)
 ngrok http 3000
@@ -48,7 +48,7 @@ Then add the tunnel URL to `.env.local`:
 NEXT_PUBLIC_PUBLIC_ORIGIN=https://<your-tunnel>.ngrok-free.app
 ```
 
-Restart `npm run start` after changing `.env.local`. The QR code on `/tv` will embed the tunnel URL so phones scanning it reach this dev machine over HTTPS — required for camera/QR scan, fullscreen API, and other secure-context browser features.
+Restart `pnpm -C apps/web start` after changing `.env.local`. The QR code on `/tv` will embed the tunnel URL so phones scanning it reach this dev machine over HTTPS — required for camera/QR scan, fullscreen API, and other secure-context browser features.
 
 `NEXT_PUBLIC_PUBLIC_ORIGIN` is dev-only. Do not set it in `.env.production` or commit it.
 
@@ -207,19 +207,14 @@ Both TV and phones can run the picker. The local busy ref dedupes within a singl
 ## Project layout
 
 ```
-app/                 Next.js routes (page.tsx → RemoteClient, tv/page.tsx → TVClient,
-                     api/* route handlers)
-features/remote/     phone-side feature: RemoteClient + components/ + hooks/
-features/tv/         TV-side feature:    TVClient    + components/ + hooks/
-hooks/               shared hooks (useRoom — folder split by concern, useAutoRandom,
-                     useMCPlayer, useMCKickPlay, useTransientNotice, useAIVoice, …)
-components/          cross-feature presentational components (VideoPlayer,
-                     EmojiLayer, ConfirmDialog, MCAnnouncementOverlay, …)
-lib/                 firebase, activeRoom pointer, random/, text/, youtube/
-locales/             en + vi i18n bundles (react-i18next)
-e2e/                 Playwright specs
-tests/               Vitest setup + MSW handlers
+apps/web/            Next.js app (TV, remote, admin, API routes)
+apps/mobile/         Expo app
+packages/shared/     code shared by web and mobile (Firebase, useRoom, i18n, …)
+patches/             pnpm patches for mobile Android builds
+docs/                specs, plans, proposals
 ```
+
+The detailed map is in [CLAUDE.md](./CLAUDE.md).
 
 ---
 
@@ -227,19 +222,15 @@ tests/               Vitest setup + MSW handlers
 
 | Script | Purpose |
 |---|---|
-| `npm run dev` | Next dev server on `:3000` |
-| `npm run build` | Production build |
-| `npm run start` | Serve production build |
-| `npm run lint` | ESLint (Next + TS rules) |
-| `npm run test` | Vitest, one-shot |
-| `npm run test:watch` | Vitest, watch mode |
-| `npm run test:coverage` | Vitest + v8 coverage |
-| `npm run test:e2e` | Playwright (chromium + firefox + webkit) |
-| `npm run test:e2e:ui` | Playwright UI mode |
-| `npx tsc --noEmit` | Typecheck (no dedicated script) |
+| `pnpm dev` | Web dev server on `:3000` |
+| `pnpm dev:mobile` | Expo dev server |
+| `pnpm build` | Production build |
+| `pnpm lint` | ESLint |
+| `pnpm test` | Vitest, all workspaces |
+| `pnpm typecheck` | TypeScript, all workspaces |
 
 ---
 
 ## Contributing
 
-Read [CLAUDE.md](./CLAUDE.md) — it has the full env-var matrix, the data-flow writeup, the component map, and the testing policy this repo enforces (regression tests for bug fixes, meaningful coverage for new code, the verification gates that must pass before a change is "done").
+Read [CLAUDE.md](./CLAUDE.md) — it has the env-var list, the data flow, the component map and the testing rules.

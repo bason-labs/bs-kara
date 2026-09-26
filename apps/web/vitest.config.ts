@@ -19,7 +19,7 @@ export default defineConfig({
     globals: false,
     css: false,
     include: ['{app,components,features,lib,hooks,server,tests}/**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['e2e/**', 'node_modules/**', '.next/**', 'tests/rules/**'],
+    exclude: ['node_modules/**', '.next/**', 'tests/rules/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
