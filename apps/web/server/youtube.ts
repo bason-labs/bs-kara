@@ -1,5 +1,16 @@
 import 'server-only';
 import ytSearch from 'yt-search';
+// yt-search loads these at runtime with require() through a wrapper the build
+// can't see. Requiring them here (CommonJS, like yt-search does) makes the build
+// copy their CommonJS files into the server output; without this, every route
+// using this module fails with "Cannot find module 'cheerio'".
+/* eslint-disable @typescript-eslint/no-require-imports */
+require('cheerio');
+require('dasu');
+require('async.parallellimit');
+require('human-time');
+require('jsonpath-plus');
+/* eslint-enable @typescript-eslint/no-require-imports */
 import { unstable_cache } from 'next/cache';
 import type { YouTubeVideo } from '@bs-kara/shared';
 import { normalizeDiacritics } from '@bs-kara/shared';
