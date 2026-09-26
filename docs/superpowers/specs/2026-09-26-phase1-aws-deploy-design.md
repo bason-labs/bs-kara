@@ -1,7 +1,7 @@
 # Phase 1: bs-kara web live on AWS
 
 **Date:** 2026-09-26
-**Status:** Draft, awaiting review
+**Status:** Approved (implemented directly from this spec, no separate plan)
 **Goal:** Serve `apps/web` from our own AWS server over HTTPS, deployed automatically on push to
 `main`, while Vercel keeps running unchanged. This is also a learning project: each step is done
 by hand once, then automated.
