@@ -198,3 +198,47 @@ infra/scripts/deploy.sh <old-sha>     # roll back to any pushed tag
   (sign-in/OTP only runs on listed domains).
 - Google Cloud → APIs & Services → Credentials → Browser key → if **HTTP referrers** is set, add
   `https://54-251-27-240.sslip.io/*` (the public key only works from listed websites).
+
+## Step 7 — Auto-deploy from GitHub Actions
+
+`.github/workflows/deploy-web.yml` runs on push to `main`: `ci.sh` → `build-image.sh` → `deploy.sh`.
+
+```bash
+# Mac, once — a separate key for GitHub, so it can be revoked on its own
+ssh-keygen -t ed25519 -f ~/.ssh/bs-kara-deploy -N '' -C github-actions-deploy
+ssh -i ~/.ssh/bs-kara ubuntu@54.251.27.240 'cat >> ~/.ssh/authorized_keys' < ~/.ssh/bs-kara-deploy.pub
+gh secret set DEPLOY_SSH_KEY < ~/.ssh/bs-kara-deploy    # encrypted; can't be read back
+rm ~/.ssh/bs-kara-deploy
+
+# plain settings (not secret)
+gh variable set DEPLOY_HOST --body 54.251.27.240
+gh variable set SITE_HOST --body 54-251-27-240.sslip.io
+gh variable set DEPLOY_KNOWN_HOSTS --body "$(ssh-keyscan -t ed25519 54.251.27.240 2>/dev/null)"   # server's ID
+for k in NEXT_PUBLIC_FIREBASE_API_KEY NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN NEXT_PUBLIC_FIREBASE_DATABASE_URL NEXT_PUBLIC_FIREBASE_PROJECT_ID NEXT_PUBLIC_FIREBASE_APP_ID; do
+  gh variable set $k --body "$(grep "^$k=" .env.local | cut -d= -f2-)"
+done
+
+# open SSH to GitHub's changing IPs: terraform.tfvars → ssh_cidrs = ["0.0.0.0/0"]
+aws login                           # when terraform says "expired" / "no valid credential"
+terraform plan -out tfplan          # 1 to add, 1 to destroy (only the SSH rule)
+terraform apply tfplan
+
+gh run watch                        # follow a deploy after merging
+```
+
+Browser, once: package **bs-kara-web** → Package settings → Manage Actions access → add `bs-kara`
+with **Write** (so the workflow can push images).
+
+How the server updates: `deploy.sh` sets `IMAGE_TAG=<sha>` in `/opt/bs-kara/.env` over SSH, then
+`compose pull` + `up -d`. The server never checks for new images itself (push-based deploy).
+
+## Step 8 — Operate it
+
+Day-to-day commands, measured times and troubleshooting: `docs/devops/runbook.md`.
+
+```bash
+infra/scripts/status.sh              # one-screen health check
+infra/scripts/probe.sh               # second tab during a deploy: counts failed checks = downtime
+infra/scripts/deploy.sh f6a883c      # rollback drill: "Live: f6a883c (deploy took 8s)", 0 failed checks
+infra/scripts/deploy.sh b0d5cc1      # roll forward again
+```

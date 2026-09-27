@@ -110,7 +110,7 @@ Each step that changes the repo is one PR, stacked on the previous one, per the 
 | 5 | First deploy **by hand**: build on the Mac (native arm64) → push to GHCR → write `.env` → compose up → Caddy obtains the certificate | PR 3 (compose, Caddyfile, scripts) | `https://<ip-dashes>.sslip.io` loads with a valid 🔒 |
 | 6 | Firebase Auth → authorized domains: add the sslip.io host; check any HTTP-referrer restrictions on Google API keys | (console only) | Sign-in and OTP work on the new address |
 | 7 | GitHub Actions workflow calling the scripts; repo secrets and variables | PR 4 | Push a text change → it's live and `/api/health` shows the new SHA |
-| 8 | Practice: roll back to the previous SHA, read logs, check cost, `terraform destroy` + rebuild | (runbook in `infra/README.md`) | Rollback works in one command; a rebuild from git works |
+| 8 | Practice: roll back to the previous SHA, read logs, check cost, `terraform destroy` + rebuild | (runbook in `docs/devops/runbook.md`) | Rollback works in one command; a rebuild from git works |
 | 8b | After buying `basonlabs.com`: Cloudflare A record `kara` → Elastic IP (DNS only), Caddyfile host, `NEXT_PUBLIC_SITE_URL`, Firebase authorized domain | small PR | `https://kara.basonlabs.com` has a valid 🔒 |
 
 ## 5. Error handling and safety
