@@ -1,0 +1,32 @@
+# The bs-kara stack on the server, in /opt/bs-kara next to Caddyfile and .env.
+# .env (mode 600, never committed) holds the runtime secrets plus:
+#   SITE_HOST  public address Caddy serves, e.g. 54-251-27-240.sslip.io
+#   IMAGE_TAG  image version to run (git SHA)
+services:
+  web:
+    image: ghcr.io/bason-labs/bs-kara-web:${IMAGE_TAG:?set IMAGE_TAG in .env}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_VERSION: ${IMAGE_TAG}
+    # No "ports": port 3000 is reachable only by caddy on the internal network.
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    environment:
+      SITE_HOST: ${SITE_HOST:?set SITE_HOST in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # certificates; kept across restarts
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:
