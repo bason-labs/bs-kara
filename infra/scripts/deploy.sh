@@ -20,7 +20,9 @@ ssh "${ssh_opts[@]}" "ubuntu@$DEPLOY_HOST" "cd /opt/bs-kara \
   && sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=$TAG/' .env \
   && docker compose pull -q \
   && docker compose up -d \
-  && docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile"
+  && docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile \
+  && docker image prune -af >/dev/null"
+# prune: old images fill the disk; a rollback just pulls its tag from GHCR again.
 
 echo "==> Wait for https://$SITE_HOST/api/health to report $TAG"
 for _ in $(seq 1 30); do

@@ -1,0 +1,72 @@
+# Test, build and deploy the web app to the AWS server on every push to main.
+# The steps are the same scripts you can run by hand (infra/scripts/).
+name: Deploy web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/web/**
+      - packages/shared/**
+      - infra/server/**
+      - infra/scripts/**
+      - pnpm-lock.yaml
+      - .github/workflows/deploy-web.yml
+  workflow_dispatch:
+
+# One deploy at a time; a newer push waits instead of cancelling a half-done deploy.
+concurrency:
+  group: deploy-web
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write # push to GHCR
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04-arm # same CPU type as the server
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4 # version from package.json "packageManager"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Test
+        run: infra/scripts/ci.sh
+
+      - name: Log in to GHCR
+        run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        run: infra/scripts/build-image.sh
+        env:
+          NEXT_PUBLIC_SITE_URL: https://${{ vars.SITE_HOST }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_DATABASE_URL: ${{ vars.NEXT_PUBLIC_FIREBASE_DATABASE_URL }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
+
+      - name: Set up SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+
+      - name: Deploy
+        run: SSH_KEY="$HOME/.ssh/deploy" infra/scripts/deploy.sh
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          SITE_HOST: ${{ vars.SITE_HOST }}
