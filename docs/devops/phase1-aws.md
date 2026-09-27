@@ -191,3 +191,10 @@ infra/scripts/deploy.sh <old-sha>     # roll back to any pushed tag
 ```
 
 `.env` is not deployed by the script: secrets are copied by hand once (5.2).
+
+## Step 6 — Firebase allows the new address (console only)
+
+- Firebase → Authentication → Settings → **Authorized domains** → add `54-251-27-240.sslip.io`
+  (sign-in/OTP only runs on listed domains).
+- Google Cloud → APIs & Services → Credentials → Browser key → if **HTTP referrers** is set, add
+  `https://54-251-27-240.sslip.io/*` (the public key only works from listed websites).
