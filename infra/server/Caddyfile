@@ -9,3 +9,15 @@
 54-251-27-240.sslip.io {
 	redir https://{$SITE_HOST}{uri} permanent
 }
+
+# Static site: files from /opt/sites/bahuynh.com on the server (mounted at /srv).
+bahuynh.com {
+	root * /srv/bahuynh.com
+	encode zstd gzip
+	header Strict-Transport-Security "max-age=31536000"
+	file_server
+}
+
+www.bahuynh.com {
+	redir https://bahuynh.com{uri} permanent
+}

@@ -60,6 +60,7 @@ systemctl reload ssh
 
 echo "==> App folder"
 install -d -o ubuntu -g ubuntu /opt/bs-kara  # deploy.sh copies compose.yaml and Caddyfile here
+install -d -o ubuntu -g ubuntu /opt/sites    # static sites Caddy serves, one folder per domain
 
 echo "==> Done"
 if [[ -f /var/run/reboot-required ]]; then
