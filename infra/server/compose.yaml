@@ -22,6 +22,7 @@ services:
       SITE_HOST: ${SITE_HOST:?set SITE_HOST in .env}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /opt/sites:/srv:ro # static sites, one folder per domain
       - caddy_data:/data # certificates; kept across restarts
       - caddy_config:/config
     depends_on:
