@@ -253,3 +253,20 @@ Bedrock, Lambda, RDS) give $20 each; start each from its tutorial link, then del
 Replaced the server with `terraform plan -replace=aws_instance.web`, then `bootstrap.sh`, `.env`,
 deploy key, `deploy.sh`: live again in about 7 minutes with the same address. Full commands:
 runbook, "Rebuild the server from scratch".
+
+## Step 8b — Own domain: kara.bahuynh.com
+
+```bash
+# Cloudflare → bahuynh.com → DNS → Records → Add: A · kara · 54.251.27.240 · DNS only (grey cloud)
+dig +short A kara.bahuynh.com @1.1.1.1     # → 54.251.27.240 (check before deploying)
+# Firebase → Authentication → Settings → Authorized domains → add kara.bahuynh.com
+gh variable set SITE_HOST --body kara.bahuynh.com   # FIRST — the image and Caddy read it
+# then merge the PR (or: gh workflow run deploy-web.yml)
+```
+
+DNS = the name → IP entry (sslip.io did this implicitly). Caddy gets a certificate for the new name
+on first request; the old sslip.io address 301-redirects to the domain.
+
+Lesson: merging before setting `SITE_HOST` deployed the old name twice in the Caddyfile
+("ambiguous site definition"). Caddy kept the previous config (no downtime), the pipeline went red;
+fix = set the variable and re-run the workflow.
