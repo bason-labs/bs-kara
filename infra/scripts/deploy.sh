@@ -27,7 +27,7 @@ ssh "${ssh_opts[@]}" "ubuntu@$DEPLOY_HOST" "cd /opt/bs-kara \
 echo "==> Wait for https://$SITE_HOST/api/health to report $TAG"
 for _ in $(seq 1 30); do
   if curl -fsS "https://$SITE_HOST/api/health" 2>/dev/null | grep -q "\"version\":\"$TAG\""; then
-    echo "Live: $TAG"
+    echo "Live: $TAG (deploy took ${SECONDS}s)"
     exit 0
   fi
   sleep 3
