@@ -4,7 +4,7 @@
 set -euo pipefail
 
 DEPLOY_HOST=${DEPLOY_HOST:-54.251.27.240}
-SITE_HOST=${SITE_HOST:-54-251-27-240.sslip.io}
+SITE_HOST=${SITE_HOST:-kara.bahuynh.com}
 SSH_KEY=${SSH_KEY:-$HOME/.ssh/bs-kara}
 
 echo "==> Live version"

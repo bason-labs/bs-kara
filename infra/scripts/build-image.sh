@@ -7,7 +7,7 @@ cd "$(git rev-parse --show-toplevel)"
 
 IMAGE=${IMAGE:-ghcr.io/bason-labs/bs-kara-web}
 TAG=${TAG:-$(git rev-parse --short HEAD)}
-SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://54-251-27-240.sslip.io}
+SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://kara.bahuynh.com}
 
 # The tag names a commit, so the image must be built from exactly that commit.
 if ! git diff --quiet HEAD -- apps/web packages/shared pnpm-lock.yaml; then

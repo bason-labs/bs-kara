@@ -4,3 +4,8 @@
 	header Strict-Transport-Security "max-age=31536000"
 	reverse_proxy web:3000
 }
+
+# The address used before the domain; keeps old links and QR codes working.
+54-251-27-240.sslip.io {
+	redir https://{$SITE_HOST}{uri} permanent
+}

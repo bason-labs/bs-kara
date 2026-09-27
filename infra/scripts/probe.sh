@@ -5,7 +5,7 @@
 #   DURATION=60 infra/scripts/probe.sh
 set -uo pipefail
 
-SITE_HOST=${SITE_HOST:-54-251-27-240.sslip.io}
+SITE_HOST=${SITE_HOST:-kara.bahuynh.com}
 DURATION=${DURATION:-0} # seconds; 0 = until Ctrl+C
 total=0
 failed=0
