@@ -242,3 +242,14 @@ infra/scripts/probe.sh               # second tab during a deploy: counts failed
 infra/scripts/deploy.sh f6a883c      # rollback drill: "Live: f6a883c (deploy took 8s)", 0 failed checks
 infra/scripts/deploy.sh b0d5cc1      # roll forward again
 ```
+
+### 8.3 Cost
+
+Credits and the budget alert are in the runbook (Cost). The 5 credit activities (EC2, Budgets,
+Bedrock, Lambda, RDS) give $20 each; start each from its tutorial link, then delete what it created.
+
+### 8.4 Rebuild drill
+
+Replaced the server with `terraform plan -replace=aws_instance.web`, then `bootstrap.sh`, `.env`,
+deploy key, `deploy.sh`: live again in about 7 minutes with the same address. Full commands:
+runbook, "Rebuild the server from scratch".
