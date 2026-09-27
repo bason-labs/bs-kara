@@ -14,7 +14,7 @@ In scope:
 - One EC2 server in Singapore, created with Terraform.
 - Caddy as the HTTPS front door, with a free Let's Encrypt certificate.
 - A GitHub Actions pipeline: test, build image, push to GHCR, deploy over SSH.
-- A free address first (`<ip-with-dashes>.sslip.io`), then `kara.basonlabs.com` once the domain is
+- A free address first (`<ip-with-dashes>.sslip.io`), then `kara.bahuynh.com` once the domain is
   bought.
 
 Out of scope (later phases):
@@ -90,7 +90,7 @@ The CI tool only calls the scripts. The same scripts run by hand (Step 5) and fr
 | Runtime (server only) | `YOUTUBE_API_KEYS`, `GOOGLE_TTS_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `FIREBASE_ADMIN_*`, `ADMIN_EMAILS`, `AI_MC_PROVIDER` | Container start | `/opt/bs-kara/.env` on the server only |
 | Deploy | `IMAGE_TAG` (git SHA), `APP_VERSION` | `deploy.sh` | Written by the deploy script |
 
-Changing the address (sslip.io → `kara.basonlabs.com`) needs **both** a Caddyfile edit and an image
+Changing the address (sslip.io → `kara.bahuynh.com`) needs **both** a Caddyfile edit and an image
 rebuild, because `NEXT_PUBLIC_SITE_URL` is baked in at build time.
 
 The image contains no server secrets, only `NEXT_PUBLIC_*` values that are already public in any
@@ -111,7 +111,7 @@ Each step that changes the repo is one PR, stacked on the previous one, per the 
 | 6 | Firebase Auth → authorized domains: add the sslip.io host; check any HTTP-referrer restrictions on Google API keys | (console only) | Sign-in and OTP work on the new address |
 | 7 | GitHub Actions workflow calling the scripts; repo secrets and variables | PR 4 | Push a text change → it's live and `/api/health` shows the new SHA |
 | 8 | Practice: roll back to the previous SHA, read logs, check cost, `terraform destroy` + rebuild | (runbook in `docs/devops/runbook.md`) | Rollback works in one command; a rebuild from git works |
-| 8b | After buying `basonlabs.com`: Cloudflare A record `kara` → Elastic IP (DNS only), Caddyfile host, `NEXT_PUBLIC_SITE_URL`, Firebase authorized domain | small PR | `https://kara.basonlabs.com` has a valid 🔒 |
+| 8b | After buying `bahuynh.com`: Cloudflare A record `kara` → Elastic IP (DNS only), Caddyfile host, `NEXT_PUBLIC_SITE_URL`, Firebase authorized domain | small PR | `https://kara.bahuynh.com` has a valid 🔒 |
 
 ## 5. Error handling and safety
 

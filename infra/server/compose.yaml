@@ -1,6 +1,6 @@
 # The bs-kara stack on the server, in /opt/bs-kara next to Caddyfile and .env.
 # .env (mode 600, never committed) holds the runtime secrets plus:
-#   SITE_HOST  public address Caddy serves, e.g. 54-251-27-240.sslip.io
+#   SITE_HOST  public address Caddy serves, e.g. kara.bahuynh.com
 #   IMAGE_TAG  image version to run (git SHA)
 services:
   web:

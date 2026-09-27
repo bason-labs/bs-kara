@@ -7,17 +7,17 @@ cd "$(git rev-parse --show-toplevel)"
 
 TAG=${1:-$(git rev-parse --short HEAD)}
 DEPLOY_HOST=${DEPLOY_HOST:-54.251.27.240}
-SITE_HOST=${SITE_HOST:-54-251-27-240.sslip.io}
+SITE_HOST=${SITE_HOST:-kara.bahuynh.com}
 SSH_KEY=${SSH_KEY:-$HOME/.ssh/bs-kara}
 ssh_opts=(-i "$SSH_KEY" -o BatchMode=yes)
 
 echo "==> Copy compose.yaml and Caddyfile"
 scp "${ssh_opts[@]}" infra/server/compose.yaml infra/server/Caddyfile "ubuntu@$DEPLOY_HOST:/opt/bs-kara/"
 
-echo "==> Switch to $TAG and restart"
+echo "==> Switch to $TAG on $SITE_HOST and restart"
 # shellcheck disable=SC2029 # $TAG is meant to expand on this side
 ssh "${ssh_opts[@]}" "ubuntu@$DEPLOY_HOST" "cd /opt/bs-kara \
-  && sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=$TAG/' .env \
+  && sed -i -e 's/^IMAGE_TAG=.*/IMAGE_TAG=$TAG/' -e 's/^SITE_HOST=.*/SITE_HOST=$SITE_HOST/' .env \
   && docker compose pull -q \
   && docker compose up -d \
   && docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile \

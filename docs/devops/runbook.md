@@ -3,7 +3,7 @@
 Day-to-day commands for the live server. Run from the Mac in the repo folder unless marked
 **server** (`ssh -i ~/.ssh/bs-kara ubuntu@54.251.27.240`, then `cd /opt/bs-kara`).
 
-Site: https://54-251-27-240.sslip.io · Server: EC2 `t4g.small`, Singapore · Deploys: GitHub
+Site: https://kara.bahuynh.com (old https://54-251-27-240.sslip.io redirects here) · Server: EC2 `t4g.small`, Singapore · Deploys: GitHub
 Actions on push to `main`.
 
 ## Is it healthy?
@@ -97,7 +97,7 @@ Keep both backed up. Keeps the Elastic IP, so the address, Firebase and GitHub s
 Measured: about 7 minutes from `terraform apply` to live (2026-09-27).
 
 ```bash
-TAG=$(curl -s https://54-251-27-240.sslip.io/api/health | sed -E 's/.*"version":"([^"]+)".*/\1/')  # or the last good SHA
+TAG=$(curl -s https://kara.bahuynh.com/api/health | sed -E 's/.*"version":"([^"]+)".*/\1/')  # or the last good SHA
 cd infra/terraform/aws
 terraform plan -replace=aws_instance.web -out tfplan   # 1 add, 1 change (IP moves), 1 destroy
 terraform apply tfplan
@@ -106,7 +106,7 @@ ssh-keygen -R 54.251.27.240                            # forget the old server's
 ssh -i ~/.ssh/bs-kara ubuntu@54.251.27.240 hostname    # "yes" to the new one (wait ~1 min for boot)
 ssh -i ~/.ssh/bs-kara ubuntu@54.251.27.240 'sudo bash -s' < infra/server/bootstrap.sh
 { grep -E '^(YOUTUBE_API_KEYS|GOOGLE_TTS_API_KEY|OPENAI_API_KEY|GEMINI_API_KEY|FIREBASE_ADMIN_[A-Z_]+|ADMIN_EMAILS|AI_MC_PROVIDER|NEXT_PUBLIC_FIREBASE_[A-Z_]+)=' .env.local
-  echo "SITE_HOST=54-251-27-240.sslip.io"
+  echo "SITE_HOST=kara.bahuynh.com"
   echo "IMAGE_TAG=$TAG"
 } | ssh -i ~/.ssh/bs-kara ubuntu@54.251.27.240 'umask 077; cat > /opt/bs-kara/.env'
 ssh -i ~/.ssh/bs-kara ubuntu@54.251.27.240 'cat >> ~/.ssh/authorized_keys' < ~/.ssh/bs-kara-deploy.pub   # GitHub deploys again
