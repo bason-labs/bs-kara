@@ -37,6 +37,8 @@ RUN pnpm -C apps/web run build
 
 # ---- runtime: small image with just the server ------------------------------
 FROM node:22-slim AS runtime
+# Links the GHCR package to the repo.
+LABEL org.opencontainers.image.source=https://github.com/bason-labs/bs-kara
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     HOSTNAME=0.0.0.0 \

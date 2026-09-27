@@ -60,7 +60,7 @@ host port mapping, which also avoids the known issue where Docker port mappings 
 git push main
   → GitHub Actions (ubuntu-24.04-arm runner, native arm64)
       1. infra/scripts/ci.sh            install, typecheck, lint, test (web)
-      2. infra/scripts/build-image.sh   docker build → ghcr.io/bason-labs/bs-kara-web:<sha>, :latest
+      2. infra/scripts/build-image.sh   docker build → ghcr.io/bason-labs/bs-kara-web:<sha>
       3. infra/scripts/deploy.sh        ssh → set IMAGE_TAG=<sha> → compose pull && up -d
                                          → wait for https://<host>/api/health to report <sha>
 ```

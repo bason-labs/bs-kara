@@ -1,0 +1,6 @@
+# Caddy gets a Let's Encrypt certificate for SITE_HOST and redirects HTTP to HTTPS on its own.
+{$SITE_HOST} {
+	encode zstd gzip
+	header Strict-Transport-Security "max-age=31536000"
+	reverse_proxy web:3000
+}

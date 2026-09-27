@@ -128,3 +128,66 @@ Files in `sshd_config.d/` are read in name order and the first value wins, so `1
 ```bash
 ssh -i ~/.ssh/bs-kara ubuntu@54.251.27.240 'sudo bash -s' < infra/server/bootstrap.sh
 ```
+
+## Step 5 — First deploy by hand
+
+### 5.1 Build the image on the Mac and push it to GHCR
+
+```bash
+TAG=$(git rev-parse --short HEAD)                     # image version = git commit
+envval() { grep "^$1=" .env.local | cut -d= -f2-; }   # read one value from .env.local
+docker build -f apps/web/Dockerfile \
+  --build-arg NEXT_PUBLIC_FIREBASE_API_KEY="$(envval NEXT_PUBLIC_FIREBASE_API_KEY)" \
+  --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="$(envval NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN)" \
+  --build-arg NEXT_PUBLIC_FIREBASE_DATABASE_URL="$(envval NEXT_PUBLIC_FIREBASE_DATABASE_URL)" \
+  --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID="$(envval NEXT_PUBLIC_FIREBASE_PROJECT_ID)" \
+  --build-arg NEXT_PUBLIC_FIREBASE_APP_ID="$(envval NEXT_PUBLIC_FIREBASE_APP_ID)" \
+  --build-arg NEXT_PUBLIC_SITE_URL=https://54-251-27-240.sslip.io \
+  -t ghcr.io/bason-labs/bs-kara-web:$TAG .            # only public values go into the image
+gh auth refresh -h github.com -s write:packages       # once: let gh push packages
+gh auth token | docker login ghcr.io -u thienba --password-stdin
+docker push ghcr.io/bason-labs/bs-kara-web:$TAG
+```
+
+Once, in the browser: org Settings → Packages → Package creation → tick **Public**; then the
+package → Package settings → Change visibility → **Public** (the server pulls without login).
+Build on the Mac/CI, never on the server: it has too little RAM, and one image runs everywhere.
+
+### 5.2 Put compose.yaml, Caddyfile and .env on the server
+
+```bash
+# server
+sudo mkdir -p /opt/bs-kara && sudo chown ubuntu:ubuntu /opt/bs-kara
+# Mac (repo folder) — the files live in git, the server gets a copy
+scp -i ~/.ssh/bs-kara infra/server/compose.yaml infra/server/Caddyfile ubuntu@54.251.27.240:/opt/bs-kara/
+{ grep -E '^(YOUTUBE_API_KEYS|GOOGLE_TTS_API_KEY|OPENAI_API_KEY|GEMINI_API_KEY|FIREBASE_ADMIN_[A-Z_]+|ADMIN_EMAILS|AI_MC_PROVIDER|NEXT_PUBLIC_FIREBASE_[A-Z_]+)=' .env.local
+  echo "SITE_HOST=54-251-27-240.sslip.io"
+  echo "IMAGE_TAG=668a96e"
+} | ssh -i ~/.ssh/bs-kara ubuntu@54.251.27.240 'umask 077; cat > /opt/bs-kara/.env'   # server secrets only, mode 600
+# server — check names only, never print values
+ls -la /opt/bs-kara                  # dotfiles like .env need -a
+cut -d= -f1 /opt/bs-kara/.env
+```
+
+### 5.3 Start it (server)
+
+```bash
+cd /opt/bs-kara
+docker compose pull                 # web image from GHCR, Caddy from Docker Hub
+docker compose up -d                # start both in the background
+docker compose ps                   # both "Up"
+docker compose logs -f caddy        # wait for "certificate obtained successfully", Ctrl+C
+curl -s https://54-251-27-240.sslip.io/api/health    # {"ok":true,"version":"668a96e"}
+```
+
+Let's Encrypt checks the address by calling port 80; Caddy renews the certificate by itself.
+
+### Scripts (what 5.1–5.3 became)
+
+```bash
+infra/scripts/build-image.sh          # build + push ghcr.io/bason-labs/bs-kara-web:<git sha>
+infra/scripts/deploy.sh               # copy configs, set IMAGE_TAG, restart, wait for /api/health
+infra/scripts/deploy.sh <old-sha>     # roll back to any pushed tag
+```
+
+`.env` is not deployed by the script: secrets are copied by hand once (5.2).
