@@ -73,49 +73,26 @@ describe('useRoomGate', () => {
     expect(pushSpy).not.toHaveBeenCalled();
   });
 
-  it('submitJoin navigates when API returns allowed:true', async () => {
+  it('submitJoin navigates once the code is allowed', async () => {
     stubFetch({ allowed: true, reason: 'ok' });
     const { result } = renderHook(() => useRoomGate());
-    await act(async () => { await result.current.submitJoin('5678'); });
+    await act(async () => { result.current.submitJoin('5678'); await flushAsync(); });
     expect(pushSpy).toHaveBeenCalledWith('/?room=5678');
     expect(result.current.joinError).toBeNull();
   });
 
-  it('submitJoin sets joinError when API returns room_not_found', async () => {
-    stubFetch({ allowed: false, reason: 'room_not_found' });
+  it.each(['room_not_found', 'subscription_expired'])('submitJoin shows %s and stays on the form', async (reason) => {
+    stubFetch({ allowed: false, reason });
     const { result } = renderHook(() => useRoomGate());
-    await act(async () => { await result.current.submitJoin('9999'); });
+    await act(async () => { result.current.submitJoin('9999'); await flushAsync(); });
     expect(pushSpy).not.toHaveBeenCalled();
-    expect(result.current.joinError).toBe('room_not_found');
-  });
-
-  it('submitJoin sets joinError when API returns subscription_expired', async () => {
-    stubFetch({ allowed: false, reason: 'subscription_expired' });
-    const { result } = renderHook(() => useRoomGate());
-    await act(async () => { await result.current.submitJoin('1234'); });
-    expect(pushSpy).not.toHaveBeenCalled();
-    expect(result.current.joinError).toBe('subscription_expired');
-  });
-
-  it('submitJoin sets joinError when API returns guests_not_allowed', async () => {
-    stubFetch({ allowed: false, reason: 'guests_not_allowed' });
-    const { result } = renderHook(() => useRoomGate());
-    await act(async () => { await result.current.submitJoin('5678'); });
-    expect(pushSpy).not.toHaveBeenCalled();
-    expect(result.current.joinError).toBe('guests_not_allowed');
-  });
-
-  it('submitJoin sets joinError to error on fetch failure', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
-    const { result } = renderHook(() => useRoomGate());
-    await act(async () => { await result.current.submitJoin('1234'); });
-    expect(pushSpy).not.toHaveBeenCalled();
-    expect(result.current.joinError).toBe('error');
+    expect(result.current.joinError).toBe(reason);
+    expect(result.current.isJoining).toBe(false);
   });
 
   it('submitJoin ignores inputs that are not 4–7 digits', async () => {
     const { result } = renderHook(() => useRoomGate());
-    await act(async () => { await result.current.submitJoin('abc'); });
+    await act(async () => { result.current.submitJoin('abc'); await flushAsync(); });
     expect(pushSpy).not.toHaveBeenCalled();
   });
 

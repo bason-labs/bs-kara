@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import type { RegisteredUser } from '@bs-kara/shared/registered-users';
+import type { RoomAccessCheck } from '@bs-kara/shared/room-access';
 import { NeonOrbs } from '@/components/NeonOrbs';
 import { JoinForm } from '@/features/remote/components/JoinForm';
 import { NoticeBanner } from '@/features/remote/components/NoticeBanner';
@@ -15,7 +16,7 @@ interface HomeScreenProps {
   hostProfile: RegisteredUser | null;
   hostLoading: boolean;
   onJoin: (code: string) => void;
-  joinError: string | null;
+  joinError: Exclude<RoomAccessCheck, 'ok'> | null;
   isJoining: boolean;
 }
 

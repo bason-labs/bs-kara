@@ -3,15 +3,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useRoomAccess } from '@bs-kara/shared/hooks';
-import { fetchRoomAccess } from '@bs-kara/shared/room-access';
 
 const ROOM_CODE_PATTERN = /^\d{4,7}$/;
 
-// Owns the URL ↔ room-code contract. Every room code in the URL (host link,
-// QR code, shared link, `submitJoin`) is checked via /api/room-access (room
-// existence and subscription validity) before `roomCode` is exposed. Room code
-// lives in the URL only — refreshing keeps the user in the room, and Leave is
-// irreversible without an explicit re-join.
+// Owns the URL ↔ room-code contract. One access check (useRoomAccess) covers
+// both ways in: a room code in the URL (host link, QR code, shared link) and
+// a code typed into the join form, which navigates once allowed. `roomCode`
+// is exposed only after the check passes. Room code lives in the URL only —
+// refreshing keeps the user in the room, and Leave is irreversible without an
+// explicit re-join.
 export function useRoomGate() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -20,8 +20,15 @@ export function useRoomGate() {
   const urlRoomCode =
     rawRoomCode && ROOM_CODE_PATTERN.test(rawRoomCode) ? rawRoomCode : null;
 
-  const { isChecking: isCheckingRoom, isAllowed, blockedReason, markAllowed } = useRoomAccess(urlRoomCode);
-  const roomCode = isAllowed ? urlRoomCode : null;
+  const [submittedCode, setSubmittedCode] = useState<string | null>(null);
+  const access = useRoomAccess(urlRoomCode ?? submittedCode);
+  const fromForm = !urlRoomCode && !!submittedCode;
+
+  // Join form: go to the room once its code is allowed. The URL code is the
+  // same one, so the check is not repeated.
+  useEffect(() => {
+    if (fromForm && access.isAllowed) router.push(`/?room=${submittedCode}`);
+  }, [fromForm, access.isAllowed, submittedCode, router]);
 
   const [isCoarsePointer, setIsCoarsePointer] = useState<boolean | null>(null);
   useEffect(() => {
@@ -29,33 +36,10 @@ export function useRoomGate() {
     setIsCoarsePointer(window.matchMedia('(pointer: coarse)').matches);
   }, []);
 
-  const [joinError, setJoinError] = useState<string | null>(null);
-  const [isJoining, setIsJoining] = useState(false);
-
-  const submitJoin = useCallback(
-    async (code: string) => {
-      const trimmed = code.trim();
-      if (!ROOM_CODE_PATTERN.test(trimmed)) return;
-      setJoinError(null);
-      setIsJoining(true);
-      try {
-        const result = await fetchRoomAccess(trimmed);
-        if (result === 'unavailable') {
-          setJoinError('error');
-          return;
-        }
-        if (result !== 'ok') {
-          setJoinError(result);
-          return;
-        }
-        markAllowed(trimmed); // already checked; skip a second check after navigating
-        router.push(`/?room=${trimmed}`);
-      } finally {
-        setIsJoining(false);
-      }
-    },
-    [router, markAllowed],
-  );
+  const submitJoin = useCallback((code: string) => {
+    const trimmed = code.trim();
+    if (ROOM_CODE_PATTERN.test(trimmed)) setSubmittedCode(trimmed);
+  }, []);
 
   const handleLeave = useCallback(() => {
     window.location.assign('/');
@@ -63,12 +47,13 @@ export function useRoomGate() {
 
   return {
     rawRoomCode,
-    roomCode,
-    isCheckingRoom,
-    blockedReason,
+    roomCode: urlRoomCode && access.isAllowed ? urlRoomCode : null,
+    isCheckingRoom: !!urlRoomCode && access.isChecking,
+    blockedReason: urlRoomCode ? access.blockedReason : null,
     isCoarsePointer,
-    joinError,
-    isJoining,
+    joinError: fromForm ? access.blockedReason : null,
+    // Still checking, or allowed and navigating.
+    isJoining: fromForm && (access.isChecking || access.isAllowed),
     submitJoin,
     handleLeave,
   };

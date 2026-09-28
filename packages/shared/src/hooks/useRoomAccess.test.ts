@@ -29,16 +29,6 @@ describe('useRoomAccess', () => {
     expect(result.current).toMatchObject({ isChecking: false, isAllowed, blockedReason });
   });
 
-  it('does not call the server for a code already marked allowed', async () => {
-    const fetchMock = stubAccess();
-    const { result, rerender } = renderHook(({ code }) => useRoomAccess(code), { initialProps: { code: null as string | null } });
-    act(() => result.current.markAllowed('4489'));
-    rerender({ code: '4489' });
-    await flush();
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(result.current.isAllowed).toBe(true);
-  });
-
   it('re-checks the same code after it was cleared, so a renewed room opens', async () => {
     const fetchMock = stubAccess(
       { status: 200, body: { allowed: false, reason: 'subscription_expired' } },

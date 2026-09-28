@@ -40,9 +40,8 @@ describe('JoinForm', () => {
   });
 
   it.each([
-    { joinError: 'notFound', message: 'home.invalidCode' },
-    { joinError: 'suspended', message: 'Phòng này tạm thời không khả dụng.' },
-    { joinError: 'error', message: 'Đã xảy ra lỗi, vui lòng thử lại.' },
+    { joinError: 'room_not_found', message: 'roomAccess.notFound' },
+    { joinError: 'subscription_expired', message: 'roomAccess.expired' },
   ] as const)('shows the $joinError error message', ({ joinError, message }) => {
     render(<JoinForm onJoin={vi.fn()} joinError={joinError} isJoining={false} />);
     expect(screen.getByText(message)).toBeInTheDocument();

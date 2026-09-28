@@ -1,5 +1,8 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
+import { roomAccessMessage } from '@bs-kara/shared/room-access';
+
 interface SessionExpiredOverlayProps {
   timedOut: boolean;
   rejoinReason: string | null;
@@ -15,14 +18,14 @@ export function SessionExpiredOverlay({
   rejoinReason,
   onRejoin,
 }: SessionExpiredOverlayProps) {
+  const { t } = useTranslation();
   if (!timedOut) return null;
 
   const isHardBlocked = rejoinReason === 'subscription_expired';
 
-  let title = 'Phiên của bạn đã hết hạn do không hoạt động';
-  if (rejoinReason === 'subscription_expired') {
-    title = 'Phòng không còn hoạt động';
-  }
+  const title = isHardBlocked
+    ? t(roomAccessMessage('subscription_expired').title)
+    : 'Phiên của bạn đã hết hạn do không hoạt động';
 
   return (
     <div

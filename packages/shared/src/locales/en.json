@@ -333,5 +333,15 @@
       "otpFailed": "Incorrect or expired code. Please try again.",
       "noSubscription": "Room not activated — contact admin to get access."
     }
+  },
+  "roomAccess": {
+    "notFound": "Wrong room code",
+    "notFoundHint": "Check the room code.",
+    "expired": "This room is no longer active",
+    "expiredHint": "The room owner needs to renew the plan.",
+    "ownerExpired": "Your plan has expired",
+    "ownerExpiredHint": "Contact the admin to renew.",
+    "unavailable": "Something went wrong, please try again.",
+    "unavailableHint": "Please try again later."
   }
 }

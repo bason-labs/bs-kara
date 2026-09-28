@@ -333,5 +333,15 @@
       "otpFailed": "Mã không đúng hoặc đã hết hạn. Vui lòng thử lại.",
       "noSubscription": "Phòng chưa kích hoạt — liên hệ admin để được cấp quyền."
     }
+  },
+  "roomAccess": {
+    "notFound": "Mã phòng không đúng",
+    "notFoundHint": "Kiểm tra lại mã phòng.",
+    "expired": "Phòng này không còn hoạt động",
+    "expiredHint": "Chủ phòng cần gia hạn gói.",
+    "ownerExpired": "Gói của bạn đã hết hạn",
+    "ownerExpiredHint": "Liên hệ admin để gia hạn.",
+    "unavailable": "Đã xảy ra lỗi, vui lòng thử lại.",
+    "unavailableHint": "Vui lòng thử lại sau."
   }
 }

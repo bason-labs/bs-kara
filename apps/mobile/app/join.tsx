@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,12 +15,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useCurrentHost } from '@/hooks/useCurrentHost';
 import { useColors } from '@/hooks/useColors';
-import { fetchRoomAccess, type RoomAccessReason } from '@bs-kara/shared/room-access';
+import { useRoomAccess } from '@bs-kara/shared/hooks';
+import { roomAccessMessage } from '@bs-kara/shared/room-access';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 const CODE_LENGTH = 4;
-
-type JoinError = Exclude<RoomAccessReason, 'ok'> | 'error' | null;
 
 export default function JoinScreen() {
   const { t } = useTranslation();
@@ -29,37 +28,30 @@ export default function JoinScreen() {
   const c = useColors();
   const inputRef = useRef<TextInput>(null);
   const [code, setCode] = useState('');
-  const [isJoining, setIsJoining] = useState(false);
-  const [error, setError] = useState<JoinError>(null);
+  // The code being checked; editing the code clears it (and the error).
+  const [candidate, setCandidate] = useState<string | null>(null);
+  const access = useRoomAccess(candidate, API_BASE);
+  const isJoining = !!candidate && (access.isChecking || access.isAllowed);
 
-  async function handleJoin(roomCode: string) {
-    if (roomCode.length < CODE_LENGTH || isJoining) return;
-    setError(null);
-    setIsJoining(true);
-    const check = await fetchRoomAccess(roomCode, API_BASE);
-    setIsJoining(false);
-    if (check === 'ok') {
-      router.replace({ pathname: '/(room)/search', params: { roomCode } });
-      return;
+  useEffect(() => {
+    if (candidate && access.isAllowed) {
+      router.replace({ pathname: '/(room)/search', params: { roomCode: candidate } });
     }
-    setError(check === 'unavailable' ? 'error' : check);
+  }, [candidate, access.isAllowed, router]);
+
+  function handleJoin(roomCode: string) {
+    if (roomCode.length < CODE_LENGTH || isJoining) return;
+    setCandidate(roomCode);
   }
 
   function handleCodeChange(text: string) {
     const digits = text.replace(/\D/g, '').slice(0, CODE_LENGTH);
     setCode(digits);
-    setError(null);
+    setCandidate(null);
     if (digits.length >= CODE_LENGTH) handleJoin(digits);
   }
 
-  function getErrorMessage(): string | null {
-    if (error === 'room_not_found') return t('home.invalidCode');
-    if (error === 'subscription_expired') return 'Phòng này không còn hoạt động.';
-    if (error === 'error') return 'Đã xảy ra lỗi, vui lòng thử lại.';
-    return null;
-  }
-
-  const errorMsg = getErrorMessage();
+  const errorMsg = access.blockedReason ? t(roomAccessMessage(access.blockedReason).title) : null;
   const canSubmit = code.length >= CODE_LENGTH && !isJoining;
 
   return (

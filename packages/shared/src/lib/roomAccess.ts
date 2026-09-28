@@ -25,6 +25,21 @@ export async function fetchRoomAccess(roomCode: string, baseUrl = ''): Promise<R
   }
 }
 
+// i18n keys (shared locales, `roomAccess.*`) for why a room can't be used, so
+// every screen says the same thing. The owner gets "renew" wording.
+export function roomAccessMessage(
+  reason: Exclude<RoomAccessCheck, 'ok'>,
+  { isOwner = false }: { isOwner?: boolean } = {},
+): { title: string; hint: string } {
+  const key =
+    reason === 'room_not_found'
+      ? 'notFound'
+      : reason === 'subscription_expired'
+        ? isOwner ? 'ownerExpired' : 'expired'
+        : 'unavailable';
+  return { title: `roomAccess.${key}`, hint: `roomAccess.${key}Hint` };
+}
+
 // A server hiccup must not lock a running party out of its room, so only a clear
 // "no" from the server blocks.
 export function isRoomBlocked(check: RoomAccessCheck): check is Exclude<RoomAccessReason, 'ok'> {

@@ -4,10 +4,11 @@ import { FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QrCode } from 'lucide-react';
 import { OTPInput } from '@/components/OTPInput';
+import { roomAccessMessage, type RoomAccessCheck } from '@bs-kara/shared/room-access';
 
 interface JoinFormProps {
   onJoin: (code: string) => void;
-  joinError: string | null;
+  joinError: Exclude<RoomAccessCheck, 'ok'> | null;
   isJoining: boolean;
 }
 
@@ -25,16 +26,7 @@ export function JoinForm({ onJoin, joinError, isJoining }: JoinFormProps) {
     if (canSubmit) onJoin(inputCode);
   }
 
-  let errorMessage: string | null = null;
-  if (joinError === 'room_not_found' || joinError === 'notFound') {
-    errorMessage = t('home.invalidCode');
-  } else if (joinError === 'suspended') {
-    errorMessage = 'Phòng này tạm thời không khả dụng.';
-  } else if (joinError === 'subscription_expired') {
-    errorMessage = 'Phòng này không còn hoạt động.';
-  } else if (joinError === 'error') {
-    errorMessage = 'Đã xảy ra lỗi, vui lòng thử lại.';
-  }
+  const errorMessage = joinError ? t(roomAccessMessage(joinError).title) : null;
 
   return (
     <form

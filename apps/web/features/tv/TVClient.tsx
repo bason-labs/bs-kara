@@ -169,12 +169,8 @@ export default function TVClient() {
     return <main className="min-h-[100dvh] w-full bg-bg" aria-busy="true" />;
   }
 
-  if (phase === 'blocked') {
-    const [title, message] =
-      blockedReason === 'room_not_found'
-        ? [t('tv.lookup.notFound'), 'Kiểm tra lại mã phòng.']
-        : ['Phòng này không còn hoạt động', 'Chủ phòng cần gia hạn gói.'];
-    return <RoomBlockedScreen title={title} message={message} actionLabel="Nhập mã khác" onAction={backToLookup} />;
+  if (phase === 'blocked' && blockedReason) {
+    return <RoomBlockedScreen reason={blockedReason} actionLabel="Nhập mã khác" onAction={backToLookup} />;
   }
 
   if (phase === 'lookup') {

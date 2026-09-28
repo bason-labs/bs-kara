@@ -292,15 +292,13 @@ function RemoteInner() {
 
 
   if (blockedReason) {
-    const isOwner = !!hostProfile && hostProfile.roomCode === rawRoomCode;
-    const [title, message] =
-      blockedReason === 'room_not_found'
-        ? [t('home.invalidCode'), 'Kiểm tra lại mã phòng.']
-        : isOwner
-          ? ['Gói của bạn đã hết hạn', 'Liên hệ admin để gia hạn.']
-          : ['Phòng này không còn hoạt động', 'Chủ phòng cần gia hạn gói.'];
     return (
-      <RoomBlockedScreen title={title} message={message} actionLabel="Về trang chủ" onAction={handleLeave} />
+      <RoomBlockedScreen
+        reason={blockedReason}
+        isOwner={!!hostProfile && hostProfile.roomCode === rawRoomCode}
+        actionLabel="Về trang chủ"
+        onAction={handleLeave}
+      />
     );
   }
 

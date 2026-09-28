@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchRoomAccess, isRoomBlocked, type RoomAccessCheck } from '../lib/roomAccess';
 
 export interface RoomAccessState {
@@ -10,8 +10,6 @@ export interface RoomAccessState {
   isAllowed: boolean;
   // Why the server refused, or null.
   blockedReason: Exclude<RoomAccessCheck, 'ok' | 'unavailable'> | null;
-  // Record a code already checked elsewhere (e.g. a join form) to skip a second call.
-  markAllowed: (roomCode: string) => void;
 }
 
 // Asks /api/room-access whether `roomCode` may be used (room exists, owner's
@@ -39,14 +37,11 @@ export function useRoomAccess(roomCode: string | null, baseUrl = ''): RoomAccess
     };
   }, [roomCode, baseUrl, result]);
 
-  const markAllowed = useCallback((code: string) => setResult({ code, check: 'ok' }), []);
-
   const check = roomCode && result?.code === roomCode ? result.check : null;
   const blockedReason = check && isRoomBlocked(check) ? check : null;
   return {
     isChecking: !!roomCode && check === null,
     isAllowed: check !== null && !blockedReason,
     blockedReason,
-    markAllowed,
   };
 }
