@@ -52,6 +52,7 @@ function setupValidRoom(roomCode = '1234') {
   snapshots[byPhoneRoot(phoneE164)] = snap({ [subId]: true });
   snapshots[subscriptionPath(subId)] = snap({
     status: 'active',
+    startDate: Date.now() - 86_400_000,
     endDate: Date.now() + 86_400_000,
   });
 }
@@ -82,12 +83,24 @@ describe('GET /api/room-access', () => {
     snapshots[byPhoneRoot(phoneE164)] = snap({ [subId]: true });
     snapshots[subscriptionPath(subId)] = snap({
       status: 'active',
+      startDate: Date.now() - 86_400_000,
       endDate: Date.now() - 1000,
     });
     const res = await GET(makeReq(roomCode));
     const body = await res.json() as { allowed: boolean; reason: string };
     expect(body.allowed).toBe(false);
     expect(body.reason).toBe('subscription_expired');
+  });
+
+  it('does not allow a room whose subscription starts tomorrow', async () => {
+    setupValidRoom('1234');
+    snapshots[subscriptionPath('sub001')] = snap({
+      status: 'active',
+      startDate: Date.now() + 86_400_000,
+      endDate: Date.now() + 2 * 86_400_000,
+    });
+    const body = (await (await GET(makeReq('1234'))).json()) as { allowed: boolean; reason: string };
+    expect(body).toEqual({ allowed: false, reason: 'subscription_expired' });
   });
 
   // Regression: guests were previously blocked when guestsAllowed=false in

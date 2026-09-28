@@ -34,7 +34,7 @@ beforeEach(() => {
   store.values['roomCodeIndex/1234'] = '84901234567';
   store.values['registeredUsers/84901234567'] = {};
   store.values['subscriptionsByPhone/+84901234567'] = { sub: true };
-  store.values['subscriptions/sub'] = { status: 'active', endDate: 9999999 };
+  store.values['subscriptions/sub'] = { status: 'active', startDate: 0, endDate: 9999999 };
   agent.mockReset().mockResolvedValue({ name: 'searchSongs', args: { query: 'song' } });
   service = new VoiceService(store.db, async () => 'host', agent, async () => [video], () => now);
 });
@@ -98,7 +98,7 @@ describe('voice server boundary', () => {
     delete store.values['rooms/1234'];
     await expect(mint()).rejects.toMatchObject({ status: 404 });
     store.values['rooms/1234'] = {};
-    store.values['subscriptions/sub'] = { status: 'active', endDate: 0 };
+    store.values['subscriptions/sub'] = { status: 'active', startDate: 0, endDate: 0 };
     await expect(mint()).rejects.toMatchObject({ status: 403 });
   });
   it('only bypasses entitlement with verified room ownership', async () => {
@@ -150,7 +150,7 @@ describe('voice server boundary', () => {
     for (let i = 0; i < 5; i++) {
       await expect(service.create({ roomCode: '1234', language: 'en' }, `client-${i}`)).rejects.toMatchObject({ status: 403 });
     }
-    store.values['subscriptions/sub'] = { status: 'active', endDate: 9999999 };
+    store.values['subscriptions/sub'] = { status: 'active', startDate: 0, endDate: 9999999 };
     for (let i = 0; i < 5; i++) await service.create({ roomCode: '1234', language: 'en' }, `valid-${i}`);
     await expect(service.create({ roomCode: '1234', language: 'en' }, 'valid-last')).rejects.toMatchObject({ status: 429 });
   });

@@ -5,44 +5,36 @@ import {
   getRegisteredUserPath,
 } from '@bs-kara/shared';
 import type { RoomAccessReason } from '@/lib/roomAccess';
+import { isSubscriptionLive } from '@/lib/subscriptions/expiry';
 import { byPhoneRoot, subscriptionPath } from './paths';
+
+const MAX_SUBSCRIPTIONS_PER_PHONE = 100;
 
 /**
  * Whether a room code may be joined: the code must map to a registered, non-suspended
- * user who holds an active, unexpired subscription. RTDB errors propagate to the caller.
+ * user who holds a live subscription (isSubscriptionLive). Used by /api/room-access
+ * and the voice service. RTDB errors propagate to the caller.
  */
-export async function checkRoomAccess(db: Database, roomCode: string): Promise<RoomAccessReason> {
-  // 1. Resolve room code → normalizedPhone
-  const indexSnap = await db.ref(getRoomCodeIndexEntryPath(roomCode)).once('value');
-  if (!indexSnap.exists()) return 'room_not_found';
-  const rawPhone = indexSnap.val();
-  if (typeof rawPhone !== 'string') return 'room_not_found';
-  const normalizedPhone = rawPhone;
+export async function checkRoomAccess(
+  db: Database,
+  roomCode: string,
+  now: number = Date.now(),
+): Promise<RoomAccessReason> {
+  const read = async (path: string) => (await db.ref(path).once('value')).val() as unknown;
 
-  // 2. Verify user is not suspended
-  const userSnap = await db.ref(getRegisteredUserPath(normalizedPhone)).once('value');
-  if (!userSnap.exists()) return 'room_not_found';
-  const userData = userSnap.val() as { suspended?: boolean };
-  if (userData.suspended === true) return 'room_not_found';
+  // 1. Resolve room code → normalizedPhone ('84XXXXXXXXX')
+  const phone = await read(getRoomCodeIndexEntryPath(roomCode));
+  if (typeof phone !== 'string') return 'room_not_found';
 
-  // 3. Check for an active, non-expired subscription
-  // registeredUsers stores '84XXXXXXXXX'; subscriptionsByPhone uses '+84XXXXXXXXX'
-  const phoneE164 = '+' + normalizedPhone;
-  const subIndexSnap = await db.ref(byPhoneRoot(phoneE164)).once('value');
-  let hasActiveSubscription = false;
-  if (subIndexSnap.exists()) {
-    const ids = Object.keys(subIndexSnap.val() as Record<string, unknown>);
-    const now = Date.now();
-    const subSnaps = await Promise.all(
-      ids.map((id) => db.ref(subscriptionPath(id)).once('value')),
-    );
-    hasActiveSubscription = subSnaps.some((snap) => {
-      if (!snap.exists()) return false;
-      const s = snap.val() as { status?: string; endDate?: number };
-      return s.status === 'active' && typeof s.endDate === 'number' && s.endDate >= now;
-    });
-  }
-  if (!hasActiveSubscription) return 'subscription_expired';
+  // 2. Verify user exists and is not suspended
+  const user = (await read(getRegisteredUserPath(phone))) as { suspended?: boolean } | null;
+  if (!user || user.suspended === true) return 'room_not_found';
 
-  return 'ok';
+  // 3. Any live subscription? subscriptionsByPhone uses '+84XXXXXXXXX'.
+  const index = await read(byPhoneRoot('+' + phone));
+  const ids = index && typeof index === 'object' ? Object.keys(index) : [];
+  if (ids.length === 0 || ids.length > MAX_SUBSCRIPTIONS_PER_PHONE) return 'subscription_expired';
+  const subs = await Promise.all(ids.map((id) => read(subscriptionPath(id))));
+  const live = subs.some((s) => isSubscriptionLive(s as Parameters<typeof isSubscriptionLive>[0], now));
+  return live ? 'ok' : 'subscription_expired';
 }

@@ -5,7 +5,8 @@ export type SubscriptionType = 'trial' | 'paid';
 // Stored values are only 'active' or 'cancelled'. 'expired' is NEVER
 // persisted — it is derived on read from endDate < now (see expiry.ts).
 export type SubscriptionStatus = 'active' | 'cancelled';
-export type DerivedStatus = SubscriptionStatus | 'expired';
+// 'scheduled' = active but startDate is still in the future.
+export type DerivedStatus = SubscriptionStatus | 'expired' | 'scheduled';
 export type SubscriptionSource =
   | 'manual_admin'
   | 'self_register_phone'

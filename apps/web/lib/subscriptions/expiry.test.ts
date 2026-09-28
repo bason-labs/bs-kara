@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { derive, daysLeft } from './expiry';
+import { derive, daysLeft, isSubscriptionLive } from './expiry';
 import { DAY_MS, type SubscriptionRecord } from './schema';
 
 function rec(overrides: Partial<SubscriptionRecord> = {}): SubscriptionRecord {
@@ -23,7 +23,31 @@ function rec(overrides: Partial<SubscriptionRecord> = {}): SubscriptionRecord {
 
 const NOW = 1_700_000_000_000;
 
+describe('isSubscriptionLive', () => {
+  it('does not grant access before the start date', () => {
+    expect(isSubscriptionLive(rec({ startDate: NOW + DAY_MS, endDate: NOW + 2 * DAY_MS }), NOW)).toBe(false);
+  });
+
+  it.each([
+    ['inside the window', { startDate: NOW - DAY_MS, endDate: NOW + DAY_MS }, true],
+    ['starting exactly now', { startDate: NOW, endDate: NOW + DAY_MS }, true],
+    ['ending exactly now', { startDate: NOW - DAY_MS, endDate: NOW }, false],
+    ['cancelled inside the window', { status: 'cancelled' as const, startDate: NOW - DAY_MS, endDate: NOW + DAY_MS }, false],
+  ])('%s → %s', (_label, overrides, live) => {
+    expect(isSubscriptionLive(rec(overrides), NOW)).toBe(live);
+  });
+
+  it.each([null, {}, { status: 'active', endDate: NOW + DAY_MS }])('rejects malformed raw value %o', (raw) => {
+    expect(isSubscriptionLive(raw, NOW)).toBe(false);
+  });
+});
+
 describe('derive', () => {
+  it('active + startDate in the future → scheduled', () => {
+    expect(derive(rec({ startDate: NOW + DAY_MS, endDate: NOW + 2 * DAY_MS }), NOW)).toBe('scheduled');
+  });
+
+
   it('active + endDate in the future → active', () => {
     expect(derive(rec({ endDate: NOW + DAY_MS }), NOW)).toBe('active');
   });

@@ -7,10 +7,11 @@ import {
   type DataTableColumn,
 } from './DataTable';
 import { derive, daysLeft } from '@/lib/subscriptions/expiry';
-import { DAY_MS, type SubscriptionRecord } from '@/lib/subscriptions/schema';
+import { DAY_MS, type DerivedStatus, type SubscriptionRecord } from '@/lib/subscriptions/schema';
+import { SOURCE_LABEL, STATUS_LABEL, TYPE_LABEL } from '../lib/subscriptionLabels';
 
 type TypeFilter = 'all' | 'trial' | 'paid';
-type StatusFilter = 'all' | 'active' | 'expired' | 'cancelled';
+type StatusFilter = 'all' | DerivedStatus;
 type SourceFilter =
   | 'all'
   | 'manual_admin'
@@ -46,30 +47,14 @@ export function filterSubscriptions(
   });
 }
 
-const TYPE_LABEL: Record<SubscriptionRecord['type'], string> = {
-  trial: 'Dùng thử',
-  paid: 'Trả phí',
-};
-
-const SOURCE_LABEL: Record<SubscriptionRecord['source'], string> = {
-  manual_admin: 'Thủ công',
-  self_register_phone: 'Tự đăng ký',
-  payment_webhook: 'Thanh toán',
-};
-
-const STATUS_LABEL: Record<'active' | 'expired' | 'cancelled', string> = {
-  active: 'Đang hoạt động',
-  expired: 'Hết hạn',
-  cancelled: 'Đã huỷ',
-};
-
 const TYPE_CLASS: Record<SubscriptionRecord['type'], string> = {
   trial: 'bg-[rgba(0,139,139,0.15)] border-[rgba(0,139,139,0.4)] text-accent',
   paid:  'bg-surface/40 border-border text-muted',
 };
 
-const STATUS_CLASS: Record<'active' | 'expired' | 'cancelled', string> = {
+const STATUS_CLASS: Record<DerivedStatus, string> = {
   active:    'bg-[rgba(34,197,94,0.13)] border-[rgba(34,197,94,0.35)] text-[#4ade80]',
+  scheduled: 'bg-[rgba(245,158,11,0.12)] border-[rgba(245,158,11,0.35)] text-[#fbbf24]',
   expired:   'bg-[rgba(255,95,109,0.11)] border-[rgba(255,95,109,0.35)] text-danger',
   cancelled: 'bg-[rgba(249,115,22,0.12)] border-[rgba(249,115,22,0.35)] text-[#fb923c]',
 };
@@ -219,6 +204,7 @@ export function SubscriptionsTable({ data, now }: SubscriptionsTableProps) {
           options={[
             { value: 'all', label: 'Tất cả' },
             { value: 'active', label: 'Đang hoạt động' },
+            { value: 'scheduled', label: 'Chưa bắt đầu' },
             { value: 'expired', label: 'Hết hạn' },
             { value: 'cancelled', label: 'Đã huỷ' },
           ]}

@@ -1,14 +1,31 @@
 import { DAY_MS, type DerivedStatus, type SubscriptionRecord } from './schema';
 
-// Derive the on-read status. 'expired' is computed here and NEVER stored.
-// Edge cases:
-//   - status='cancelled' wins regardless of endDate (a cancelled record
-//     with a future endDate is still cancelled).
-//   - endDate exactly === now → 'expired' (strict less-than below — equal
-//     is treated as expired because the window has closed).
+// THE rule for "does this subscription grant access now": stored status
+// 'active' and now inside [startDate, endDate). Accepts raw RTDB values, so the
+// room-access and voice checks use it on unparsed records.
+export function isSubscriptionLive(
+  sub: { status?: unknown; startDate?: unknown; endDate?: unknown } | null | undefined,
+  now: number,
+): boolean {
+  return (
+    !!sub &&
+    sub.status === 'active' &&
+    typeof sub.startDate === 'number' &&
+    typeof sub.endDate === 'number' &&
+    sub.startDate <= now &&
+    now < sub.endDate
+  );
+}
+
+// Derive the on-read status. 'expired' and 'scheduled' are computed here and
+// NEVER stored. 'active' here ⇔ isSubscriptionLive. Edge cases:
+//   - status='cancelled' wins regardless of dates.
+//   - endDate exactly === now → 'expired' (the window has closed).
+//   - startDate exactly === now → 'active' (the window has opened).
 export function derive(record: SubscriptionRecord, now: number): DerivedStatus {
   if (record.status === 'cancelled') return 'cancelled';
   if (record.endDate <= now) return 'expired';
+  if (record.startDate > now) return 'scheduled';
   return 'active';
 }
 

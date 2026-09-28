@@ -10,29 +10,14 @@ import {
 import { useCancelSubscription } from '../hooks/useCancelSubscription';
 import { useSubscriptionActions } from '../hooks/useSubscriptionActions';
 import { SubscriptionEditForm } from './SubscriptionEditForm';
+import { SOURCE_LABEL, STATUS_LABEL, TYPE_LABEL } from '../lib/subscriptionLabels';
 import { lookupUserByPhone } from '@bs-kara/shared/registered-users';
-import type {
-  DerivedStatus,
-  SubscriptionRecord,
-} from '@/lib/subscriptions/schema';
+import type { DerivedStatus } from '@/lib/subscriptions/schema';
 
-const TYPE_LABEL: Record<SubscriptionRecord['type'], string> = {
-  trial: 'Dùng thử',
-  paid: 'Trả phí',
-};
-const SOURCE_LABEL: Record<SubscriptionRecord['source'], string> = {
-  manual_admin: 'Thủ công',
-  self_register_phone: 'Tự đăng ký',
-  payment_webhook: 'Thanh toán',
-};
-const DERIVED_LABEL: Record<DerivedStatus, string> = {
-  active: 'Đang hoạt động',
-  expired: 'Hết hạn',
-  cancelled: 'Đã huỷ',
-};
 const DERIVED_CLASS: Record<DerivedStatus, string> = {
   active: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30',
   expired: 'bg-zinc-500/15 text-zinc-300 border border-zinc-500/30',
+  scheduled: 'bg-amber-500/15 text-amber-300 border border-amber-500/30',
   cancelled: 'bg-red-500/15 text-red-300 border border-red-500/30',
 };
 
@@ -142,7 +127,7 @@ function SubscriptionDetailView({
               DERIVED_CLASS[derivedStatus]
             }
           >
-            {DERIVED_LABEL[derivedStatus]}
+            {STATUS_LABEL[derivedStatus]}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -150,7 +135,7 @@ function SubscriptionDetailView({
             Còn lại
           </span>
           <span className="text-sm text-fg">
-            {derivedStatus === 'active' ? `${daysLeft} ngày` : '—'}
+            {derivedStatus === 'active' || derivedStatus === 'scheduled' ? `${daysLeft} ngày` : '—'}
           </span>
         </div>
       </section>
