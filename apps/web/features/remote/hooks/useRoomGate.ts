@@ -2,22 +2,38 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { RoomAccessReason } from '@/lib/roomAccess';
+import { fetchRoomAccess, isRoomBlocked, type RoomAccessCheck } from '@/lib/roomAccess';
 
 const ROOM_CODE_PATTERN = /^\d{4,7}$/;
 
-// Owns the URL ↔ room-code contract. `submitJoin` validates a code via the
-// server-side /api/room-access route (checks room existence and subscription
-// validity) before navigating to /?room=<code>. Room code lives in the URL
-// only — refreshing keeps the user in the room, and Leave is irreversible
-// without an explicit re-join.
+// Owns the URL ↔ room-code contract. Every room code in the URL (host link,
+// QR code, shared link, `submitJoin`) is checked via /api/room-access (room
+// existence and subscription validity) before `roomCode` is exposed. Room code
+// lives in the URL only — refreshing keeps the user in the room, and Leave is
+// irreversible without an explicit re-join.
 export function useRoomGate() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const rawRoomCode = searchParams.get('room');
-  const roomCode =
+  const urlRoomCode =
     rawRoomCode && ROOM_CODE_PATTERN.test(rawRoomCode) ? rawRoomCode : null;
+
+  // Result of the last access check, keyed by the code it was made for.
+  const [access, setAccess] = useState<{ code: string; result: RoomAccessCheck } | null>(null);
+  useEffect(() => {
+    if (!urlRoomCode || access?.code === urlRoomCode) return;
+    let cancelled = false;
+    void fetchRoomAccess(urlRoomCode).then((result) => {
+      if (!cancelled) setAccess({ code: urlRoomCode, result });
+    });
+    return () => { cancelled = true; };
+  }, [urlRoomCode, access]);
+
+  const check = urlRoomCode && access?.code === urlRoomCode ? access.result : null;
+  const isCheckingRoom = !!urlRoomCode && check === null;
+  const blockedReason = check && isRoomBlocked(check) ? check : null;
+  const roomCode = urlRoomCode && check && !blockedReason ? urlRoomCode : null;
 
   const [isCoarsePointer, setIsCoarsePointer] = useState<boolean | null>(null);
   useEffect(() => {
@@ -35,15 +51,17 @@ export function useRoomGate() {
       setJoinError(null);
       setIsJoining(true);
       try {
-        const res = await fetch(`/api/room-access?roomCode=${trimmed}`);
-        const data = (await res.json()) as { allowed: boolean; reason: RoomAccessReason };
-        if (!data.allowed) {
-          setJoinError(data.reason);
+        const result = await fetchRoomAccess(trimmed);
+        if (result === 'unavailable') {
+          setJoinError('error');
           return;
         }
+        if (result !== 'ok') {
+          setJoinError(result);
+          return;
+        }
+        setAccess({ code: trimmed, result }); // already checked; skip a second check after navigating
         router.push(`/?room=${trimmed}`);
-      } catch {
-        setJoinError('error');
       } finally {
         setIsJoining(false);
       }
@@ -58,6 +76,8 @@ export function useRoomGate() {
   return {
     rawRoomCode,
     roomCode,
+    isCheckingRoom,
+    blockedReason,
     isCoarsePointer,
     joinError,
     isJoining,

@@ -34,6 +34,7 @@ import { AddedToast } from '@/features/remote/components/AddedToast';
 import { RequesterDialog } from '@/features/remote/components/RequesterDialog';
 import { HomeScreen } from '@/features/remote/components/HomeScreen';
 import { NoticeBanner } from '@/features/remote/components/NoticeBanner';
+import { RoomBlockedScreen } from '@/components/RoomBlockedScreen';
 import { useRoomGate } from '@/features/remote/hooks/useRoomGate';
 import { useRequesterDialog } from '@/features/remote/hooks/useRequesterDialog';
 import { useQueuedMap } from '@/features/remote/hooks/useQueuedMap';
@@ -83,6 +84,8 @@ function RemoteInner() {
   const {
     rawRoomCode,
     roomCode,
+    isCheckingRoom,
+    blockedReason,
     isCoarsePointer,
     joinError,
     isJoining,
@@ -201,9 +204,11 @@ function RemoteInner() {
   }, [roomCode, roomData.currentPlaying, roomData.queue.length, playNext]);
 
   // True when the URL points at a room that can't be entered: either a
-  // malformed code, or a 4-digit code Firebase says doesn't exist.
+  // malformed code, or a 4-digit code Firebase says doesn't exist. A code still
+  // being checked, or refused by the access check, has its own screen instead.
   const roomMissing =
-    (!!rawRoomCode && !roomCode) || (!!roomCode && roomExists === false);
+    (!!rawRoomCode && !roomCode && !isCheckingRoom && !blockedReason) ||
+    (!!roomCode && roomExists === false);
 
   // Inline toast for transient notices ("the room you were in has ended", …).
   const notice = useRoomNotices({
@@ -286,13 +291,26 @@ function RemoteInner() {
   });
 
 
+  if (blockedReason) {
+    const isOwner = !!hostProfile && hostProfile.roomCode === rawRoomCode;
+    const [title, message] =
+      blockedReason === 'room_not_found'
+        ? [t('home.invalidCode'), 'Kiểm tra lại mã phòng.']
+        : isOwner
+          ? ['Gói của bạn đã hết hạn', 'Liên hệ admin để gia hạn.']
+          : ['Phòng này không còn hoạt động', 'Chủ phòng cần gia hạn gói.'];
+    return (
+      <RoomBlockedScreen title={title} message={message} actionLabel="Về trang chủ" onAction={handleLeave} />
+    );
+  }
+
   if (!roomCode) {
     return (
       <HomeScreen
         notice={notice}
         isCoarsePointer={isCoarsePointer}
         hostProfile={hostProfile}
-        hostLoading={hostLoading}
+        hostLoading={hostLoading || isCheckingRoom}
         onJoin={submitJoin}
         joinError={joinError}
         isJoining={isJoining}

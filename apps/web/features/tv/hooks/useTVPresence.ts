@@ -6,19 +6,43 @@ import { db } from '@bs-kara/shared';
 import { lookupUserByCode, lookupUserByPhone } from '@bs-kara/shared/registered-users';
 import { getActiveRoomPresencePath, getRoomDataPath } from '@bs-kara/shared';
 import { getPublicOrigin } from '@/lib/publicOrigin';
+import { fetchRoomAccess, isRoomBlocked, type RoomAccessReason } from '@/lib/roomAccess';
 
 const TV_ROOM_STORAGE_KEY = 'karaoke_tv_room';
 const CODE_PATTERN = /^\d{4,7}$/;
 
-export type TVPhase = 'lookup' | 'active';
+// checking: /api/room-access is deciding; blocked: it refused (e.g. expired subscription).
+export type TVPhase = 'lookup' | 'checking' | 'blocked' | 'active';
 
 export function useTVPresence() {
   const [phase, setPhase] = useState<TVPhase>('lookup');
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
+  const [blockedReason, setBlockedReason] = useState<RoomAccessReason | null>(null);
 
-  // Priority: env-var override → ?room= URL param (fresh activation) → sessionStorage (re-attach).
-  // All reads are post-mount to avoid SSR mismatch.
+  // Every room goes live only after the server confirms it (room exists,
+  // subscription active). A refused room is forgotten so a reload shows the lookup.
+  const startRoom = useCallback(async (code: string) => {
+    setPhase('checking');
+    const result = await fetchRoomAccess(code);
+    if (isRoomBlocked(result)) {
+      sessionStorage.removeItem(TV_ROOM_STORAGE_KEY);
+      setBlockedReason(result);
+      setPhase('blocked');
+      return;
+    }
+    sessionStorage.setItem(TV_ROOM_STORAGE_KEY, code);
+    setRoomCode(code);
+    setPhase('active');
+  }, []);
+
+  const backToLookup = useCallback(() => {
+    setBlockedReason(null);
+    setPhase('lookup');
+  }, []);
+
+  // Priority: env-var override (debug, unchecked) → ?room= URL param (fresh activation)
+  // → sessionStorage (re-attach). All reads are post-mount to avoid SSR mismatch.
   useEffect(() => {
     const fixed = process.env.NEXT_PUBLIC_FIXED_ROOM_ID;
     if (fixed) {
@@ -28,18 +52,9 @@ export function useTVPresence() {
       return;
     }
     const urlParam = new URLSearchParams(window.location.search).get('room');
-    if (urlParam && CODE_PATTERN.test(urlParam)) {
-      sessionStorage.setItem(TV_ROOM_STORAGE_KEY, urlParam);
-      setRoomCode(urlParam);
-      setPhase('active');
-      return;
-    }
-    const stored = sessionStorage.getItem(TV_ROOM_STORAGE_KEY);
-    if (stored) {
-      setRoomCode(stored);
-      setPhase('active');
-    }
-  }, []);
+    const code = urlParam && CODE_PATTERN.test(urlParam) ? urlParam : sessionStorage.getItem(TV_ROOM_STORAGE_KEY);
+    if (code) void startRoom(code);
+  }, [startRoom]);
 
   // Compute joinUrl once roomCode is known (post-mount to avoid SSR mismatch).
   useEffect(() => {
@@ -73,12 +88,8 @@ export function useTVPresence() {
     };
   }, [roomCode, phase]);
 
-  // Called by TVRoomLookup after successful validation.
-  const activateRoomByCode = useCallback(async (code: string) => {
-    sessionStorage.setItem(TV_ROOM_STORAGE_KEY, code);
-    setRoomCode(code);
-    setPhase('active');
-  }, []);
+  // Called by TVRoomLookup after the code/phone resolved to a room.
+  const activateRoomByCode = startRoom;
 
   // Used by TVRoomLookup to validate the operator's input.
   // Accepts either a room code (4-7 digits) or a phone number.
@@ -98,5 +109,5 @@ export function useTVPresence() {
     return null;
   }, []);
 
-  return { phase, roomCode, joinUrl, activateRoomByCode, resolveRoomCode };
+  return { phase, roomCode, joinUrl, blockedReason, activateRoomByCode, resolveRoomCode, backToLookup };
 }

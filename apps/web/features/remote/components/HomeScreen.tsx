@@ -56,8 +56,8 @@ export function HomeScreen({
           <div className="w-full h-[260px] rounded-3xl border border-border bg-surface/70 backdrop-blur-md shadow-glow" />
         ) : (
           <div className="w-full flex flex-col gap-4">
-            {/* Host path — navigate directly; the guest-access API must
-              not gate the owner from their own room. */}
+            {/* Host path — a plain link; useRoomGate checks the room's
+              subscription on arrival, for the owner too. */}
             {hostProfile ? (
               <Link
                 href={`/?room=${hostProfile.roomCode}`}

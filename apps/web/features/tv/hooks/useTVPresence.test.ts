@@ -35,6 +35,7 @@ beforeEach(() => {
   refMock.mockClear();
   (firebaseDb.remove as ReturnType<typeof vi.fn>).mockClear();
   sessionStorage.clear();
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, json: async () => ({ allowed: true, reason: 'ok' }) }));
 });
 
 describe('useTVPresence — URL param activation', () => {
@@ -71,6 +72,24 @@ describe('useTVPresence — URL param activation', () => {
     await act(async () => {});
     expect(result.current.phase).toBe('lookup');
     expect(result.current.roomCode).toBeNull();
+  });
+});
+
+describe('useTVPresence — access check', () => {
+  it('does not go live or mark the TV active when the room subscription has expired', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, search: '?room=4489' },
+      writable: true,
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, json: async () => ({ allowed: false, reason: 'subscription_expired' }) }));
+    const { result } = renderHook(() => useTVPresence());
+    await act(async () => {});
+    expect(result.current.phase).toBe('blocked');
+    expect(result.current.blockedReason).toBe('subscription_expired');
+    expect(result.current.roomCode).toBeNull();
+    expect(setMock).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('karaoke_tv_room')).toBeNull();
+    window.location.search = '';
   });
 });
 
