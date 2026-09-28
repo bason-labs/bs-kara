@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ref, get } from 'firebase/database';
 import { db } from '@bs-kara/shared';
-import type { RoomAccessReason } from '@/lib/roomAccess';
+import { fetchRoomAccess, type RoomAccessReason } from '@bs-kara/shared/room-access';
 
 const DEFAULT_TIMEOUT_MINUTES = 60;
 const CHECK_INTERVAL_MS = 60_000;
@@ -75,19 +75,15 @@ export function useInactivityTimeout(roomCode: string | null) {
 
   const rejoin = useCallback(async (): Promise<RejoinResult> => {
     if (!roomCode) return { ok: false, reason: 'room_not_found' };
-    try {
-      const res = await fetch(`/api/room-access?roomCode=${roomCode}`);
-      const data = (await res.json()) as { allowed: boolean; reason: RoomAccessReason };
-      if (data.allowed) {
-        resetActivity();
-        return { ok: true, reason: 'ok' };
-      }
-      setRejoinReason(data.reason);
-      setTimedOut(true);
-      return { ok: false, reason: data.reason };
-    } catch {
-      return { ok: false, reason: 'room_not_found' };
+    const check = await fetchRoomAccess(roomCode);
+    if (check === 'ok') {
+      resetActivity();
+      return { ok: true, reason: 'ok' };
     }
+    if (check === 'unavailable') return { ok: false, reason: 'room_not_found' };
+    setRejoinReason(check);
+    setTimedOut(true);
+    return { ok: false, reason: check };
   }, [roomCode, resetActivity]);
 
   return { timedOut, rejoinReason, resetActivity, rejoin };

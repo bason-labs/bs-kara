@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { fetchRoomAccess, isRoomBlocked, type RoomAccessCheck } from '@/lib/roomAccess';
+import { useRoomAccess } from '@bs-kara/shared/hooks';
+import { fetchRoomAccess } from '@bs-kara/shared/room-access';
 
 const ROOM_CODE_PATTERN = /^\d{4,7}$/;
 
@@ -19,21 +20,8 @@ export function useRoomGate() {
   const urlRoomCode =
     rawRoomCode && ROOM_CODE_PATTERN.test(rawRoomCode) ? rawRoomCode : null;
 
-  // Result of the last access check, keyed by the code it was made for.
-  const [access, setAccess] = useState<{ code: string; result: RoomAccessCheck } | null>(null);
-  useEffect(() => {
-    if (!urlRoomCode || access?.code === urlRoomCode) return;
-    let cancelled = false;
-    void fetchRoomAccess(urlRoomCode).then((result) => {
-      if (!cancelled) setAccess({ code: urlRoomCode, result });
-    });
-    return () => { cancelled = true; };
-  }, [urlRoomCode, access]);
-
-  const check = urlRoomCode && access?.code === urlRoomCode ? access.result : null;
-  const isCheckingRoom = !!urlRoomCode && check === null;
-  const blockedReason = check && isRoomBlocked(check) ? check : null;
-  const roomCode = urlRoomCode && check && !blockedReason ? urlRoomCode : null;
+  const { isChecking: isCheckingRoom, isAllowed, blockedReason, markAllowed } = useRoomAccess(urlRoomCode);
+  const roomCode = isAllowed ? urlRoomCode : null;
 
   const [isCoarsePointer, setIsCoarsePointer] = useState<boolean | null>(null);
   useEffect(() => {
@@ -60,13 +48,13 @@ export function useRoomGate() {
           setJoinError(result);
           return;
         }
-        setAccess({ code: trimmed, result }); // already checked; skip a second check after navigating
+        markAllowed(trimmed); // already checked; skip a second check after navigating
         router.push(`/?room=${trimmed}`);
       } finally {
         setIsJoining(false);
       }
     },
-    [router],
+    [router, markAllowed],
   );
 
   const handleLeave = useCallback(() => {

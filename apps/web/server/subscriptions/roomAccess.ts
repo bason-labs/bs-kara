@@ -4,7 +4,7 @@ import {
   getRoomCodeIndexEntryPath,
   getRegisteredUserPath,
 } from '@bs-kara/shared';
-import type { RoomAccessReason } from '@/lib/roomAccess';
+import type { RoomAccessReason } from '@bs-kara/shared/room-access';
 import { byPhoneRoot, subscriptionPath } from './paths';
 
 /**

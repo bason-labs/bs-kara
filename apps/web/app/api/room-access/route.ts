@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from 'firebase-admin/database';
 import { getAdminApp } from '@/server/firebaseAdmin';
 import { checkRoomAccess } from '@/server/subscriptions/roomAccess';
-import type { RoomAccessReason, RoomAccessResponse } from '@/lib/roomAccess';
+import type { RoomAccessReason, RoomAccessResponse } from '@bs-kara/shared/room-access';
 
 export const dynamic = 'force-dynamic';
 

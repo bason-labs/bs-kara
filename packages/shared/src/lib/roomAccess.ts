@@ -1,4 +1,5 @@
-// Response contract of GET /api/room-access, shared by the route and the phone/TV hooks.
+// Contract and client call for GET /api/room-access (web route), shared by the
+// web remote, the TV and the mobile app.
 export type RoomAccessReason =
   | 'ok'
   | 'room_not_found'
@@ -12,10 +13,10 @@ export interface RoomAccessResponse {
 // 'unavailable' = network error or server failure (5xx): the server could not decide.
 export type RoomAccessCheck = RoomAccessReason | 'unavailable';
 
-// Client-side call to GET /api/room-access.
-export async function fetchRoomAccess(roomCode: string): Promise<RoomAccessCheck> {
+// `baseUrl` is the web app's origin; empty on the web itself (same origin).
+export async function fetchRoomAccess(roomCode: string, baseUrl = ''): Promise<RoomAccessCheck> {
   try {
-    const res = await fetch(`/api/room-access?roomCode=${roomCode}`);
+    const res = await fetch(`${baseUrl}/api/room-access?roomCode=${encodeURIComponent(roomCode)}`);
     if (res.status >= 500) return 'unavailable';
     const data = (await res.json()) as RoomAccessResponse;
     return data.allowed ? 'ok' : data.reason;

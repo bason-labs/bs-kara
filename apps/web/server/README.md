@@ -8,4 +8,5 @@ client bundle.
   here, map the result to a `NextResponse`.
 - Server code that belongs to a single feature stays with that feature
   (`features/voice/server/`).
-- Types that client code also needs (API contracts) live in `lib/`, e.g. `lib/roomAccess.ts`.
+- Types that client code also needs (API contracts) live in `lib/`, e.g. `lib/subscriptions/schema.ts`; contracts the mobile app also uses live in
+  `packages/shared` (e.g. `@bs-kara/shared/room-access`).

@@ -6,7 +6,7 @@ import { db } from '@bs-kara/shared';
 import { lookupUserByCode, lookupUserByPhone } from '@bs-kara/shared/registered-users';
 import { getActiveRoomPresencePath, getRoomDataPath } from '@bs-kara/shared';
 import { getPublicOrigin } from '@/lib/publicOrigin';
-import { fetchRoomAccess, isRoomBlocked, type RoomAccessReason } from '@/lib/roomAccess';
+import { useRoomAccess } from '@bs-kara/shared/hooks';
 
 const TV_ROOM_STORAGE_KEY = 'karaoke_tv_room';
 const CODE_PATTERN = /^\d{4,7}$/;
@@ -15,46 +15,43 @@ const CODE_PATTERN = /^\d{4,7}$/;
 export type TVPhase = 'lookup' | 'checking' | 'blocked' | 'active';
 
 export function useTVPresence() {
-  const [phase, setPhase] = useState<TVPhase>('lookup');
-  const [roomCode, setRoomCode] = useState<string | null>(null);
+  // The debug override skips the access check; any other code waits for it.
+  const [fixedRoom, setFixedRoom] = useState<string | null>(null);
+  const [candidate, setCandidate] = useState<string | null>(null);
+  const access = useRoomAccess(candidate);
+
+  const phase: TVPhase = fixedRoom
+    ? 'active'
+    : !candidate
+      ? 'lookup'
+      : access.isChecking
+        ? 'checking'
+        : access.blockedReason
+          ? 'blocked'
+          : 'active';
+  const roomCode = fixedRoom ?? (phase === 'active' ? candidate : null);
+  const blockedReason = access.blockedReason;
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
-  const [blockedReason, setBlockedReason] = useState<RoomAccessReason | null>(null);
 
-  // Every room goes live only after the server confirms it (room exists,
-  // subscription active). A refused room is forgotten so a reload shows the lookup.
-  const startRoom = useCallback(async (code: string) => {
-    setPhase('checking');
-    const result = await fetchRoomAccess(code);
-    if (isRoomBlocked(result)) {
-      sessionStorage.removeItem(TV_ROOM_STORAGE_KEY);
-      setBlockedReason(result);
-      setPhase('blocked');
-      return;
-    }
-    sessionStorage.setItem(TV_ROOM_STORAGE_KEY, code);
-    setRoomCode(code);
-    setPhase('active');
-  }, []);
+  // Remember an allowed room for re-attach; forget a refused one so a reload shows the lookup.
+  useEffect(() => {
+    if (!candidate || access.isChecking) return;
+    if (access.isAllowed) sessionStorage.setItem(TV_ROOM_STORAGE_KEY, candidate);
+    else sessionStorage.removeItem(TV_ROOM_STORAGE_KEY);
+  }, [candidate, access.isChecking, access.isAllowed]);
 
-  const backToLookup = useCallback(() => {
-    setBlockedReason(null);
-    setPhase('lookup');
-  }, []);
+  const backToLookup = useCallback(() => setCandidate(null), []);
 
   // Priority: env-var override (debug, unchecked) → ?room= URL param (fresh activation)
   // → sessionStorage (re-attach). All reads are post-mount to avoid SSR mismatch.
   useEffect(() => {
     const fixed = process.env.NEXT_PUBLIC_FIXED_ROOM_ID;
-    if (fixed) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setRoomCode(fixed);
-      setPhase('active');
-      return;
-    }
     const urlParam = new URLSearchParams(window.location.search).get('room');
     const code = urlParam && CODE_PATTERN.test(urlParam) ? urlParam : sessionStorage.getItem(TV_ROOM_STORAGE_KEY);
-    if (code) void startRoom(code);
-  }, [startRoom]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-mount read of browser-only state
+    if (fixed) setFixedRoom(fixed);
+    else if (code) setCandidate(code);
+  }, []);
 
   // Compute joinUrl once roomCode is known (post-mount to avoid SSR mismatch).
   useEffect(() => {
@@ -89,7 +86,7 @@ export function useTVPresence() {
   }, [roomCode, phase]);
 
   // Called by TVRoomLookup after the code/phone resolved to a room.
-  const activateRoomByCode = startRoom;
+  const activateRoomByCode = useCallback(async (code: string) => setCandidate(code), []);
 
   // Used by TVRoomLookup to validate the operator's input.
   // Accepts either a room code (4-7 digits) or a phone number.

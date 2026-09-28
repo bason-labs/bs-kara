@@ -22,6 +22,10 @@
     "./phone": {
       "types": "./src/lib/phone.ts",
       "default": "./src/lib/phone.ts"
+    },
+    "./room-access": {
+      "types": "./src/lib/roomAccess.ts",
+      "default": "./src/lib/roomAccess.ts"
     }
   },
   "scripts": {

@@ -15,11 +15,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useCurrentHost } from '@/hooks/useCurrentHost';
 import { useColors } from '@/hooks/useColors';
+import { fetchRoomAccess, type RoomAccessReason } from '@bs-kara/shared/room-access';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 const CODE_LENGTH = 4;
 
-type JoinError = 'room_not_found' | 'subscription_expired' | 'guests_not_allowed' | 'error' | null;
+type JoinError = Exclude<RoomAccessReason, 'ok'> | 'error' | null;
 
 export default function JoinScreen() {
   const { t } = useTranslation();
@@ -35,19 +36,13 @@ export default function JoinScreen() {
     if (roomCode.length < CODE_LENGTH || isJoining) return;
     setError(null);
     setIsJoining(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/room-access?roomCode=${roomCode}`);
-      const data = (await res.json()) as { allowed: boolean; reason: string };
-      if (!data.allowed) {
-        setError((data.reason as JoinError) ?? 'error');
-        return;
-      }
+    const check = await fetchRoomAccess(roomCode, API_BASE);
+    setIsJoining(false);
+    if (check === 'ok') {
       router.replace({ pathname: '/(room)/search', params: { roomCode } });
-    } catch {
-      setError('error');
-    } finally {
-      setIsJoining(false);
+      return;
     }
+    setError(check === 'unavailable' ? 'error' : check);
   }
 
   function handleCodeChange(text: string) {
@@ -60,7 +55,6 @@ export default function JoinScreen() {
   function getErrorMessage(): string | null {
     if (error === 'room_not_found') return t('home.invalidCode');
     if (error === 'subscription_expired') return 'Phòng này không còn hoạt động.';
-    if (error === 'guests_not_allowed') return 'Phòng này không cho phép khách tham gia tự do.';
     if (error === 'error') return 'Đã xảy ra lỗi, vui lòng thử lại.';
     return null;
   }
