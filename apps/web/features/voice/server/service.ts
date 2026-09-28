@@ -1,6 +1,7 @@
 import 'server-only';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { Database } from 'firebase-admin/database';
+import { checkRoomAccess } from '@/server/subscriptions/roomAccess';
 import type { YouTubeVideo } from '@bs-kara/shared';
 import type { VoiceLanguage, VoiceReceipt, VoiceResults, VoiceTurnRequest, VoiceTurnResponse } from '../types';
 
@@ -49,17 +50,9 @@ export class VoiceService {
 
   private async access(roomCode: string, room: Room, hostUid?: string) {
     if (hostUid && room.hostUid === hostUid) return;
-    const phone = (await this.db.ref(`roomCodeIndex/${roomCode}`).once('value')).val();
-    if (typeof phone !== 'string' || !/^\d{8,15}$/.test(phone)) fail(403, 'Room access denied.');
-    const user = (await this.db.ref(`registeredUsers/${phone}`).once('value')).val();
-    if (!user || user.suspended === true) fail(403, 'Room access denied.');
-    const index = (await this.db.ref(`subscriptionsByPhone/+${phone}`).once('value')).val() ?? {};
-    const ids = Object.keys(index);
-    if (ids.length > 100 || ids.some(key => !safeId(key))) fail(403, 'Room access denied.');
-    const subs = await Promise.all(ids.map(key => this.db.ref(`subscriptions/${key}`).once('value')));
-    if (!subs.some(s => s.val()?.status === 'active' && typeof s.val()?.endDate === 'number' && s.val().endDate >= this.now())) {
-      fail(403, 'Room subscription expired.');
-    }
+    const reason = await checkRoomAccess(this.db, roomCode, this.now());
+    if (reason === 'room_not_found') fail(403, 'Room access denied.');
+    if (reason === 'subscription_expired') fail(403, 'Room subscription expired.');
   }
 
   async create(body: { roomCode?: unknown; language?: unknown; idToken?: unknown }, clientScope?: string) {
