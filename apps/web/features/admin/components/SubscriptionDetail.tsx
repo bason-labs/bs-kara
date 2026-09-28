@@ -8,6 +8,8 @@ import {
   type SubscriptionDetailData,
 } from '../hooks/useSubscriptionDetail';
 import { useCancelSubscription } from '../hooks/useCancelSubscription';
+import { useSubscriptionActions } from '../hooks/useSubscriptionActions';
+import { SubscriptionEditForm } from './SubscriptionEditForm';
 import { lookupUserByPhone } from '@bs-kara/shared/registered-users';
 import type {
   DerivedStatus,
@@ -74,6 +76,9 @@ function SubscriptionDetailView({
   const { cancel, cancelling, error: cancelError } = useCancelSubscription();
   const [confirmingError, setConfirmingError] = useState<string | null>(null);
   const [roomCode, setRoomCode] = useState<string | null | undefined>(undefined);
+  const { update, remove, busy } = useSubscriptionActions(id);
+  const [editing, setEditing] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     lookupUserByPhone(record.userPhone)
@@ -97,6 +102,22 @@ function SubscriptionDetailView({
       return;
     }
     setConfirmingError(result.message);
+  }
+
+  async function handleDelete() {
+    if (busy) return;
+    const ok = window.confirm(
+      'Xoá vĩnh viễn gói đăng ký này? Không thể hoàn tác. (Số điện thoại vẫn tính là đã dùng thử.)',
+    );
+    if (!ok) return;
+    setDeleteError(null);
+    const result = await remove();
+    if (result.ok) {
+      router.push('/admin/subscriptions');
+      router.refresh();
+      return;
+    }
+    setDeleteError(result.message);
   }
 
   return (
@@ -163,7 +184,41 @@ function SubscriptionDetailView({
         <Row label="Cập nhật lúc">{formatDateTime(record.updatedAt)}</Row>
       </dl>
 
-      {canCancel && (
+      {editing ? (
+        <SubscriptionEditForm
+          record={record}
+          busy={busy}
+          onSave={update}
+          onDone={() => {
+            setEditing(false);
+            refetch();
+            router.refresh();
+          }}
+        />
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="px-5 py-2.5 rounded-full border border-border text-sm text-fg hover:bg-white/5 transition-colors"
+          >
+            Sửa
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={busy}
+            className="px-5 py-2.5 rounded-full border border-red-500/40 text-sm text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {busy ? 'Đang xoá...' : 'Xoá'}
+          </button>
+          {deleteError && (
+            <p className="w-full text-xs text-danger" role="alert">{deleteError}</p>
+          )}
+        </div>
+      )}
+
+      {canCancel && !editing && (
         <div className="space-y-2">
           <button
             type="button"

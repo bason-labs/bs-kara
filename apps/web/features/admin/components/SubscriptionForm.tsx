@@ -25,7 +25,7 @@ function getTrialDefaultDays(): number {
 // Format a Date as 'YYYY-MM-DD' for an <input type="date">. We intentionally
 // use the LOCAL date (not UTC), so an admin in Vietnam picking "today"
 // gets the Vietnamese calendar day.
-function todayLocalISO(): string {
+export function todayLocalISO(): string {
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -38,7 +38,7 @@ function todayLocalISO(): string {
 // interpretation of "the day the subscription begins": a date is not an
 // instant, and any choice has the same trade-off. Documented here so a
 // future reader doesn't "fix" it.
-function dateInputToEpochMs(value: string): number {
+export function dateInputToEpochMs(value: string): number {
   return new Date(value + 'T00:00:00Z').getTime();
 }
 
@@ -80,7 +80,7 @@ interface DatePickerProps {
   onChange: (v: string) => void;
 }
 
-function DatePicker({ value, onChange }: DatePickerProps) {
+export function DatePicker({ value, onChange }: DatePickerProps) {
   const parsed = value ? new Date(value + 'T00:00:00') : new Date();
   const [open, setOpen] = useState(false);
   const [viewYear, setViewYear] = useState(parsed.getFullYear());
@@ -211,7 +211,7 @@ interface StepperProps {
   label?: string;
 }
 
-function Stepper({ value, onChange, min = 1, max = 365, label }: StepperProps) {
+export function Stepper({ value, onChange, min = 1, max = 365, label }: StepperProps) {
   const n = parseInt(value, 10);
   const atMin = isNaN(n) || n <= min;
   const atMax = !isNaN(n) && n >= max;

@@ -139,3 +139,23 @@ export type CreateSubscriptionInput = z.infer<
 >;
 
 export const DAY_MS = 86_400_000;
+
+// Admin edit of an existing record. Only these fields may change; `strict()`
+// rejects userPhone and type (delete + re-create instead: the phone links the
+// room, and switching type could sidestep the one-trial-per-phone rule).
+// endDate is always recomputed from startDate + durationDays.
+export const UpdateSubscriptionInputSchema = z
+  .object({
+    status: z.enum(SUBSCRIPTION_STATUSES).optional(),
+    durationDays: z
+      .number()
+      .int()
+      .min(DURATION_DAYS_MIN)
+      .max(DURATION_DAYS_MAX)
+      .optional(),
+    startDate: z.number().int().nonnegative().optional(),
+    paymentRef: z.string().max(PAYMENT_REF_MAX).nullable().optional(),
+  })
+  .strict();
+
+export type UpdateSubscriptionInput = z.infer<typeof UpdateSubscriptionInputSchema>;

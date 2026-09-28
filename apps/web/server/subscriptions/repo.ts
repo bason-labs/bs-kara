@@ -6,7 +6,9 @@ import {
   DAY_MS,
   SubscriptionRecordSchema,
   type SubscriptionRecord,
+  type UpdateSubscriptionInput,
 } from '@/lib/subscriptions/schema';
+import { applySubscriptionUpdate } from '@/lib/subscriptions/update';
 import { isE164VN } from '@bs-kara/shared/phone';
 import {
   byPhonePath,
@@ -15,9 +17,8 @@ import {
   trialClaimedPath,
 } from './paths';
 
-// Read-only RTDB repo for Commit 2. createSubscription and
-// cancelSubscription land in Commits 3 and 4 — keep this surface tight so
-// the write path is added in one place and not scattered.
+// RTDB repo for subscriptions: list/get, create, cancel, update, delete.
+// Keep every write here so the write path lives in one place.
 //
 // All access goes through firebase-admin (server SDK) so the route handler
 // runs with project-admin credentials and bypasses client-side RTDB rules.
@@ -267,13 +268,11 @@ export type CancelSubscriptionResult =
   | { ok: false; error: CancelSubscriptionError; details?: unknown };
 
 /**
- * Cancel an existing subscription. ONE-WAY operation in Phase 1 —
- * cancelled records cannot be re-activated; admins must create a new
- * record instead.
+ * Cancel an existing subscription. Re-activating goes through
+ * updateSubscription (status → 'active').
  *
  * Semantics:
- *   - Mutates ONLY `status` (→ 'cancelled') and `updatedAt`. All other
- *     fields are immutable on existing records.
+ *   - Mutates ONLY `status` (→ 'cancelled') and `updatedAt`.
  *   - Does NOT touch `subscriptionTrialClaimed/{phone}`. The lifetime
  *     trial rule is preserved across cancellation: a cancelled trial
  *     still blocks a future trial for the same phone. This is enforced
@@ -329,8 +328,7 @@ export async function cancelSubscription(
     return { ok: false, error: 'rtdb_write_failed', details: err };
   }
 
-  // Audit trail — this is the only mutation allowed on an existing
-  // record, so it MUST be loggable. Future work may swap this for a
+  // Audit trail, like update and delete. Future work may swap this for a
   // structured logger / dedicated audit collection.
   console.log(
     '[subscriptions.repo] cancelled',
@@ -342,5 +340,107 @@ export async function cancelSubscription(
     }),
   );
 
+  return { ok: true };
+}
+
+// ─── Update path ───────────────────────────────────────────────────────
+
+export type UpdateSubscriptionResult =
+  | { ok: true; record: SubscriptionRecord }
+  | { ok: false; error: 'not_found' }
+  | { ok: false; error: 'invalid_input'; field: string; message: string }
+  | { ok: false; error: 'rtdb_write_failed'; details: unknown };
+
+/**
+ * Admin edit: status (including re-activating a cancelled record), dates,
+ * duration and paymentRef. Phone and type are immutable (see
+ * UpdateSubscriptionInputSchema). The trial flag and by-phone pointer are
+ * untouched. Malformed records are reported as not_found, as in cancel.
+ */
+export async function updateSubscription(
+  id: string,
+  changes: UpdateSubscriptionInput,
+  adminUid: string,
+): Promise<UpdateSubscriptionResult> {
+  const db = adminDb();
+  let snap;
+  try {
+    snap = await db.ref(subscriptionPath(id)).once('value');
+  } catch (err) {
+    return { ok: false, error: 'rtdb_write_failed', details: err };
+  }
+  const current = snap.exists() ? parseRow(snap.val(), id) : null;
+  if (!current) return { ok: false, error: 'not_found' };
+
+  const result = applySubscriptionUpdate(current, changes, Date.now());
+  if (!result.ok) return { ok: false, error: 'invalid_input', field: result.field, message: result.message };
+
+  // `id` is the RTDB key, never stored in the body (see createSubscription).
+  const stored: Partial<SubscriptionRecord> = { ...result.record };
+  delete stored.id;
+  try {
+    await db.ref(subscriptionPath(id)).set(stored);
+  } catch (err) {
+    return { ok: false, error: 'rtdb_write_failed', details: err };
+  }
+
+  console.log(
+    '[subscriptions.repo] updated',
+    JSON.stringify({
+      subscriptionId: id,
+      adminUid,
+      before: pick(current),
+      after: pick(result.record),
+      timestamp: result.record.updatedAt,
+    }),
+  );
+  return { ok: true, record: result.record };
+}
+
+function pick(r: SubscriptionRecord) {
+  return { status: r.status, startDate: r.startDate, durationDays: r.durationDays, endDate: r.endDate, paymentRef: r.paymentRef };
+}
+
+// ─── Delete path ───────────────────────────────────────────────────────
+
+export type DeleteSubscriptionResult =
+  | { ok: true }
+  | { ok: false; error: 'not_found' }
+  | { ok: false; error: 'rtdb_write_failed'; details: unknown };
+
+/**
+ * Permanently remove a record and its by-phone pointer in one atomic write.
+ * Keeps `subscriptionTrialClaimed/{phone}`: deleting a trial must not let the
+ * same phone claim a second one. Works on malformed records too (the admin's
+ * way to clean them up), as long as the phone can be read for the pointer.
+ */
+export async function deleteSubscription(
+  id: string,
+  adminUid: string,
+): Promise<DeleteSubscriptionResult> {
+  const db = adminDb();
+  let snap;
+  try {
+    snap = await db.ref(subscriptionPath(id)).once('value');
+  } catch (err) {
+    return { ok: false, error: 'rtdb_write_failed', details: err };
+  }
+  if (!snap.exists()) return { ok: false, error: 'not_found' };
+
+  const raw = snap.val() as { userPhone?: unknown };
+  const updates: Record<string, null> = { [subscriptionPath(id)]: null };
+  if (typeof raw?.userPhone === 'string' && isE164VN(raw.userPhone)) {
+    updates[byPhonePath(raw.userPhone, id)] = null;
+  }
+  try {
+    await db.ref().update(updates);
+  } catch (err) {
+    return { ok: false, error: 'rtdb_write_failed', details: err };
+  }
+
+  console.log(
+    '[subscriptions.repo] deleted',
+    JSON.stringify({ subscriptionId: id, adminUid, record: raw, timestamp: Date.now() }),
+  );
   return { ok: true };
 }
