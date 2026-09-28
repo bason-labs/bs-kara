@@ -1,236 +1,82 @@
 # BS Kara
 
-A real-time karaoke app for parties. The TV runs the player; phones run the remote. Search YouTube, drop songs into a shared queue, hear an AI MC announce each track, and let auto-random keep the music going when nobody's queueing.
+Real-time karaoke for parties: the TV plays the songs, and everyone's phone is the remote.
+
+**Live:** https://kara.bahuynh.com
+
+![BS Kara home screen](docs/images/home.png)
+
+## Features
+
+- Search YouTube and add songs to a shared queue from any phone
+- AI MC announces each song (OpenAI or Gemini text, Google TTS voice)
+- Auto-random keeps music playing when the queue is empty (genre/tone filters)
+- Voice chat to request songs by speaking
+- Rooms per registered host, joined by code or QR; admin area for subscriptions and stats
+- Vietnamese and English, light and dark theme
 
 ## Stack
 
-- **Next.js 16** (App Router) + **React 19**
-- **Firebase Realtime Database** — room state, queue, presence, MC lock
-- **YouTube Data API v3** for search, **yt-search** scraper as the quota-exhausted fallback
-- **OpenAI** (default) or **Gemini** for MC line generation
-- **Google Cloud TTS** for MC voice playback
-- **Tailwind CSS v4**, **react-i18next** (en + vi)
-- **Vitest** + **Testing Library** + **MSW**
+| Part | Tech |
+|---|---|
+| Web | Next.js 16, React 19, Tailwind CSS v4 |
+| Mobile | Expo (React Native) |
+| Data | Firebase Realtime Database + Auth |
+| APIs | YouTube Data API v3, OpenAI / Gemini, Google Cloud TTS |
+| Tests | Vitest, Testing Library, MSW |
+| Hosting | AWS EC2 (Terraform), Docker, Caddy, GitHub Actions |
 
-## Getting started
-
-Prereqs: Node 22, pnpm 10, a Firebase project (with Realtime Database enabled), a YouTube Data API key, plus OpenAI/Gemini and Google TTS keys for the AI MC.
-
-```bash
-pnpm install
-# create .env.local — see "Environment" in CLAUDE.md for the full key list
-pnpm dev
-```
-
-Open http://localhost:3000 on your phone (or simulate `pointer: coarse`) and http://localhost:3000/tv on a second screen.
-
-Full env-var matrix and architecture notes: [CLAUDE.md](./CLAUDE.md).
-
----
-
-### Multi-device dev testing
-
-To test on real phones during development, expose the local server over HTTPS using a tunnel.
-
-```bash
-# Terminal 1 — production build (closer to prod behavior than `next dev`)
-pnpm build && pnpm -C apps/web start
-
-# Terminal 2 — tunnel (pick one)
-ngrok http 3000
-# OR: cloudflared tunnel --url http://localhost:3000
-# OR: lt --port 3000
-```
-
-Then add the tunnel URL to `.env.local`:
-
-```
-NEXT_PUBLIC_PUBLIC_ORIGIN=https://<your-tunnel>.ngrok-free.app
-```
-
-Restart `pnpm -C apps/web start` after changing `.env.local`. The QR code on `/tv` will embed the tunnel URL so phones scanning it reach this dev machine over HTTPS — required for camera/QR scan, fullscreen API, and other secure-context browser features.
-
-`NEXT_PUBLIC_PUBLIC_ORIGIN` is dev-only. Do not set it in `.env.production` or commit it.
-
----
-
-## Architecture at a glance
+## How it works
 
 ```mermaid
 flowchart LR
-  Phone["Phone (/)"] -- subscribe + write --> RTDB[(Firebase RTDB)]
-  TV["TV (/tv)"] -- subscribe + write --> RTDB
-  RTDB -. "RoomState updates" .-> Phone
-  RTDB -. "RoomState updates" .-> TV
-
-  Phone -- search --> BFF["/api/youtube/search"]
-  TV -- search --> BFF
-  BFF --> YT["YouTube Data API v3"]
-  BFF -. "429 fallback" .-> Scraper["/api/search<br/>(yt-search)"]
-
-  Phone -- autocomplete --> Sugg["/api/suggestions"]
-  Sugg --> Google["suggestqueries.google.com"]
-
-  Phone -- MC line --> MCGen["/api/generate-mc"]
-  TV -- MC line --> MCGen
-  MCGen --> LLM["OpenAI / Gemini"]
-
-  Phone -- MC voice --> TTS["/api/tts"]
-  TV -- MC voice --> TTS
-  TTS --> GTTS["Google Cloud TTS"]
+  Phone["Phone (/)"] <--> RTDB[(Firebase RTDB)]
+  TV["TV (/tv)"] <--> RTDB
+  Phone --> API["Next.js API routes"]
+  TV --> API
+  API --> Ext["YouTube · OpenAI/Gemini · Google TTS"]
 ```
 
-The TV and the phones are both clients of the same Firebase room. Anything in `RoomState` (queue, currentPlaying, history, isPlaying, settings, MC lock, presence) syncs in both directions; everything else (search results, MC line generation, TTS audio) goes through a Next.js BFF route on the server.
+TV and phones share one room in Firebase, so the queue and playback stay in sync live. Search, MC lines
+and voice go through the app's server so API keys never reach the browser.
+Details: [docs/architecture.md](docs/architecture.md).
 
----
+## Run locally
 
-## Room join flow
+Needs Node 22, pnpm 10, a Firebase project with Realtime Database, and the API keys listed in
+[CLAUDE.md → Environment](./CLAUDE.md#environment).
 
-```mermaid
-flowchart TD
-  Visit["User opens /"] --> ParseURL{"?room= valid<br/>(4 digits)?"}
-  ParseURL -- "yes" --> Subscribed
-  ParseURL -- "no" --> Saved{"localStorage<br/>karaoke_client_room?"}
-  Saved -- "valid saved code" --> Replace["router.replace<br/>/?room=&lt;saved&gt;"]
-  Saved -- "none" --> PointerCheck{"pointer: coarse?"}
-
-  PointerCheck -- "yes (mobile)" --> Claim["claimOrGetActiveRoom()<br/>atomic transaction on<br/>meta/activeRoom"]
-  Claim --> Replace
-  PointerCheck -- "no (desktop)" --> JoinForm["JoinForm + OTPInput<br/>gated on activeRoom match"]
-
-  JoinForm --> Submit{"code === activeRoom?"}
-  Submit -- "yes" --> Subscribed
-  Submit -- "no" --> JoinForm
-
-  Subscribed["RemoteClient mounted<br/>(useRoom subscribed to RTDB)"]
-
-  TVStart["User opens /tv"] --> TVClaim["claimOrGetActiveRoom()<br/>+ set isTvActive presence<br/>(onDisconnect cleanup)"]
-  TVClaim --> WaitingOverlay["WaitingOverlay<br/>(QR + 'tap to start')"]
-  WaitingOverlay -- "first tap / keypress" --> TVMain["TVClient ready<br/>(player can autoplay)"]
+```bash
+pnpm install
+# create apps/web/.env.local with the keys from CLAUDE.md
+pnpm dev    # http://localhost:3000 (remote) and /tv (TV screen)
 ```
 
-The active-room pointer at `meta/activeRoom` is a single Firebase node. The TV claims it on mount; mobile phones auto-attach; desktops type the code shown on the TV. The server only accepts a code that matches the pointer — random codes are rejected, so guests can't accidentally land in an empty room.
+To test on real phones, run a tunnel (`ngrok http 3000`) and set
+`NEXT_PUBLIC_PUBLIC_ORIGIN=https://<tunnel-url>` in `.env.local` so the TV's QR code points to it.
 
----
+| Command | What it does |
+|---|---|
+| `pnpm dev` / `pnpm dev:mobile` | Web / Expo dev server |
+| `pnpm build` | Production build |
+| `pnpm test` · `pnpm lint` · `pnpm typecheck` | Checks, all workspaces |
 
-## Add-to-queue flow
+## Deploy
 
-```mermaid
-sequenceDiagram
-  autonumber
-  participant Phone
-  participant RTDB as Firebase RTDB
-  participant BFF as /api/youtube/search
-  participant MCGen as /api/generate-mc
-  participant TV
+Every push to `main` that touches the web app is tested, built into a Docker image, and deployed to
+AWS by GitHub Actions in about 2.5 minutes, with under a second of downtime.
 
-  Phone->>BFF: GET ?q=<query>
-  BFF-->>Phone: YouTubeVideo[]
-  Phone->>Phone: Open RequesterDialog<br/>(if requesterPromptEnabled)
-  Phone->>RTDB: push rooms/<id>/queue/<key><br/>= { ...video, requesterName? }
-  RTDB-->>TV: snapshot (queue updated)
-  RTDB-->>Phone: snapshot (queue updated;<br/>button flips to "Added")
-
-  par MC line pre-generation (parallel)
-    Phone->>MCGen: POST { songTitle, singerName }
-    MCGen-->>Phone: { text }
-    Phone->>RTDB: runTransaction queue/<key>.mcText = text<br/>(or currentPlaying if already promoted)
-  end
-```
-
-The MC line is fetched in parallel and written back via a transaction — if the song promoted to `currentPlaying` before the LLM responded (typical when the queue was empty), the write follows it there instead of resurrecting the deleted queue node. Pre-generation is opportunistic; failures fall through to a static MC line at playback time.
-
----
-
-## Playback + AI MC announcement
-
-```mermaid
-sequenceDiagram
-  autonumber
-  participant TV
-  participant RTDB as Firebase RTDB
-  participant Phone as Phone (fullscreen player)
-  participant TTS as /api/tts
-  participant Player as YouTube iframe
-
-  RTDB-->>TV: currentPlaying changed (id = X)
-  RTDB-->>Phone: currentPlaying changed (id = X)
-
-  par Cross-device announcement race
-    TV->>RTDB: runTransaction lastAnnouncedSongId<br/>claim "X" iff current !== "X"
-    Phone->>RTDB: runTransaction lastAnnouncedSongId<br/>claim "X" iff current !== "X"
-  end
-
-  alt Winner (e.g. TV)
-    TV->>TV: useMCPlayer gates iframe<br/>(mute + pause)
-    TV->>TTS: POST { text, voice }
-    TTS-->>TV: audio bytes
-    TV->>TV: speak via useAIVoice
-    TV->>TV: useMCKickPlay → setIsPlaying(true)
-  else Loser (e.g. Phone)
-    Phone->>Phone: tryClaimAnnouncementLock<br/>returns false
-    Phone->>Phone: skip MC; video plays normally
-  end
-
-  Player->>RTDB: onSongEnd → playNext()
-  RTDB-->>TV: queue[0] promoted to currentPlaying<br/>(or auto-random fills the slot)
-```
-
-Only one device speaks per song, even if both the TV and a phone fullscreen player are open. The lock at `lastAnnouncedSongId` survives reconnects, so a refresh of the announcing device doesn't double up.
-
----
-
-## Auto-random flow
-
-```mermaid
-flowchart TD
-  Tick["useAutoRandom effect tick<br/>(any room snapshot)"] --> Enabled{"isAutoRandomMode?"}
-  Enabled -- "no" --> End[exit]
-  Enabled -- "yes" --> Idle{"queue empty AND<br/>no currentPlaying?"}
-  Idle -- "no" --> End
-  Idle -- "yes" --> Busy{"local busy ref?"}
-  Busy -- "yes" --> End
-  Busy -- "no" --> Pick["pick title from<br/>lib/random/songPools<br/>(filtered by genre/type/tone)"]
-  Pick --> Skip{"already in<br/>playedHistory?"}
-  Skip -- "yes" --> Pick
-  Skip -- "no" --> Search["BFF /api/youtube/search"]
-  Search --> Verify{"room still idle?"}
-  Verify -- "no" --> End
-  Verify -- "yes" --> Write["set currentPlaying = picked"]
-  Write --> Track["push playedHistory"]
-```
-
-Both TV and phones can run the picker. The local busy ref dedupes within a single client; the post-fetch "still idle?" check dedupes across clients — whichever client writes `currentPlaying` first wins, and any other client that was about to write sees a non-empty slot and bails.
-
----
+- Setup log, step by step: [docs/devops/phase1-aws.md](docs/devops/phase1-aws.md)
+- Day-to-day operations (health, rollback, costs): [docs/devops/runbook.md](docs/devops/runbook.md)
 
 ## Project layout
 
 ```
-apps/web/            Next.js app (TV, remote, admin, API routes)
-apps/mobile/         Expo app
-packages/shared/     code shared by web and mobile (Firebase, useRoom, i18n, …)
-patches/             pnpm patches for mobile Android builds
-docs/                specs, plans, proposals
+apps/web/          Next.js app: TV, remote, admin, API routes
+apps/mobile/       Expo app
+packages/shared/   Shared by web and mobile: Firebase, room hooks, i18n
+infra/             Terraform, server setup, deploy scripts
+docs/              Architecture, DevOps notes, specs
 ```
 
-The detailed map is in [CLAUDE.md](./CLAUDE.md).
-
----
-
-## Scripts
-
-| Script | Purpose |
-|---|---|
-| `pnpm dev` | Web dev server on `:3000` |
-| `pnpm dev:mobile` | Expo dev server |
-| `pnpm build` | Production build |
-| `pnpm lint` | ESLint |
-| `pnpm test` | Vitest, all workspaces |
-| `pnpm typecheck` | TypeScript, all workspaces |
-
----
-
-## Contributing
-
-Read [CLAUDE.md](./CLAUDE.md) — it has the env-var list, the data flow, the component map and the testing rules.
+Contributing: read [CLAUDE.md](./CLAUDE.md) for the code map and testing rules.
