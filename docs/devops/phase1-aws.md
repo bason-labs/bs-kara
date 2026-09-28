@@ -270,3 +270,17 @@ on first request; the old sslip.io address 301-redirects to the domain.
 Lesson: merging before setting `SITE_HOST` deployed the old name twice in the Caddyfile
 ("ambiguous site definition"). Caddy kept the previous config (no downtime), the pipeline went red;
 fix = set the variable and re-run the workflow.
+
+## Step 9 — Retire Vercel
+
+```bash
+grep EXPO_PUBLIC_API_BASE_URL apps/mobile/.env   # → https://kara.bahuynh.com (mobile calls AWS, not Vercel)
+# code: delete apps/web/vercel.json; Caddy sets X-Real-IP for the voice rate limit
+#       (it read x-vercel-forwarded-for, so on AWS the per-client limit was silently skipped)
+# Vercel dashboard → project → Settings → General → Delete Project
+# Google Cloud → Credentials → browser key → Websites: remove *.vercel.app
+# Firebase → Authentication → Settings → Authorized domains: remove *.vercel.app
+```
+
+Only one host serves the app now. Phone builds made before the mobile URL change still call
+Vercel and stop working once it is deleted, so reinstall them.
