@@ -24,13 +24,15 @@ import { BackdropLayers } from '@/features/tv/components/BackdropLayers';
 import { TVRoomLookup } from '@/features/tv/components/TVRoomLookup';
 import { WaitingOverlay } from '@/features/tv/components/WaitingOverlay';
 import { QueuePanel } from '@/features/tv/components/QueuePanel';
+import { RoomBlockedScreen } from '@/components/RoomBlockedScreen';
 
 export default function TVClient() {
   const { t } = useTranslation();
   const [isInitialized, setIsInitialized] = useState(false);
   const initialize = useCallback(() => setIsInitialized(true), []);
 
-  const { phase, roomCode, joinUrl, activateRoomByCode, resolveRoomCode } = useTVPresence();
+  const { phase, roomCode, joinUrl, blockedReason, activateRoomByCode, resolveRoomCode, backToLookup } =
+    useTVPresence();
 
   const {
     roomData,
@@ -162,6 +164,18 @@ export default function TVClient() {
       videoContainerRef.current?.requestFullscreen?.().catch(() => {});
     }
   }, []);
+
+  if (phase === 'checking') {
+    return <main className="min-h-[100dvh] w-full bg-bg" aria-busy="true" />;
+  }
+
+  if (phase === 'blocked') {
+    const [title, message] =
+      blockedReason === 'room_not_found'
+        ? [t('tv.lookup.notFound'), 'Kiểm tra lại mã phòng.']
+        : ['Phòng này không còn hoạt động', 'Chủ phòng cần gia hạn gói.'];
+    return <RoomBlockedScreen title={title} message={message} actionLabel="Nhập mã khác" onAction={backToLookup} />;
+  }
 
   if (phase === 'lookup') {
     return (

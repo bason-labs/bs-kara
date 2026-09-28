@@ -119,8 +119,32 @@ describe('useRoomGate', () => {
     expect(pushSpy).not.toHaveBeenCalled();
   });
 
+  it('does not enter a room from the URL (host link, QR) when its subscription has expired', async () => {
+    setUrlRoom('4489');
+    stubFetch({ allowed: false, reason: 'subscription_expired' });
+    const { result } = renderHook(() => useRoomGate());
+    expect(result.current.isCheckingRoom).toBe(true);
+    expect(result.current.roomCode).toBeNull();
+    await act(async () => { await flushAsync(); });
+    expect(result.current.roomCode).toBeNull();
+    expect(result.current.blockedReason).toBe('subscription_expired');
+  });
+
+  it.each([
+    ['allowed', { ok: true, status: 200, json: async () => ({ allowed: true, reason: 'ok' }) }],
+    ['server error (fails open)', { ok: false, status: 503, json: async () => ({ allowed: false, reason: 'room_not_found' }) }],
+  ])('enters the URL room when the check is %s', async (_label, response) => {
+    setUrlRoom('4489');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
+    const { result } = renderHook(() => useRoomGate());
+    await act(async () => { await flushAsync(); });
+    expect(result.current.roomCode).toBe('4489');
+    expect(result.current.blockedReason).toBeNull();
+  });
+
   it('handleLeave navigates to / via window.location.assign', async () => {
     setUrlRoom('5678');
+    stubFetch({ allowed: true, reason: 'ok' });
     const { result } = renderHook(() => useRoomGate());
     act(() => { result.current.handleLeave(); });
     expect(assignSpy).toHaveBeenCalledWith('/');
