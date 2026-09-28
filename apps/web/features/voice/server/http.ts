@@ -23,9 +23,9 @@ export function bearer(req: Request) {
 }
 
 export function clientScope(req: Request) {
-  // Use only hosting-provider-owned headers; never trust a caller-supplied
-  // generic X-Forwarded-For value as a rate-limit identity.
-  const value = req.headers.get('x-vercel-forwarded-for') ?? req.headers.get('cf-connecting-ip');
+  // Caddy overwrites X-Real-IP with the connecting address (infra/server/Caddyfile),
+  // so a caller cannot forge it. Never trust X-Forwarded-For as a rate-limit identity.
+  const value = req.headers.get('x-real-ip');
   if (!value) return undefined;
   return value.split(',')[0].trim().slice(0, 128) || undefined;
 }

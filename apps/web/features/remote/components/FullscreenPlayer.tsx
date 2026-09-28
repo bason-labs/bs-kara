@@ -204,7 +204,7 @@ export function FullscreenPlayer({
 
     // ── DIAGNOSTIC LOGGING (REMOVE AFTER iOS BUG IS CONFIRMED FIXED) ──
     // The build marker lets us verify on a real device that the new
-    // bundle is actually loaded (cached service workers / Vercel CDN
+    // bundle is actually loaded (cached service workers / a CDN
     // can serve stale builds). Look for `[FS/iOS] build:dvh-state v1`
     // in the Safari Web Inspector console.
     const BUILD_TAG = '[FS/iOS] build:dvh-state v1';

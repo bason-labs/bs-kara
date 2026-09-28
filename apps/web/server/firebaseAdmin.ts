@@ -20,7 +20,7 @@ export function getAdminApp(): App {
     );
   }
 
-  // Vercel stores multi-line private keys with literal "\n". Convert back to
+  // Env files often store multi-line private keys with literal "\n". Convert back to
   // real newlines so the PEM parser sees a valid block.
   const privateKey = rawKey.replace(/\\n/g, '\n');
 

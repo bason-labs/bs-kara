@@ -9,7 +9,11 @@ afterEach(() => vi.unstubAllEnvs());
 describe('voice HTTP boundary', () => {
   it('does not collapse clients into one fallback rate-limit scope', () => {
     expect(clientScope(new Request('http://localhost'))).toBeUndefined();
-    expect(clientScope(new Request('http://localhost', { headers: { 'x-vercel-forwarded-for': '203.0.113.7' } }))).toBe('203.0.113.7');
+    expect(clientScope(new Request('http://localhost', { headers: { 'x-real-ip': '203.0.113.7' } }))).toBe('203.0.113.7');
+  });
+  it('does not skip the per-client rate limit when running behind Caddy instead of Vercel', () => {
+    const req = new Request('http://localhost', { headers: { 'x-real-ip': '203.0.113.7', 'x-vercel-forwarded-for': '198.51.100.1' } });
+    expect(clientScope(req)).toBe('203.0.113.7');
   });
   it('returns a clear 503 when OpenAI credentials are absent', async () => {
     vi.stubEnv('OPENAI_API_KEY', '');
