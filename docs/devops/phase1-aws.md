@@ -284,3 +284,18 @@ grep EXPO_PUBLIC_API_BASE_URL apps/mobile/.env   # → https://kara.bahuynh.com 
 
 Only one host serves the app now. Phone builds made before the mobile URL change still call
 Vercel and stop working once it is deleted, so reinstall them.
+
+## Step 10 — Move the class deck to bahuynh.com/slide
+
+```bash
+ssh -i ~/.ssh/bs-kara ubuntu@54.251.27.240 '
+  cd /opt/sites/bahuynh.com &&
+  sudo mkdir -p slide && sudo mv index.html slide/index.html &&
+  echo "<meta http-equiv=refresh content=\"0; url=/slide/\">" | sudo tee index.html >/dev/null'
+curl -sI https://bahuynh.com/slide/ | head -1   # HTTP/2 200
+# AWS Billing → Budgets → edit → 25 (alert earlier, while credits cover the bill)
+```
+
+No Caddy change: `file_server` serves any folder under `/opt/sites/bahuynh.com`. The deck is not in
+git (it has classmates' info and this repo is public). The `/` forward is temporary until the
+profile page replaces it. Phase 1 is closed.
